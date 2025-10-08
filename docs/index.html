@@ -35,30 +35,74 @@
 
     <main>
       <section class="cards" aria-live="polite">
-        <article class="card">
-          <h2>Total de Irmãos</h2>
-          <p class="value" id="total-count">0</p>
+        <article class="card" data-category="total" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Total de Irmãos</h2>
+            <span class="value" id="total-count">0</span>
+          </div>
+          <p class="card-hint">Clique para ver todos os irmãos</p>
         </article>
-        <article class="card">
-          <h2>Crianças (0-10)</h2>
-          <p class="value" id="children-count">0</p>
+        <article class="card" data-category="children" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Crianças (0-10)</h2>
+            <span class="value" id="children-count">0</span>
+          </div>
+          <p class="card-hint">Clique para ver as crianças</p>
         </article>
-        <article class="card">
-          <h2>Adolescentes (11-17)</h2>
-          <p class="value" id="teens-count">0</p>
+        <article class="card" data-category="teens" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Adolescentes (11-17)</h2>
+            <span class="value" id="teens-count">0</span>
+          </div>
+          <p class="card-hint">Clique para ver os adolescentes</p>
         </article>
-        <article class="card">
-          <h2>Capitães (18-29)</h2>
-          <p class="value" id="captains-count">0</p>
+        <article class="card" data-category="captains" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Capitães (18-29)</h2>
+            <span class="value" id="captains-count">0</span>
+          </div>
+          <p class="card-hint">Clique para ver os capitães</p>
         </article>
-        <article class="card">
-          <h2>Valentes de Davi (30-49)</h2>
-          <p class="value" id="braves-count">0</p>
+        <article class="card" data-category="braves" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Valentes de Davi (30-49)</h2>
+            <span class="value" id="braves-count">0</span>
+          </div>
+          <p class="card-hint">Clique para ver os valentes</p>
         </article>
-        <article class="card">
-          <h2>Intendentes (50+)</h2>
-          <p class="value" id="stewards-count">0</p>
+        <article class="card" data-category="stewards" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Intendentes (50+)</h2>
+            <span class="value" id="stewards-count">0</span>
+          </div>
+          <p class="card-hint">Clique para ver os intendentes</p>
         </article>
+      </section>
+
+      <section class="overview" aria-labelledby="overview-title">
+        <div class="section-header">
+          <h2 id="overview-title">Distribuição geral de idades</h2>
+          <p>Visualize a idade de todos os irmãos cadastrados.</p>
+        </div>
+        <div class="chart-container">
+          <canvas id="overall-age-chart" aria-label="Gráfico geral de idades" role="img"></canvas>
+          <p class="empty-message" id="overall-empty">Nenhum dado de idade disponível.</p>
+        </div>
+      </section>
+
+      <section class="category-panel" aria-live="polite">
+        <header class="section-header">
+          <h2 id="category-title">Total de Irmãos</h2>
+          <p id="category-description">Veja todos os irmãos cadastrados na planilha.</p>
+        </header>
+        <div class="chart-container">
+          <canvas id="category-age-chart" aria-label="Gráfico de idades por categoria" role="img"></canvas>
+          <p class="empty-message" id="category-chart-empty">
+            Não há idades disponíveis para esta categoria.
+          </p>
+        </div>
+        <div id="category-cards" class="people-grid" aria-live="polite"></div>
+        <p class="empty-message" id="category-empty">Nenhum irmão encontrado nesta categoria.</p>
       </section>
 
       <section id="status" class="status"></section>
@@ -79,6 +123,7 @@
       </div>
     </template>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js" type="module"></script>
   </body>
 </html>

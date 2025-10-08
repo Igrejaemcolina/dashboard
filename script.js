@@ -1,6 +1,7 @@
 const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+const collator = new Intl.Collator("pt-BR", { sensitivity: "base" });
 
 const elements = {
   total: document.getElementById("total-count"),
@@ -18,14 +19,86 @@ const elements = {
   modalName: document.getElementById("modal-name"),
   modalDetails: document.getElementById("modal-details"),
   detailTemplate: document.getElementById("detail-row-template"),
+  summaryCards: Array.from(document.querySelectorAll(".cards .card[data-category]")),
+  categoryTitle: document.getElementById("category-title"),
+  categoryDescription: document.getElementById("category-description"),
+  categoryCards: document.getElementById("category-cards"),
+  categoryEmpty: document.getElementById("category-empty"),
+  categoryChartEmpty: document.getElementById("category-chart-empty"),
+  overallEmpty: document.getElementById("overall-empty"),
+  overallChart: document.getElementById("overall-age-chart"),
+  categoryChart: document.getElementById("category-age-chart"),
 };
+
+const CATEGORY_CONFIG = [
+  {
+    id: "total",
+    title: "Total de Irmãos",
+    description: "Veja todos os irmãos cadastrados na planilha.",
+    chartLabel: "Idades de todos os irmãos",
+    emptyMessage: "Nenhum irmão encontrado nesta categoria.",
+    filter: () => true,
+  },
+  {
+    id: "children",
+    title: "Crianças (0-10)",
+    description: "Irmãos com idades entre 0 e 10 anos.",
+    chartLabel: "Idades das crianças",
+    emptyMessage: "Nenhuma criança cadastrada até o momento.",
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 0 && entry.age <= 10,
+  },
+  {
+    id: "teens",
+    title: "Adolescentes (11-17)",
+    description: "Irmãos com idades entre 11 e 17 anos.",
+    chartLabel: "Idades dos adolescentes",
+    emptyMessage: "Nenhum adolescente cadastrado até o momento.",
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
+  },
+  {
+    id: "captains",
+    title: "Capitães (18-29)",
+    description: "Irmãos com idades entre 18 e 29 anos.",
+    chartLabel: "Idades dos capitães",
+    emptyMessage: "Nenhum capitão cadastrado até o momento.",
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 18 && entry.age <= 29,
+  },
+  {
+    id: "braves",
+    title: "Valentes de Davi (30-49)",
+    description: "Irmãos com idades entre 30 e 49 anos.",
+    chartLabel: "Idades dos valentes de Davi",
+    emptyMessage: "Nenhum valente cadastrado até o momento.",
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 30 && entry.age <= 49,
+  },
+  {
+    id: "stewards",
+    title: "Intendentes (50+)",
+    description: "Irmãos com 50 anos ou mais.",
+    chartLabel: "Idades dos intendentes",
+    emptyMessage: "Nenhum intendente cadastrado até o momento.",
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 50,
+  },
+];
+
+const CATEGORY_BY_ID = CATEGORY_CONFIG.reduce((acc, category) => {
+  acc[category.id] = category;
+  return acc;
+}, {});
 
 const state = {
   records: [],
   columns: [],
   nameColumn: null,
   birthColumn: null,
+  phoneColumn: null,
+  enrichedRecords: [],
   refreshTimer: null,
+  activeCategory: "total",
+  charts: {
+    overall: null,
+    category: null,
+  },
 };
 
 async function fetchSheetData() {
@@ -55,6 +128,16 @@ async function fetchSheetData() {
       "aniversario",
       "aniversário",
     ]);
+    state.phoneColumn = detectColumn(columns, records, [
+      "telefone",
+      "telefone celular",
+      "telefone de contato",
+      "celular",
+      "whatsapp",
+      "contato",
+    ]);
+
+    state.enrichedRecords = buildEnrichedRecords(records);
 
     const statusFromDashboard = updateDashboard();
     configureAutoRefresh();
@@ -204,8 +287,27 @@ function normalizeString(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+function buildEnrichedRecords(records) {
+  const { birthColumn, nameColumn, phoneColumn } = state;
+
+  return records.map((record) => {
+    const rawBirth = birthColumn
+      ? record.__raw?.[birthColumn] ?? record[birthColumn]
+      : null;
+    const birthDate = birthColumn ? parseDate(rawBirth) : null;
+    const age = birthDate ? calculateAge(birthDate) : null;
+
+    return {
+      record,
+      age,
+      name: nameColumn ? record[nameColumn] ?? "" : "",
+      phone: phoneColumn ? record[phoneColumn] ?? "" : "",
+    };
+  });
+}
+
 function updateDashboard() {
-  const { records, birthColumn } = state;
+  const { records, birthColumn, enrichedRecords } = state;
 
   elements.total.textContent = records.length;
 
@@ -226,12 +328,10 @@ function updateDashboard() {
       isError: true,
     };
   } else {
-    records.forEach((record) => {
-      const rawBirth = record.__raw?.[birthColumn] ?? record[birthColumn];
-      const birthDate = parseDate(rawBirth);
-      if (!birthDate) return;
+    enrichedRecords.forEach((entry) => {
+      const { age } = entry;
+      if (!Number.isFinite(age)) return;
 
-      const age = calculateAge(birthDate);
       if (age >= 0 && age <= 10) counters.children += 1;
       else if (age >= 11 && age <= 17) counters.teens += 1;
       else if (age >= 18 && age <= 29) counters.captains += 1;
@@ -247,6 +347,8 @@ function updateDashboard() {
   elements.stewards.textContent = counters.stewards;
 
   buildSuggestions();
+  updateOverallChart(enrichedRecords);
+  renderCategory(state.activeCategory);
 
   return statusMessage;
 }
@@ -294,6 +396,241 @@ function calculateAge(date) {
     age -= 1;
   }
   return age;
+}
+
+function buildAgeDistribution(entries) {
+  const counts = new Map();
+
+  entries.forEach(({ age }) => {
+    if (!Number.isFinite(age) || age < 0) return;
+    counts.set(age, (counts.get(age) ?? 0) + 1);
+  });
+
+  const ages = Array.from(counts.keys()).sort((a, b) => a - b);
+
+  return {
+    labels: ages.map((age) => String(age)),
+    data: ages.map((age) => counts.get(age)),
+  };
+}
+
+function createChartOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        ticks: {
+          color: "#cbd5f5",
+        },
+        grid: {
+          color: "rgba(148, 163, 184, 0.15)",
+        },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+          color: "#cbd5f5",
+        },
+        grid: {
+          color: "rgba(148, 163, 184, 0.12)",
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        borderWidth: 1,
+        borderColor: "rgba(56, 189, 248, 0.4)",
+      },
+    },
+  };
+}
+
+function updateOverallChart(entries) {
+  if (!elements.overallChart) return;
+
+  const distribution = buildAgeDistribution(entries);
+  const hasData = distribution.labels.length > 0;
+
+  elements.overallChart.style.display = hasData ? "block" : "none";
+  elements.overallEmpty.classList.toggle("visible", !hasData);
+
+  if (!hasData) {
+    if (state.charts.overall) {
+      state.charts.overall.destroy();
+      state.charts.overall = null;
+    }
+    return;
+  }
+
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js não foi carregado. Gráficos não serão exibidos.");
+    return;
+  }
+
+  const dataset = {
+    label: "Quantidade de irmãos",
+    backgroundColor: "rgba(56, 189, 248, 0.35)",
+    borderColor: "#38bdf8",
+    borderWidth: 2,
+    borderRadius: 8,
+    data: distribution.data,
+  };
+
+  if (!state.charts.overall) {
+    state.charts.overall = new Chart(elements.overallChart.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: distribution.labels,
+        datasets: [dataset],
+      },
+      options: createChartOptions(),
+    });
+  } else {
+    const chart = state.charts.overall;
+    chart.data.labels = distribution.labels;
+    chart.data.datasets[0].data = distribution.data;
+    chart.update();
+  }
+}
+
+function updateCategoryChart(entries, category) {
+  if (!elements.categoryChart) return;
+
+  const validEntries = entries.filter((entry) => Number.isFinite(entry.age));
+  const distribution = buildAgeDistribution(validEntries);
+  const hasData = distribution.labels.length > 0;
+
+  elements.categoryChart.style.display = hasData ? "block" : "none";
+  elements.categoryChartEmpty.classList.toggle("visible", !hasData);
+
+  if (!hasData) {
+    if (state.charts.category) {
+      state.charts.category.destroy();
+      state.charts.category = null;
+    }
+    return;
+  }
+
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js não foi carregado. Gráficos não serão exibidos.");
+    return;
+  }
+
+  const dataset = {
+    label: category.chartLabel,
+    backgroundColor: "rgba(56, 189, 248, 0.35)",
+    borderColor: "#38bdf8",
+    borderWidth: 2,
+    borderRadius: 8,
+    data: distribution.data,
+  };
+
+  if (!state.charts.category) {
+    state.charts.category = new Chart(elements.categoryChart.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: distribution.labels,
+        datasets: [dataset],
+      },
+      options: createChartOptions(),
+    });
+  } else {
+    const chart = state.charts.category;
+    chart.data.labels = distribution.labels;
+    chart.data.datasets[0].label = category.chartLabel;
+    chart.data.datasets[0].data = distribution.data;
+    chart.update();
+  }
+}
+
+function updateCategoryCards(entries, category) {
+  const container = elements.categoryCards;
+  container.innerHTML = "";
+
+  if (!entries.length) {
+    elements.categoryEmpty.textContent = category.emptyMessage;
+    elements.categoryEmpty.classList.add("visible");
+    return;
+  }
+
+  elements.categoryEmpty.classList.remove("visible");
+
+  const sortedEntries = [...entries].sort((a, b) =>
+    collator.compare(a.name || "", b.name || "")
+  );
+
+  sortedEntries.forEach((entry) => {
+    const card = document.createElement("article");
+    card.className = "person-card";
+    card.tabIndex = 0;
+
+    const nameElement = document.createElement("strong");
+    nameElement.textContent = entry.name || "(Sem nome)";
+
+    const ageElement = document.createElement("span");
+    ageElement.textContent = `Idade: ${formatAge(entry.age)}`;
+
+    const phoneElement = document.createElement("span");
+    phoneElement.textContent = `Telefone: ${formatPhone(entry.phone)}`;
+
+    card.append(nameElement, ageElement, phoneElement);
+
+    card.addEventListener("click", () => openRecord(entry.record));
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openRecord(entry.record);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function formatAge(age) {
+  if (!Number.isFinite(age)) {
+    return "não informada";
+  }
+  return `${age} ${age === 1 ? "ano" : "anos"}`;
+}
+
+function formatPhone(phone) {
+  if (!phone) {
+    return "não informado";
+  }
+  return phone;
+}
+
+function setActiveSummaryCard(categoryId) {
+  elements.summaryCards.forEach((card) => {
+    card.classList.toggle("active", card.dataset.category === categoryId);
+  });
+}
+
+function renderCategory(categoryId = "total") {
+  const category = CATEGORY_BY_ID[categoryId] ?? CATEGORY_BY_ID.total;
+  state.activeCategory = category.id;
+
+  elements.categoryTitle.textContent = category.title;
+  elements.categoryDescription.textContent = category.description;
+  elements.categoryEmpty.textContent = category.emptyMessage;
+
+  setActiveSummaryCard(category.id);
+
+  const filteredEntries = state.enrichedRecords.filter((entry) =>
+    category.filter(entry)
+  );
+
+  updateCategoryCards(filteredEntries, category);
+  updateCategoryChart(filteredEntries, category);
 }
 
 function setStatus(message, isError = false) {
@@ -458,7 +795,18 @@ function setupEventListeners() {
       elements.suggestions.classList.remove("visible");
     }
   });
+
+  elements.summaryCards.forEach((card) => {
+    card.addEventListener("click", () => renderCategory(card.dataset.category));
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        renderCategory(card.dataset.category);
+      }
+    });
+  });
 }
 
 setupEventListeners();
+renderCategory(state.activeCategory);
 fetchSheetData();
