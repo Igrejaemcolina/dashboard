@@ -42,10 +42,16 @@ async function fetchSheetData() {
 
     state.records = records;
     state.columns = columns;
-    state.nameColumn = detectColumn(columns, ["nome", "name"]);
-    state.birthColumn = detectColumn(columns, [
+    state.nameColumn = detectColumn(columns, records, [
+      "nome completo do irmao",
+      "nome do irmao",
+      "nome",
+      "name",
+    ]);
+    state.birthColumn = detectColumn(columns, records, [
       "data de nascimento",
       "nascimento",
+      "data de aniversario",
       "aniversario",
       "aniversário",
     ]);
@@ -84,19 +90,61 @@ function parseTable(table) {
   const rawColumns = Array.isArray(safeTable.cols) ? safeTable.cols : [];
   const rawRows = Array.isArray(safeTable.rows) ? safeTable.rows : [];
 
-  const columns = rawColumns.map((col, index) => {
+  let columns = rawColumns.map((col, index) => {
     const label = col.label?.trim();
     if (label) return label;
     return col.id ? String(col.id).trim() : `Coluna ${index + 1}`;
   });
 
-  const records = rawRows
+  let records = rawRows
     .map((row) => buildRecord(row, columns))
     .filter((record) =>
       record && columns.some((col) => String(record[col] ?? "").trim().length > 0)
     );
 
+  const genericColumnPattern = /^(coluna|column)\s+\d+$|^col\d+$|^[A-Z]+$/i;
+  const columnsLookGeneric = columns.every((column) =>
+    genericColumnPattern.test(column) || normalizeString(column).startsWith("coluna ")
+  );
+
+  if (columnsLookGeneric && records.length) {
+    const headerRow = records[0];
+    const renamedColumns = columns.map((column, index) => {
+      const candidate = headerRow[column];
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate.trim();
+      }
+      return column;
+    });
+
+    const cleanedRecords = records.slice(1).map((record) =>
+      remapRecord(record, columns, renamedColumns)
+    );
+
+    columns = renamedColumns;
+    records = cleanedRecords;
+  }
+
   return { columns, records };
+}
+
+function remapRecord(record, sourceColumns, targetColumns) {
+  const remapped = {};
+  const remappedRaw = {};
+
+  targetColumns.forEach((targetColumn, index) => {
+    const sourceColumn = sourceColumns[index];
+    remapped[targetColumn] = record[sourceColumn] ?? "";
+    if (record.__raw) {
+      remappedRaw[targetColumn] = record.__raw[sourceColumn];
+    }
+  });
+
+  if (record.__raw) {
+    remapped.__raw = remappedRaw;
+  }
+
+  return remapped;
 }
 
 function buildRecord(row, columns) {
@@ -116,14 +164,37 @@ function buildRecord(row, columns) {
   return entry;
 }
 
-function detectColumn(columns, targets) {
+function detectColumn(columns, records, targets) {
   const normalizedTargets = targets.map((target) => normalizeString(target));
-  return (
-    columns.find((column) => {
-      const normalized = normalizeString(column);
-      return normalizedTargets.some((target) => normalized.includes(target));
-    }) ?? null
-  );
+
+  const columnMatch = columns.find((column) => {
+    const normalized = normalizeString(column);
+    return normalizedTargets.some((target) =>
+      normalized.includes(target) || normalized === target
+    );
+  });
+
+  if (columnMatch) {
+    return columnMatch;
+  }
+
+  if (records.length) {
+    const firstRecord = records[0];
+    const matchFromFirstRow = columns.find((column) => {
+      const value = firstRecord[column];
+      if (typeof value !== "string") return false;
+      const normalized = normalizeString(value);
+      return normalizedTargets.some((target) =>
+        normalized.includes(target) || normalized === target
+      );
+    });
+
+    if (matchFromFirstRow) {
+      return matchFromFirstRow;
+    }
+  }
+
+  return null;
 }
 
 function normalizeString(value) {
