@@ -21,11 +21,11 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 ### Navegação por categorias
 
-- Os cartões do painel principal exibem os totais gerais e, ao serem clicados, abrem uma nova aba com a página `category.html` filtrada para a faixa etária correspondente.
+- Os cartões do painel principal exibem os totais gerais e, ao serem clicados, navegam na mesma aba para a página `category.html` filtrada para a faixa etária correspondente.
 - As faixas utilizadas são:
   - Crianças: 0 a 10 anos
-  - Adolescentes: 11 a 19 anos
-  - Capitães: 20 a 29 anos
+  - Adolescentes: 11 a 17 anos
+  - Capitães: 18 a 29 anos
   - Valentes de Davi: 30 a 49 anos
   - Intendentes: 50 anos ou mais
 - Cada página de categoria inclui um gráfico de distribuição de idades, a contagem de irmãos daquela faixa e cartões clicáveis com nome, idade calculada a partir da data de nascimento e telefone.

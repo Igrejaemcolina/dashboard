@@ -40,42 +40,42 @@
             <h2>Total de Irmãos</h2>
             <span class="value" id="total-count">0</span>
           </div>
-          <p class="card-hint">Abrir lista completa em uma nova aba</p>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
         <article class="card" data-category="children" role="button" tabindex="0">
           <div class="card-header">
             <h2>Crianças (0-10)</h2>
             <span class="value" id="children-count">0</span>
           </div>
-          <p class="card-hint">Abrir somente crianças em nova aba</p>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
         <article class="card" data-category="teens" role="button" tabindex="0">
           <div class="card-header">
-            <h2>Adolescentes (11-19)</h2>
+            <h2>Adolescentes (11-17)</h2>
             <span class="value" id="teens-count">0</span>
           </div>
-          <p class="card-hint">Abrir adolescentes em nova aba</p>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
         <article class="card" data-category="captains" role="button" tabindex="0">
           <div class="card-header">
-            <h2>Capitães (20-29)</h2>
+            <h2>Capitães (18-29)</h2>
             <span class="value" id="captains-count">0</span>
           </div>
-          <p class="card-hint">Abrir capitães em nova aba</p>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
         <article class="card" data-category="braves" role="button" tabindex="0">
           <div class="card-header">
             <h2>Valentes de Davi (30-49)</h2>
             <span class="value" id="braves-count">0</span>
           </div>
-          <p class="card-hint">Abrir valentes de Davi em nova aba</p>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
         <article class="card" data-category="stewards" role="button" tabindex="0">
           <div class="card-header">
             <h2>Intendentes (50+)</h2>
             <span class="value" id="stewards-count">0</span>
           </div>
-          <p class="card-hint">Abrir intendentes em nova aba</p>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
       </section>
 
@@ -88,21 +88,6 @@
           <canvas id="overall-age-chart" aria-label="Gráfico geral de idades" role="img"></canvas>
           <p class="empty-message" id="overall-empty">Nenhum dado de idade disponível.</p>
         </div>
-      </section>
-
-      <section class="category-panel" aria-live="polite">
-        <header class="section-header">
-          <h2 id="category-title">Total de Irmãos</h2>
-          <p id="category-description">Veja todos os irmãos cadastrados na planilha.</p>
-        </header>
-        <div class="chart-container">
-          <canvas id="category-age-chart" aria-label="Gráfico de idades por categoria" role="img"></canvas>
-          <p class="empty-message" id="category-chart-empty">
-            Não há idades disponíveis para esta categoria.
-          </p>
-        </div>
-        <div id="category-cards" class="people-grid" aria-live="polite"></div>
-        <p class="empty-message" id="category-empty">Nenhum irmão encontrado nesta categoria.</p>
       </section>
 
       <section id="status" class="status"></section>

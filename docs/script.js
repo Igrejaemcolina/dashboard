@@ -58,19 +58,19 @@ const CATEGORY_CONFIG = [
   },
   {
     id: "teens",
-    title: "Adolescentes (11-19)",
-    description: "Irmãos com idades entre 11 e 19 anos.",
+    title: "Adolescentes (11-17)",
+    description: "Irmãos com idades entre 11 e 17 anos.",
     chartLabel: "Idades dos adolescentes",
     emptyMessage: "Nenhum adolescente cadastrado até o momento.",
-    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 19,
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
   },
   {
     id: "captains",
-    title: "Capitães (20-29)",
-    description: "Irmãos com idades entre 20 e 29 anos.",
+    title: "Capitães (18-29)",
+    description: "Irmãos com idades entre 18 e 29 anos.",
     chartLabel: "Idades dos capitães",
     emptyMessage: "Nenhum capitão cadastrado até o momento.",
-    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 20 && entry.age <= 29,
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 18 && entry.age <= 29,
   },
   {
     id: "braves",
@@ -363,8 +363,8 @@ function updateDashboard() {
       if (!Number.isFinite(age)) return;
 
       if (age >= 0 && age <= 10) counters.children += 1;
-      else if (age >= 11 && age <= 19) counters.teens += 1;
-      else if (age >= 20 && age <= 29) counters.captains += 1;
+      else if (age >= 11 && age <= 17) counters.teens += 1;
+      else if (age >= 18 && age <= 29) counters.captains += 1;
       else if (age >= 30 && age <= 49) counters.braves += 1;
       else if (age >= 50) counters.stewards += 1;
     });
@@ -858,7 +858,7 @@ function openCategoryView(categoryId) {
   if (!categoryId) return;
   const url = new URL("category.html", window.location.href);
   url.searchParams.set("category", categoryId);
-  window.open(url.toString(), "_blank", "noopener,noreferrer");
+  window.location.assign(url.toString());
 }
 
 function setupEventListeners() {
@@ -891,13 +891,11 @@ function setupEventListeners() {
     if (!categoryId) return;
     card.addEventListener("click", (event) => {
       event.preventDefault();
-      renderCategory(categoryId);
       openCategoryView(categoryId);
     });
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        renderCategory(categoryId);
         openCategoryView(categoryId);
       }
     });
@@ -920,5 +918,7 @@ function setupEventListeners() {
 }
 
 setupEventListeners();
-renderCategory(state.activeCategory);
+if (isCategoryPage) {
+  renderCategory(state.activeCategory);
+}
 fetchSheetData();
