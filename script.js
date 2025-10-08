@@ -2,6 +2,9 @@ const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const collator = new Intl.Collator("pt-BR", { sensitivity: "base" });
+const pageType = document.body?.dataset.page ?? "dashboard";
+const isDashboardPage = pageType === "dashboard";
+const isCategoryPage = pageType === "category";
 
 const elements = {
   total: document.getElementById("total-count"),
@@ -19,15 +22,21 @@ const elements = {
   modalName: document.getElementById("modal-name"),
   modalDetails: document.getElementById("modal-details"),
   detailTemplate: document.getElementById("detail-row-template"),
-  summaryCards: Array.from(document.querySelectorAll(".cards .card[data-category]")),
+  summaryCards: Array.from(
+    document.querySelectorAll(".cards .card[data-category]")
+  ),
   categoryTitle: document.getElementById("category-title"),
   categoryDescription: document.getElementById("category-description"),
+  categoryMeta: document.getElementById("category-meta"),
   categoryCards: document.getElementById("category-cards"),
   categoryEmpty: document.getElementById("category-empty"),
   categoryChartEmpty: document.getElementById("category-chart-empty"),
   overallEmpty: document.getElementById("overall-empty"),
   overallChart: document.getElementById("overall-age-chart"),
   categoryChart: document.getElementById("category-age-chart"),
+  categoryLinks: Array.from(
+    document.querySelectorAll("[data-category-link]")
+  ),
 };
 
 const CATEGORY_CONFIG = [
@@ -49,19 +58,19 @@ const CATEGORY_CONFIG = [
   },
   {
     id: "teens",
-    title: "Adolescentes (11-17)",
-    description: "Irmãos com idades entre 11 e 17 anos.",
+    title: "Adolescentes (11-19)",
+    description: "Irmãos com idades entre 11 e 19 anos.",
     chartLabel: "Idades dos adolescentes",
     emptyMessage: "Nenhum adolescente cadastrado até o momento.",
-    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 19,
   },
   {
     id: "captains",
-    title: "Capitães (18-29)",
-    description: "Irmãos com idades entre 18 e 29 anos.",
+    title: "Capitães (20-29)",
+    description: "Irmãos com idades entre 20 e 29 anos.",
     chartLabel: "Idades dos capitães",
     emptyMessage: "Nenhum capitão cadastrado até o momento.",
-    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 18 && entry.age <= 29,
+    filter: (entry) => Number.isFinite(entry.age) && entry.age >= 20 && entry.age <= 29,
   },
   {
     id: "braves",
@@ -86,6 +95,19 @@ const CATEGORY_BY_ID = CATEGORY_CONFIG.reduce((acc, category) => {
   return acc;
 }, {});
 
+function getInitialCategory() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("category");
+    if (requested && CATEGORY_BY_ID[requested]) {
+      return requested;
+    }
+  } catch (error) {
+    console.warn("Não foi possível ler os parâmetros de URL:", error);
+  }
+  return "total";
+}
+
 const state = {
   records: [],
   columns: [],
@@ -94,7 +116,7 @@ const state = {
   phoneColumn: null,
   enrichedRecords: [],
   refreshTimer: null,
-  activeCategory: "total",
+  activeCategory: getInitialCategory(),
   charts: {
     overall: null,
     category: null,
@@ -138,11 +160,25 @@ async function fetchSheetData() {
     ]);
 
     state.enrichedRecords = buildEnrichedRecords(records);
+    buildSuggestions();
 
-    const statusFromDashboard = updateDashboard();
+    if (!CATEGORY_BY_ID[state.activeCategory]) {
+      state.activeCategory = "total";
+    }
+
+    updateDashboard();
+
+    if (elements.categoryCards || elements.categoryTitle) {
+      renderCategory(state.activeCategory);
+    }
+
     configureAutoRefresh();
-    if (statusFromDashboard) {
-      setStatus(statusFromDashboard.message, statusFromDashboard.isError);
+    const missingBirthColumn = !state.birthColumn;
+    if (missingBirthColumn) {
+      setStatus(
+        "Não encontramos a coluna de data de nascimento. Certifique-se de que uma coluna tenha esse nome.",
+        true
+      );
     } else {
       setStatus(
         records.length
@@ -309,7 +345,9 @@ function buildEnrichedRecords(records) {
 function updateDashboard() {
   const { records, birthColumn, enrichedRecords } = state;
 
-  elements.total.textContent = records.length;
+  if (elements.total) {
+    elements.total.textContent = records.length;
+  }
 
   const counters = {
     children: 0,
@@ -319,38 +357,26 @@ function updateDashboard() {
     stewards: 0,
   };
 
-  let statusMessage = null;
-
-  if (!birthColumn) {
-    statusMessage = {
-      message:
-        "Não encontramos a coluna de data de nascimento. Certifique-se de que uma coluna tenha esse nome.",
-      isError: true,
-    };
-  } else {
+  if (birthColumn) {
     enrichedRecords.forEach((entry) => {
       const { age } = entry;
       if (!Number.isFinite(age)) return;
 
       if (age >= 0 && age <= 10) counters.children += 1;
-      else if (age >= 11 && age <= 17) counters.teens += 1;
-      else if (age >= 18 && age <= 29) counters.captains += 1;
+      else if (age >= 11 && age <= 19) counters.teens += 1;
+      else if (age >= 20 && age <= 29) counters.captains += 1;
       else if (age >= 30 && age <= 49) counters.braves += 1;
       else if (age >= 50) counters.stewards += 1;
     });
   }
 
-  elements.children.textContent = counters.children;
-  elements.teens.textContent = counters.teens;
-  elements.captains.textContent = counters.captains;
-  elements.braves.textContent = counters.braves;
-  elements.stewards.textContent = counters.stewards;
+  if (elements.children) elements.children.textContent = counters.children;
+  if (elements.teens) elements.teens.textContent = counters.teens;
+  if (elements.captains) elements.captains.textContent = counters.captains;
+  if (elements.braves) elements.braves.textContent = counters.braves;
+  if (elements.stewards) elements.stewards.textContent = counters.stewards;
 
-  buildSuggestions();
   updateOverallChart(enrichedRecords);
-  renderCategory(state.activeCategory);
-
-  return statusMessage;
 }
 
 function parseDate(rawValue) {
@@ -454,7 +480,7 @@ function createChartOptions() {
 }
 
 function updateOverallChart(entries) {
-  if (!elements.overallChart) return;
+  if (!elements.overallChart || !elements.overallEmpty) return;
 
   const distribution = buildAgeDistribution(entries);
   const hasData = distribution.labels.length > 0;
@@ -502,7 +528,7 @@ function updateOverallChart(entries) {
 }
 
 function updateCategoryChart(entries, category) {
-  if (!elements.categoryChart) return;
+  if (!elements.categoryChart || !elements.categoryChartEmpty) return;
 
   const validEntries = entries.filter((entry) => Number.isFinite(entry.age));
   const distribution = buildAgeDistribution(validEntries);
@@ -553,6 +579,9 @@ function updateCategoryChart(entries, category) {
 
 function updateCategoryCards(entries, category) {
   const container = elements.categoryCards;
+  if (!container || !elements.categoryEmpty) {
+    return;
+  }
   container.innerHTML = "";
 
   if (!entries.length) {
@@ -619,9 +648,25 @@ function renderCategory(categoryId = "total") {
   const category = CATEGORY_BY_ID[categoryId] ?? CATEGORY_BY_ID.total;
   state.activeCategory = category.id;
 
-  elements.categoryTitle.textContent = category.title;
-  elements.categoryDescription.textContent = category.description;
-  elements.categoryEmpty.textContent = category.emptyMessage;
+  elements.categoryLinks.forEach((link) => {
+    const isActive = link.dataset.categoryLink === category.id;
+    link.classList.toggle("active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+
+  if (elements.categoryTitle) {
+    elements.categoryTitle.textContent = category.title;
+  }
+  if (elements.categoryDescription) {
+    elements.categoryDescription.textContent = category.description;
+  }
+  if (elements.categoryEmpty) {
+    elements.categoryEmpty.textContent = category.emptyMessage;
+  }
 
   setActiveSummaryCard(category.id);
 
@@ -629,11 +674,22 @@ function renderCategory(categoryId = "total") {
     category.filter(entry)
   );
 
+  if (elements.categoryMeta) {
+    const count = filteredEntries.length;
+    const noun = count === 1 ? "irmão" : "irmãos";
+    elements.categoryMeta.textContent = `${count} ${noun} nesta categoria`;
+  }
+
+  if (isCategoryPage) {
+    document.title = `${category.title} · Painel dos Irmãos`;
+  }
+
   updateCategoryCards(filteredEntries, category);
   updateCategoryChart(filteredEntries, category);
 }
 
 function setStatus(message, isError = false) {
+  if (!elements.status) return;
   if (!message) {
     elements.status.textContent = "";
     elements.status.classList.remove("error");
@@ -645,6 +701,7 @@ function setStatus(message, isError = false) {
 }
 
 function updateLastUpdated() {
+  if (!elements.lastUpdated) return;
   const now = new Date();
   elements.lastUpdated.textContent = `Atualizado em ${new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -653,6 +710,9 @@ function updateLastUpdated() {
 }
 
 function buildSuggestions() {
+  if (!elements.search || !elements.suggestions) {
+    return;
+  }
   const { records, nameColumn } = state;
   const list = elements.suggestions;
   list.innerHTML = "";
@@ -675,6 +735,7 @@ function buildSuggestions() {
 }
 
 function handleSearchInput(event) {
+  if (!elements.suggestions) return;
   const query = event.target.value.trim();
   const { records, nameColumn } = state;
 
@@ -700,6 +761,7 @@ function handleSearchInput(event) {
 
 function renderSuggestions(items) {
   const list = elements.suggestions;
+  if (!list) return;
   list.innerHTML = "";
 
   if (!items.length) {
@@ -727,6 +789,7 @@ function renderSuggestions(items) {
 }
 
 function handleSearchKeydown(event) {
+  if (!elements.suggestions) return;
   if (event.key === "Enter") {
     event.preventDefault();
     const firstSuggestion = elements.suggestions.querySelector("li");
@@ -738,10 +801,20 @@ function handleSearchKeydown(event) {
 }
 
 function openRecord(record) {
-  if (!record) return;
+  if (
+    !record ||
+    !elements.modal ||
+    !elements.modalDetails ||
+    !elements.modalName ||
+    !elements.detailTemplate
+  ) {
+    return;
+  }
   const { nameColumn } = state;
   elements.modalName.textContent = record[nameColumn] || "Detalhes";
-  elements.search.value = record[nameColumn] || "";
+  if (elements.search) {
+    elements.search.value = record[nameColumn] || "";
+  }
   elements.modalDetails.innerHTML = "";
 
   Object.entries(record).forEach(([key, value]) => {
@@ -754,10 +827,11 @@ function openRecord(record) {
 
   elements.modal.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
-  elements.suggestions.classList.remove("visible");
+  elements.suggestions?.classList.remove("visible");
 }
 
 function closeModal() {
+  if (!elements.modal) return;
   elements.modal.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
 }
@@ -770,6 +844,7 @@ function configureAutoRefresh() {
 }
 
 function handleDocumentClick(event) {
+  if (!elements.modal) return;
   if (!elements.modal.contains(event.target)) {
     return;
   }
@@ -779,10 +854,23 @@ function handleDocumentClick(event) {
   }
 }
 
+function openCategoryView(categoryId) {
+  if (!categoryId) return;
+  const url = new URL("category.html", window.location.href);
+  url.searchParams.set("category", categoryId);
+  window.open(url.toString(), "_blank", "noopener,noreferrer");
+}
+
 function setupEventListeners() {
-  elements.search.addEventListener("input", handleSearchInput);
-  elements.search.addEventListener("keydown", handleSearchKeydown);
-  elements.closeModal.addEventListener("click", closeModal);
+  if (elements.search) {
+    elements.search.addEventListener("input", handleSearchInput);
+    elements.search.addEventListener("keydown", handleSearchKeydown);
+  }
+
+  if (elements.closeModal) {
+    elements.closeModal.addEventListener("click", closeModal);
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeModal();
@@ -790,19 +878,43 @@ function setupEventListeners() {
   });
   document.addEventListener("click", handleDocumentClick);
 
-  document.addEventListener("click", (event) => {
-    if (!elements.search.parentElement.contains(event.target)) {
-      elements.suggestions.classList.remove("visible");
-    }
-  });
+  if (elements.search && elements.suggestions) {
+    document.addEventListener("click", (event) => {
+      if (!elements.search?.parentElement?.contains(event.target)) {
+        elements.suggestions?.classList.remove("visible");
+      }
+    });
+  }
 
   elements.summaryCards.forEach((card) => {
-    card.addEventListener("click", () => renderCategory(card.dataset.category));
+    const categoryId = card.dataset.category;
+    if (!categoryId) return;
+    card.addEventListener("click", (event) => {
+      event.preventDefault();
+      renderCategory(categoryId);
+      openCategoryView(categoryId);
+    });
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        renderCategory(card.dataset.category);
+        renderCategory(categoryId);
+        openCategoryView(categoryId);
       }
+    });
+  });
+
+  elements.categoryLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const categoryId = link.dataset.categoryLink;
+      if (!categoryId) return;
+      if (isCategoryPage) {
+        event.preventDefault();
+        const url = new URL(window.location.href);
+        url.searchParams.set("category", categoryId);
+        window.history.replaceState({}, "", url);
+      }
+      state.activeCategory = categoryId;
+      renderCategory(categoryId);
     });
   });
 }

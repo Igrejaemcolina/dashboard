@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Categoria · Painel dos Irmãos</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body data-page="category">
+    <header class="app-header">
+      <div class="header-content">
+        <h1>
+          <a class="home-link" href="index.html">Painel dos Irmãos</a>
+        </h1>
+        <p id="last-updated">Carregando dados...</p>
+      </div>
+      <div class="search-wrapper">
+        <label for="search">Pesquisar Irmão</label>
+        <div class="search-input">
+          <input
+            type="search"
+            id="search"
+            placeholder="Digite o nome"
+            autocomplete="off"
+            aria-autocomplete="list"
+          />
+          <ul id="suggestions" role="listbox" aria-label="Sugestões"></ul>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <nav class="category-nav" aria-label="Categorias disponíveis">
+        <a class="back-link" href="index.html">← Voltar ao painel principal</a>
+        <ul class="category-nav-list">
+          <li><a data-category-link="total" href="category.html?category=total">Total de Irmãos</a></li>
+          <li><a data-category-link="children" href="category.html?category=children">Crianças (0-10)</a></li>
+          <li><a data-category-link="teens" href="category.html?category=teens">Adolescentes (11-19)</a></li>
+          <li><a data-category-link="captains" href="category.html?category=captains">Capitães (20-29)</a></li>
+          <li><a data-category-link="braves" href="category.html?category=braves">Valentes de Davi (30-49)</a></li>
+          <li><a data-category-link="stewards" href="category.html?category=stewards">Intendentes (50+)</a></li>
+        </ul>
+      </nav>
+
+      <section class="category-panel" aria-live="polite">
+        <header class="section-header">
+          <h2 id="category-title">Carregando categoria...</h2>
+          <p id="category-description">Estamos preparando os dados.</p>
+          <p id="category-meta" class="category-meta">0 irmãos nesta categoria</p>
+        </header>
+        <div class="chart-container">
+          <canvas
+            id="category-age-chart"
+            aria-label="Gráfico de idades por categoria"
+            role="img"
+          ></canvas>
+          <p class="empty-message" id="category-chart-empty">
+            Não há idades disponíveis para esta categoria.
+          </p>
+        </div>
+        <div id="category-cards" class="people-grid" aria-live="polite"></div>
+        <p class="empty-message" id="category-empty">Nenhum irmão encontrado nesta categoria.</p>
+      </section>
+
+      <section id="status" class="status"></section>
+    </main>
+
+    <div class="modal" id="details-modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-button" id="close-modal" aria-label="Fechar">&times;</button>
+        <h2 id="modal-name">Detalhes</h2>
+        <dl id="modal-details"></dl>
+      </div>
+    </div>
+
+    <template id="detail-row-template">
+      <div class="detail-row">
+        <dt></dt>
+        <dd></dd>
+      </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
