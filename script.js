@@ -13,7 +13,7 @@ const ACCESS_ROLES = {
 
 const ACCESS_LABELS = {
   [ACCESS_ROLES.RESPONSIBLE]: "Irmão Responsável",
-  [ACCESS_ROLES.CAPTAIN]: "Capitão",
+  [ACCESS_ROLES.CAPTAIN]: "Capitães de Tropa",
 };
 
 const ACCESS_DESCRIPTIONS = {
@@ -22,11 +22,25 @@ const ACCESS_DESCRIPTIONS = {
     "Acesso restrito às informações e buscas dos adolescentes (11-17 anos).",
 };
 
-const PASSWORD_HASHES = {
-  [ACCESS_ROLES.RESPONSIBLE]:
-    "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
-  [ACCESS_ROLES.CAPTAIN]:
-    "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342",
+const ROLE_PASSWORDS = {
+  [ACCESS_ROLES.RESPONSIBLE]: {
+    "7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":
+      "Marcelino Silva",
+    "73a2af8864fc500fa49048bf3003776c19938f360e56bd03663866fb3087884a":
+      "Mialichi",
+    "b74b7e3fcb623d805dacf98db27530f845760c47e3b0faa702b84e9ff3902c37":
+      "André Silva",
+    "b411746bdf09bde7f1fe70ddc8fa57241a0cb79d14d6e9c27e598635ca7dae4d":
+      "Serginho",
+    "3f95b1b8a32c2c0251dfdbc3c8a30aab6d6e680cf0ef03e8af84a65dff0c4a85":
+      "Cido",
+    "060e33205a731400c2eb92bc12cf921a4e44cf1851d216f144337dd6ec5350a7":
+      "Carlinhos",
+  },
+  [ACCESS_ROLES.CAPTAIN]: {
+    "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342":
+      "Capitães de Tropa",
+  },
 };
 
 const ACCESS_SESSION_KEY = "igcolina-access-role";
@@ -113,10 +127,10 @@ const CATEGORY_CONFIG = [
   },
   {
     id: "captains",
-    title: "Capitães (18-29)",
+    title: "Capitães de Tropa (18-29)",
     description: "Irmãos com idades entre 18 e 29 anos.",
-    chartLabel: "Idades dos capitães",
-    emptyMessage: "Nenhum capitão cadastrado até o momento.",
+    chartLabel: "Idades dos capitães de tropa",
+    emptyMessage: "Nenhum capitão de tropa cadastrado até o momento.",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 18 && entry.age <= 29,
   },
   {
@@ -173,6 +187,7 @@ const state = {
   pendingAccessRole: null,
   accessResolver: null,
   searchPool: [],
+  activeUserName: null,
 };
 
 const defaultTexts = {
@@ -180,11 +195,24 @@ const defaultTexts = {
   overviewDescription: elements.overviewDescription?.textContent ?? "",
 };
 
-function getStoredRole() {
+function getStoredAccess() {
   try {
     const stored = sessionStorage.getItem(ACCESS_SESSION_KEY);
-    if (stored && Object.values(ACCESS_ROLES).includes(stored)) {
-      return stored;
+    if (!stored) {
+      return null;
+    }
+
+    if (Object.values(ACCESS_ROLES).includes(stored)) {
+      return { role: stored, userName: null };
+    }
+
+    const parsed = JSON.parse(stored);
+    if (parsed && Object.values(ACCESS_ROLES).includes(parsed.role)) {
+      const userName =
+        typeof parsed.userName === "string" && parsed.userName.trim()
+          ? parsed.userName.trim()
+          : null;
+      return { role: parsed.role, userName };
     }
   } catch (error) {
     console.warn("Não foi possível ler a sessão de acesso:", error);
@@ -192,15 +220,16 @@ function getStoredRole() {
   return null;
 }
 
-function storeRole(role) {
+function storeAccess(role, userName) {
   try {
-    sessionStorage.setItem(ACCESS_SESSION_KEY, role);
+    const payload = JSON.stringify({ role, userName: userName ?? null });
+    sessionStorage.setItem(ACCESS_SESSION_KEY, payload);
   } catch (error) {
     console.warn("Não foi possível persistir a sessão de acesso:", error);
   }
 }
 
-function clearStoredRole() {
+function clearStoredAccess() {
   try {
     sessionStorage.removeItem(ACCESS_SESSION_KEY);
   } catch (error) {
@@ -395,7 +424,7 @@ function canAccessRecord(record) {
 function showAccessRestrictionMessage() {
   if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
     setStatus(
-      "Perfil de Capitão: acesso disponível apenas para adolescentes (11-17 anos)."
+      "Perfil de Capitães de Tropa: acesso disponível apenas para adolescentes (11-17 anos)."
     );
   }
 }
@@ -500,13 +529,14 @@ function updateUserProfileUI() {
     return;
   }
 
-  const label = ACCESS_LABELS[accessRole];
+  const roleLabel = ACCESS_LABELS[accessRole];
+  const displayName = state.activeUserName ?? roleLabel;
   elements.userProfile.hidden = false;
   if (elements.userProfileLabel) {
-    elements.userProfileLabel.textContent = label;
+    elements.userProfileLabel.textContent = displayName;
   }
   if (elements.userMenuRole) {
-    elements.userMenuRole.textContent = label;
+    elements.userMenuRole.textContent = displayName;
   }
   if (elements.userMenuDetail) {
     elements.userMenuDetail.textContent = getRoleDescription(accessRole);
@@ -517,7 +547,8 @@ function handleSwitchUser() {
   closeUserMenu();
   state.accessRole = null;
   state.pendingAccessRole = null;
-  clearStoredRole();
+  state.activeUserName = null;
+  clearStoredAccess();
   applyAccessRestrictions();
   updateDashboard();
   if (isCategoryPage) {
@@ -525,7 +556,7 @@ function handleSwitchUser() {
     renderCategory(state.activeCategory);
   }
   buildSuggestions();
-  setStatus("Selecione um perfil para continuar.");
+  setStatus("Selecione uma função para continuar.");
   showAccessModal();
 }
 
@@ -635,8 +666,10 @@ async function handleAccessSubmit(event) {
   }
 
   const hashed = await hashPassword(password);
-  const expected = PASSWORD_HASHES[role];
-  if (hashed !== expected) {
+  const allowedUsers = ROLE_PASSWORDS[role] ?? {};
+  const userName = allowedUsers[hashed];
+
+  if (!userName) {
     if (elements.accessError) {
       elements.accessError.textContent = "Senha incorreta. Tente novamente.";
     }
@@ -646,7 +679,9 @@ async function handleAccessSubmit(event) {
   }
 
   state.accessRole = role;
-  storeRole(role);
+  state.pendingAccessRole = null;
+  state.activeUserName = userName;
+  storeAccess(role, userName);
   applyAccessRestrictions();
   buildSuggestions();
   hideAccessModal();
@@ -679,9 +714,10 @@ function setupAccessControlEvents() {
 }
 
 async function initializeAccessControl() {
-  const storedRole = getStoredRole();
-  if (storedRole) {
-    state.accessRole = storedRole;
+  const storedAccess = getStoredAccess();
+  if (storedAccess) {
+    state.accessRole = storedAccess.role;
+    state.activeUserName = storedAccess.userName;
     applyAccessRestrictions();
     return;
   }

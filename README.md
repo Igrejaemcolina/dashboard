@@ -21,10 +21,17 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 ### Controle de acesso
 
-- Ao abrir o site é exibido um modal solicitando o perfil de acesso (Irmão Responsável ou Capitão).
+- Ao abrir o site é exibido um modal com a mensagem **"Selecione a seguir sua função"** (Irmão Responsável ou Capitães de Tropa).
 - Cada opção exige uma senha pré-configurada que é comparada utilizando hash SHA-256. As versões cifradas ficam no código e as senhas em texto puro não são expostas.
+- As senhas dos responsáveis identificam automaticamente o usuário autenticado:
+  - Marcelino Silva — senha `1010`
+  - Mialichi — senha `2020`
+  - André Silva — senha `3030`
+  - Serginho — senha `4040`
+  - Cido — senha `5050`
+  - Carlinhos — senha `6060`
 - **Irmão Responsável** tem acesso completo a todas as abas, buscas e gráficos.
-- **Capitão** visualiza os contadores gerais, porém só pode abrir e pesquisar a aba de adolescentes (11–17 anos); as demais categorias ficam bloqueadas.
+- **Capitães de Tropa** visualizam os contadores gerais, porém só podem abrir e pesquisar a aba de adolescentes (11–17 anos); as demais categorias ficam bloqueadas.
 - A sessão é mantida em `sessionStorage` para não solicitar senha novamente enquanto o navegador permanecer aberto na mesma aba.
 - O perfil autenticado aparece no cabeçalho da dashboard e oferece a opção **"Trocar de usuário"** para voltar ao modal de acesso quando necessário.
 
@@ -34,7 +41,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - As faixas utilizadas são:
   - Crianças: 0 a 10 anos
   - Adolescentes: 11 a 17 anos
-  - Capitães: 18 a 29 anos
+  - Capitães de Tropa: 18 a 29 anos
   - Valentes de Davi: 30 a 49 anos
   - Intendentes: 50 anos ou mais
 - Cada página de categoria inclui um gráfico de distribuição de idades, a contagem de irmãos daquela faixa e cartões clicáveis com nome, idade calculada a partir da data de nascimento e telefone.
