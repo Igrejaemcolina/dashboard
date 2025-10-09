@@ -19,6 +19,12 @@ Basta abrir o `index.html` em um navegador para testar localmente.
 
 Os dados são carregados automaticamente a partir da planilha configurada em `script.js`.
 
+### Dados complementares
+
+- Além da planilha principal, o código consulta a planilha complementar dos adolescentes (`1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ`).
+- Cada registro é reconciliado pelo nome; quando possível a combinação é confirmada pela data de nascimento e, não havendo essa informação, pelo número de telefone.
+- Os campos encontrados na planilha complementar preenchem informações faltantes no modal de detalhes e também servem como fonte alternativa de telefone para os cartões de pessoas.
+
 ### Controle de acesso
 
 - Ao abrir o site é exibido um modal com a mensagem **"Selecione a seguir sua função"** (Irmão Responsável ou Capitães de Tropa).

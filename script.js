@@ -1,6 +1,8 @@
 const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
+const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
 const collator = new Intl.Collator("pt-BR", { sensitivity: "base" });
 const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
@@ -175,6 +177,13 @@ const state = {
   nameColumn: null,
   birthColumn: null,
   phoneColumn: null,
+  supplementalRecords: [],
+  supplementalColumns: [],
+  supplementalNameColumn: null,
+  supplementalBirthColumn: null,
+  supplementalPhoneColumn: null,
+  supplementalEntries: [],
+  supplementalIndex: new Map(),
   enrichedRecords: [],
   refreshTimer: null,
   activeCategory: getInitialCategory(),
@@ -737,14 +746,16 @@ async function initializeAccessControl() {
 async function fetchSheetData() {
   setStatus("Atualizando dados...");
   try {
-    const response = await fetch(GVIZ_URL, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`Erro ao acessar a planilha (status ${response.status})`);
+    const [primaryResult, supplementalResult] = await Promise.allSettled([
+      fetchGvizTable(GVIZ_URL),
+      fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
+    ]);
+
+    if (primaryResult.status !== "fulfilled") {
+      throw primaryResult.reason ?? new Error("Erro ao carregar a planilha principal.");
     }
 
-    const text = await response.text();
-    const payload = extractGvizPayload(text);
-    const { records, columns } = parseTable(payload.table);
+    const { records, columns } = primaryResult.value;
 
     state.records = records;
     state.columns = columns;
@@ -769,6 +780,62 @@ async function fetchSheetData() {
       "whatsapp",
       "contato",
     ]);
+
+    if (supplementalResult.status === "fulfilled") {
+      const { records: supplementalRecords, columns: supplementalColumns } =
+        supplementalResult.value;
+      state.supplementalRecords = supplementalRecords;
+      state.supplementalColumns = supplementalColumns;
+      state.supplementalNameColumn = detectColumn(
+        supplementalColumns,
+        supplementalRecords,
+        [
+          "nome do adolescente",
+          "nome do adolescente(a)",
+          "nome adolescente",
+          "nome",
+        ]
+      );
+      state.supplementalBirthColumn = detectColumn(
+        supplementalColumns,
+        supplementalRecords,
+        [
+          "data de aniversario do adolescente",
+          "data de aniversário do adolescente",
+          "data de nascimento",
+          "nascimento",
+        ]
+      );
+      state.supplementalPhoneColumn = detectColumn(
+        supplementalColumns,
+        supplementalRecords,
+        [
+          "telefone do adolescente",
+          "telefone adolescente",
+          "telefone",
+          "contato",
+        ]
+      );
+      state.supplementalEntries = buildSupplementalEntries(
+        supplementalRecords,
+        state.supplementalNameColumn,
+        state.supplementalBirthColumn,
+        state.supplementalPhoneColumn
+      );
+      state.supplementalIndex = buildSupplementalIndex(state.supplementalEntries);
+    } else {
+      console.warn(
+        "Não foi possível carregar a planilha complementar:",
+        supplementalResult.reason
+      );
+      state.supplementalRecords = [];
+      state.supplementalColumns = [];
+      state.supplementalNameColumn = null;
+      state.supplementalBirthColumn = null;
+      state.supplementalPhoneColumn = null;
+      state.supplementalEntries = [];
+      state.supplementalIndex = new Map();
+    }
 
     state.enrichedRecords = buildEnrichedRecords(records);
     buildSuggestions();
@@ -805,6 +872,17 @@ async function fetchSheetData() {
       true
     );
   }
+}
+
+async function fetchGvizTable(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Erro ao acessar a planilha (status ${response.status})`);
+  }
+
+  const text = await response.text();
+  const payload = extractGvizPayload(text);
+  return parseTable(payload.table);
 }
 
 function extractGvizPayload(rawText) {
@@ -934,6 +1012,129 @@ function normalizeString(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+function buildSupplementalEntries(records, nameColumn, birthColumn, phoneColumn) {
+  if (!Array.isArray(records) || !records.length || !nameColumn) {
+    return [];
+  }
+
+  return records
+    .map((record) => {
+      const nameValue = record?.[nameColumn];
+      if (!nameValue) {
+        return null;
+      }
+
+      const normalizedName = normalizeString(nameValue);
+      if (!normalizedName) {
+        return null;
+      }
+
+      const rawBirth = birthColumn
+        ? record.__raw?.[birthColumn] ?? record[birthColumn]
+        : null;
+      const birthDate = birthColumn ? parseDate(rawBirth) : null;
+      const phoneValue = phoneColumn ? record[phoneColumn] ?? "" : "";
+
+      return {
+        record,
+        normalizedName,
+        birthDate,
+        phone: phoneValue != null ? String(phoneValue) : "",
+        normalizedPhone: sanitizePhone(phoneValue),
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildSupplementalIndex(entries) {
+  const index = new Map();
+
+  entries.forEach((entry) => {
+    const existing = index.get(entry.normalizedName);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      index.set(entry.normalizedName, [entry]);
+    }
+  });
+
+  return index;
+}
+
+function matchSupplementalRecord(record, birthDate) {
+  const {
+    supplementalIndex,
+    nameColumn,
+    phoneColumn,
+  } = state;
+
+  if (!supplementalIndex || !supplementalIndex.size || !nameColumn) {
+    return null;
+  }
+
+  const nameValue = record?.[nameColumn];
+  if (!nameValue) {
+    return null;
+  }
+
+  const normalizedName = normalizeString(nameValue);
+  if (!normalizedName) {
+    return null;
+  }
+
+  const candidates = supplementalIndex.get(normalizedName);
+  if (!candidates?.length) {
+    return null;
+  }
+
+  if (birthDate instanceof Date && !Number.isNaN(birthDate.getTime())) {
+    const matchByBirth = candidates.find(
+      (candidate) =>
+        candidate.birthDate instanceof Date &&
+        !Number.isNaN(candidate.birthDate.getTime()) &&
+        isSameDate(candidate.birthDate, birthDate)
+    );
+
+    if (matchByBirth) {
+      return matchByBirth;
+    }
+  }
+
+  const phoneValue = phoneColumn ? record?.[phoneColumn] ?? "" : "";
+  const normalizedPhone = sanitizePhone(phoneValue);
+
+  if (normalizedPhone) {
+    const matchByPhone = candidates.find(
+      (candidate) => candidate.normalizedPhone && candidate.normalizedPhone === normalizedPhone
+    );
+
+    if (matchByPhone) {
+      return matchByPhone;
+    }
+  }
+
+  return null;
+}
+
+function sanitizePhone(value) {
+  if (!value) {
+    return "";
+  }
+  return String(value).replace(/\D+/g, "");
+}
+
+function isSameDate(first, second) {
+  if (!(first instanceof Date) || !(second instanceof Date)) {
+    return false;
+  }
+
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+}
+
 function buildEnrichedRecords(records) {
   const { birthColumn, nameColumn, phoneColumn } = state;
 
@@ -944,11 +1145,34 @@ function buildEnrichedRecords(records) {
     const birthDate = birthColumn ? parseDate(rawBirth) : null;
     const age = birthDate ? calculateAge(birthDate) : null;
 
+    const supplementalEntry = matchSupplementalRecord(record, birthDate);
+
+    let phoneValue = phoneColumn ? record[phoneColumn] ?? "" : "";
+    let normalizedPhone =
+      typeof phoneValue === "string"
+        ? phoneValue.trim()
+        : String(phoneValue ?? "").trim();
+
+    if (!normalizedPhone && supplementalEntry) {
+      const supplementalPhone = state.supplementalPhoneColumn
+        ? supplementalEntry.record?.[state.supplementalPhoneColumn]
+        : supplementalEntry?.phone;
+      if (supplementalPhone != null) {
+        phoneValue = String(supplementalPhone);
+        normalizedPhone = phoneValue.trim();
+      }
+    }
+
+    if (typeof phoneValue !== "string") {
+      phoneValue = String(phoneValue ?? "");
+    }
+
     return {
       record,
       age,
       name: nameColumn ? record[nameColumn] ?? "" : "",
-      phone: phoneColumn ? record[phoneColumn] ?? "" : "",
+      phone: phoneValue,
+      supplemental: supplementalEntry,
     };
   });
 }
@@ -1462,6 +1686,40 @@ function renderSuggestions(items, pool = []) {
   list.classList.add("visible");
 }
 
+function mergeRecordDetails(primaryRecord, supplementalRecord) {
+  const merged = new Map();
+
+  const addRecord = (record) => {
+    if (!record) return;
+
+    Object.entries(record).forEach(([key, value]) => {
+      if (key === "__raw") {
+        return;
+      }
+
+      const stringValue = value == null ? "" : String(value).trim();
+
+      if (!merged.has(key)) {
+        merged.set(key, stringValue);
+        return;
+      }
+
+      const existing = merged.get(key);
+      if ((!existing || (typeof existing === "string" && !existing.trim())) && stringValue) {
+        merged.set(key, stringValue);
+      }
+    });
+  };
+
+  addRecord(primaryRecord);
+  addRecord(supplementalRecord);
+
+  return Array.from(merged.entries()).map(([key, value]) => ({
+    key,
+    value,
+  }));
+}
+
 function handleSearchKeydown(event) {
   if (!elements.suggestions) return;
   if (event.key === "Enter") {
@@ -1492,17 +1750,28 @@ function openRecord(record) {
     return;
   }
   const { nameColumn } = state;
-  elements.modalName.textContent = record[nameColumn] || "Detalhes";
-  if (elements.search) {
+  const entry = findEntryByRecord(record);
+  const supplementalRecord = entry?.supplemental?.record ?? null;
+  const supplementalName =
+    state.supplementalNameColumn && supplementalRecord
+      ? supplementalRecord[state.supplementalNameColumn] ?? ""
+      : "";
+  const displayName =
+    (nameColumn && record[nameColumn]) || supplementalName || "Detalhes";
+
+  elements.modalName.textContent = displayName;
+  if (elements.search && nameColumn) {
     elements.search.value = record[nameColumn] || "";
   }
   elements.modalDetails.innerHTML = "";
 
-  Object.entries(record).forEach(([key, value]) => {
-    if (key === "__raw") return;
+  const details = mergeRecordDetails(record, supplementalRecord);
+
+  details.forEach(({ key, value }) => {
     const template = elements.detailTemplate.content.cloneNode(true);
     template.querySelector("dt").textContent = key;
-    template.querySelector("dd").textContent = value || "-";
+    const displayValue = value ? value : "-";
+    template.querySelector("dd").textContent = displayValue;
     elements.modalDetails.appendChild(template);
   });
 
