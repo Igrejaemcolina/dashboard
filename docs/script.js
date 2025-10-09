@@ -681,7 +681,7 @@ function renderCategory(categoryId = "total") {
   }
 
   if (isCategoryPage) {
-    document.title = `${category.title} · Painel dos Irmãos`;
+    document.title = `${category.title} · Dados da IGColina`;
   }
 
   updateCategoryCards(filteredEntries, category);
