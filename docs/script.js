@@ -690,14 +690,27 @@ function renderCategory(categoryId = "total") {
 
 function setStatus(message, isError = false) {
   if (!elements.status) return;
+
+  elements.status.classList.toggle("error", Boolean(isError));
+
   if (!message) {
-    elements.status.textContent = "";
-    elements.status.classList.remove("error");
+    elements.status.innerHTML = "";
     return;
   }
 
-  elements.status.textContent = message;
-  elements.status.classList.toggle("error", Boolean(isError));
+  elements.status.innerHTML = "";
+
+  const messageElement = document.createElement("p");
+  messageElement.className = "status-message";
+  messageElement.textContent = message;
+  elements.status.append(messageElement);
+
+  if (!isError && message.trim() === "Dados atualizados.") {
+    const tagline = document.createElement("p");
+    tagline.className = "status-tagline";
+    tagline.textContent = "Dashboard criada para uso da Igreja em Colina® 2025";
+    elements.status.append(tagline);
+  }
 }
 
 function updateLastUpdated() {

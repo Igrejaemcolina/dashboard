@@ -464,6 +464,16 @@ main {
   color: var(--text-secondary);
 }
 
+.status-message {
+  margin: 0;
+}
+
+.status-tagline {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 .status.error {
   color: var(--danger);
 }
