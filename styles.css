@@ -25,6 +25,10 @@ body {
   flex-direction: column;
 }
 
+body.access-locked {
+  overflow: hidden;
+}
+
 main {
   flex: 1;
   padding: 1.25rem clamp(1rem, 3vw, 3rem) 2.5rem;
@@ -263,6 +267,24 @@ main {
   gap: 1rem;
 }
 
+.card.restricted {
+  cursor: not-allowed;
+  opacity: 0.75;
+  border-color: rgba(148, 163, 184, 0.25);
+  box-shadow: none;
+}
+
+.card.restricted:hover,
+.card.restricted:focus-visible {
+  transform: none;
+  box-shadow: var(--shadow);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.card.restricted .card-hint {
+  color: rgba(226, 232, 240, 0.55);
+}
+
 .card:hover,
 .card:focus-visible {
   transform: translateY(-6px);
@@ -392,6 +414,18 @@ main {
   background: rgba(56, 189, 248, 0.2);
   border-color: var(--accent);
   color: var(--text-primary);
+}
+
+.category-nav-list a.restricted {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.category-nav-list a.restricted:hover,
+.category-nav-list a.restricted:focus-visible {
+  color: var(--text-secondary);
+  border-color: rgba(148, 163, 184, 0.25);
 }
 
 .category-meta {
@@ -529,6 +563,133 @@ main {
 
 .status.error {
   color: var(--danger);
+}
+
+.access-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 2rem);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 1200;
+}
+
+.access-modal.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.access-modal-content {
+  background: rgba(15, 23, 42, 0.96);
+  border-radius: 20px;
+  padding: clamp(1.75rem, 4vw, 2.5rem);
+  width: min(420px, 100%);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  display: grid;
+  gap: 1.25rem;
+}
+
+.access-modal h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.access-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.access-options button {
+  padding: 0.9rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.access-options button:hover,
+.access-options button:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 14px 30px rgba(56, 189, 248, 0.25);
+  outline: none;
+}
+
+.access-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.access-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.access-form input {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.access-form input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.access-selected-role {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.access-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+  min-height: 1.25rem;
+}
+
+.access-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.access-actions button {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(30, 41, 59, 0.9);
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.access-actions button:hover,
+.access-actions button:focus-visible {
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 12px 28px rgba(56, 189, 248, 0.2);
+  outline: none;
 }
 
 .modal {

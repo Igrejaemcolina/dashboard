@@ -97,6 +97,45 @@
       <section id="status" class="status"></section>
     </main>
 
+    <div
+      class="access-modal"
+      id="access-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="access-modal-content">
+        <h2>Selecione o seu perfil</h2>
+        <p>Escolha uma opção para continuar:</p>
+        <div class="access-options" id="access-options">
+          <button type="button" data-access-role="responsavel">
+            Irmão Responsável
+          </button>
+          <button type="button" data-access-role="capitao">
+            Capitão
+          </button>
+        </div>
+        <form class="access-form" id="access-form" hidden>
+          <p class="access-selected-role">
+            Perfil selecionado: <span id="selected-role-label"></span>
+          </p>
+          <label for="access-password">Digite a senha</label>
+          <input
+            type="password"
+            id="access-password"
+            name="access-password"
+            autocomplete="off"
+            required
+          />
+          <p class="access-error" id="access-error" role="alert"></p>
+          <div class="access-actions">
+            <button type="button" id="access-back">Voltar</button>
+            <button type="submit">Confirmar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div class="modal" id="details-modal" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="modal-content">
         <button class="close-button" id="close-modal" aria-label="Fechar">&times;</button>

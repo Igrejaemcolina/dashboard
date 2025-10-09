@@ -6,6 +6,25 @@ const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
 const isCategoryPage = pageType === "category";
 
+const ACCESS_ROLES = {
+  RESPONSIBLE: "responsavel",
+  CAPTAIN: "capitao",
+};
+
+const ACCESS_LABELS = {
+  [ACCESS_ROLES.RESPONSIBLE]: "Irmão Responsável",
+  [ACCESS_ROLES.CAPTAIN]: "Capitão",
+};
+
+const PASSWORD_HASHES = {
+  [ACCESS_ROLES.RESPONSIBLE]:
+    "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+  [ACCESS_ROLES.CAPTAIN]:
+    "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342",
+};
+
+const ACCESS_SESSION_KEY = "igcolina-access-role";
+
 const elements = {
   total: document.getElementById("total-count"),
   children: document.getElementById("children-count"),
@@ -25,6 +44,8 @@ const elements = {
   summaryCards: Array.from(
     document.querySelectorAll(".cards .card[data-category]")
   ),
+  overviewTitle: document.getElementById("overview-title"),
+  overviewDescription: document.getElementById("overview-description"),
   categoryTitle: document.getElementById("category-title"),
   categoryDescription: document.getElementById("category-description"),
   categoryMeta: document.getElementById("category-meta"),
@@ -39,6 +60,16 @@ const elements = {
   ),
   teensFilter: document.getElementById("teens-filter"),
   teensFilterToggle: document.getElementById("teens-filter-toggle"),
+  accessModal: document.getElementById("access-modal"),
+  accessOptions: document.getElementById("access-options"),
+  accessForm: document.getElementById("access-form"),
+  accessPassword: document.getElementById("access-password"),
+  accessError: document.getElementById("access-error"),
+  accessRoleLabel: document.getElementById("selected-role-label"),
+  accessBack: document.getElementById("access-back"),
+  accessOptionButtons: Array.from(
+    document.querySelectorAll("[data-access-role]")
+  ),
 };
 
 const CATEGORY_CONFIG = [
@@ -125,7 +156,414 @@ const state = {
     category: null,
   },
   teensFilterActive: false,
+  accessRole: null,
+  pendingAccessRole: null,
+  accessResolver: null,
+  searchPool: [],
 };
+
+const defaultTexts = {
+  overviewTitle: elements.overviewTitle?.textContent ?? "",
+  overviewDescription: elements.overviewDescription?.textContent ?? "",
+};
+
+function getStoredRole() {
+  try {
+    const stored = sessionStorage.getItem(ACCESS_SESSION_KEY);
+    if (stored && Object.values(ACCESS_ROLES).includes(stored)) {
+      return stored;
+    }
+  } catch (error) {
+    console.warn("Não foi possível ler a sessão de acesso:", error);
+  }
+  return null;
+}
+
+function storeRole(role) {
+  try {
+    sessionStorage.setItem(ACCESS_SESSION_KEY, role);
+  } catch (error) {
+    console.warn("Não foi possível persistir a sessão de acesso:", error);
+  }
+}
+
+async function hashPassword(password) {
+  const normalized = password.trim().toLowerCase();
+  if (!normalized) {
+    return "";
+  }
+
+  if (window.crypto?.subtle) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(normalized);
+      const digest = await window.crypto.subtle.digest("SHA-256", data);
+      return bufferToHex(new Uint8Array(digest));
+    } catch (error) {
+      console.warn("Falha ao usar crypto.subtle, utilizando fallback:", error);
+    }
+  }
+
+  return sha256Fallback(normalized);
+}
+
+function bufferToHex(buffer) {
+  return Array.from(buffer)
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Adaptado de uma implementação compacta de SHA-256 em JavaScript puro
+function sha256Fallback(ascii) {
+  const rightRotate = (value, amount) =>
+    (value >>> amount) | (value << (32 - amount));
+
+  const mathPow = Math.pow;
+  const maxWord = mathPow(2, 32);
+  let result = "";
+
+  const words = [];
+  const asciiBitLength = ascii.length * 8;
+
+  const hash = (sha256Fallback.h = sha256Fallback.h || []);
+  const k = (sha256Fallback.k = sha256Fallback.k || []);
+  let primeCounter = k.length;
+
+  const isComposite = {};
+  for (let candidate = 2; primeCounter < 64; candidate += 1) {
+    if (!isComposite[candidate]) {
+      for (let i = 0; i < 313; i += candidate) {
+        isComposite[i] = candidate;
+      }
+      hash[primeCounter] = mathPow(candidate, 0.5) * maxWord | 0;
+      k[primeCounter] = mathPow(candidate, 1 / 3) * maxWord | 0;
+      primeCounter += 1;
+    }
+  }
+
+  ascii += "\u0080";
+  while ((ascii.length % 64) !== 56) {
+    ascii += "\u0000";
+  }
+
+  for (let i = 0; i < ascii.length; i += 1) {
+    const j = ascii.charCodeAt(i);
+    const shift = (i % 4) * 8;
+    words[i >> 2] = words[i >> 2] | (j << (24 - shift));
+  }
+
+  words[words.length] = (asciiBitLength / maxWord) | 0;
+  words[words.length] = asciiBitLength;
+
+  for (let j = 0; j < words.length;) {
+    const w = words.slice(j, (j += 16));
+    const oldHash = hash.slice(0);
+
+    for (let i = 0; i < 64; i += 1) {
+      const w15 = w[i - 15];
+      const w2 = w[i - 2];
+
+      const a = hash[0];
+      const e = hash[4];
+      const temp1 =
+        hash[7] +
+        (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+        ((e & hash[5]) ^ (~e & hash[6])) +
+        k[i] +
+        (w[i] =
+          i < 16
+            ? w[i]
+            : (w[i - 16] +
+                (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                w[i - 7] +
+                (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+              0);
+
+      const temp2 =
+        (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+        ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
+      hash.pop();
+      hash.unshift((temp1 + temp2) | 0);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+
+    for (let i = 0; i < 8; i += 1) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+  }
+
+  for (let i = 0; i < 8; i += 1) {
+    for (let j = 3; j + 1; j -= 1) {
+      const shift = j * 8;
+      const value = (hash[i] >> shift) & 0xff;
+      result += value.toString(16).padStart(2, "0");
+    }
+  }
+
+  return result;
+}
+
+function isCategoryAllowed(categoryId) {
+  if (!state.accessRole) {
+    return false;
+  }
+
+  if (state.accessRole === ACCESS_ROLES.RESPONSIBLE) {
+    return true;
+  }
+
+  if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
+    return categoryId === "teens";
+  }
+
+  return false;
+}
+
+function ensureAccessibleCategory(categoryId) {
+  if (!state.accessRole) {
+    return categoryId;
+  }
+
+  if (state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens") {
+    return "teens";
+  }
+
+  return categoryId;
+}
+
+function getAccessibleEntries() {
+  if (!state.accessRole) {
+    return [];
+  }
+
+  if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
+    return state.enrichedRecords.filter((entry) =>
+      CATEGORY_BY_ID.teens.filter(entry)
+    );
+  }
+
+  return state.enrichedRecords;
+}
+
+function getAccessibleRecords() {
+  return getAccessibleEntries().map((entry) => entry.record);
+}
+
+function findEntryByRecord(record) {
+  return state.enrichedRecords.find((entry) => entry.record === record) ?? null;
+}
+
+function canAccessRecord(record) {
+  if (!state.accessRole) {
+    return false;
+  }
+
+  if (state.accessRole === ACCESS_ROLES.RESPONSIBLE) {
+    return true;
+  }
+
+  const entry = findEntryByRecord(record);
+  if (!entry) {
+    return false;
+  }
+
+  return CATEGORY_BY_ID.teens.filter(entry);
+}
+
+function showAccessRestrictionMessage() {
+  if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
+    setStatus(
+      "Perfil de Capitão: acesso disponível apenas para adolescentes (11-17 anos)."
+    );
+  }
+}
+
+function applyAccessRestrictions() {
+  document.body.dataset.accessRole = state.accessRole ?? "";
+
+  elements.summaryCards.forEach((card) => {
+    const categoryId = card.dataset.category;
+    if (!categoryId) return;
+    const allowed = isCategoryAllowed(categoryId);
+    card.classList.toggle("restricted", !allowed);
+    if (!allowed) {
+      card.setAttribute("aria-disabled", "true");
+      card.tabIndex = -1;
+    } else {
+      card.removeAttribute("aria-disabled");
+      card.tabIndex = 0;
+    }
+  });
+
+  elements.categoryLinks.forEach((link) => {
+    const categoryId = link.dataset.categoryLink;
+    if (!categoryId) return;
+    const allowed = isCategoryAllowed(categoryId);
+    link.classList.toggle("restricted", !allowed);
+    if (!allowed) {
+      link.setAttribute("aria-disabled", "true");
+      link.tabIndex = -1;
+    } else {
+      link.removeAttribute("aria-disabled");
+      link.removeAttribute("tabindex");
+    }
+  });
+
+  if (elements.overviewTitle && elements.overviewDescription) {
+    if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
+      elements.overviewTitle.textContent =
+        "Distribuição de idades dos adolescentes";
+      elements.overviewDescription.textContent =
+        "Visualize as idades apenas dos adolescentes entre 11 e 17 anos.";
+    } else {
+      elements.overviewTitle.textContent = defaultTexts.overviewTitle;
+      elements.overviewDescription.textContent = defaultTexts.overviewDescription;
+    }
+  }
+}
+
+function resetAccessModal() {
+  state.pendingAccessRole = null;
+  if (elements.accessError) {
+    elements.accessError.textContent = "";
+  }
+  if (elements.accessPassword) {
+    elements.accessPassword.value = "";
+  }
+  if (elements.accessRoleLabel) {
+    elements.accessRoleLabel.textContent = "";
+  }
+  if (elements.accessOptions) {
+    elements.accessOptions.hidden = false;
+  }
+  if (elements.accessForm) {
+    elements.accessForm.hidden = true;
+  }
+}
+
+function showAccessModal() {
+  if (!elements.accessModal) return;
+  resetAccessModal();
+  elements.accessModal.setAttribute("aria-hidden", "false");
+  elements.accessModal.classList.add("visible");
+  document.body.classList.add("access-locked");
+  const firstButton = elements.accessOptionButtons?.[0];
+  firstButton?.focus();
+}
+
+function hideAccessModal() {
+  if (!elements.accessModal) return;
+  elements.accessModal.setAttribute("aria-hidden", "true");
+  elements.accessModal.classList.remove("visible");
+  document.body.classList.remove("access-locked");
+}
+
+function selectAccessRole(role) {
+  if (!ACCESS_LABELS[role]) {
+    return;
+  }
+  state.pendingAccessRole = role;
+  if (elements.accessRoleLabel) {
+    elements.accessRoleLabel.textContent = ACCESS_LABELS[role];
+  }
+  if (elements.accessOptions) {
+    elements.accessOptions.hidden = true;
+  }
+  if (elements.accessForm) {
+    elements.accessForm.hidden = false;
+  }
+  if (elements.accessPassword) {
+    elements.accessPassword.value = "";
+    elements.accessPassword.focus();
+  }
+  if (elements.accessError) {
+    elements.accessError.textContent = "";
+  }
+}
+
+async function handleAccessSubmit(event) {
+  event.preventDefault();
+  const role = state.pendingAccessRole;
+  if (!role) {
+    return;
+  }
+
+  if (!elements.accessPassword) {
+    return;
+  }
+
+  const password = elements.accessPassword.value;
+  if (!password.trim()) {
+    if (elements.accessError) {
+      elements.accessError.textContent = "Informe a senha para continuar.";
+    }
+    return;
+  }
+
+  const hashed = await hashPassword(password);
+  const expected = PASSWORD_HASHES[role];
+  if (hashed !== expected) {
+    if (elements.accessError) {
+      elements.accessError.textContent = "Senha incorreta. Tente novamente.";
+    }
+    elements.accessPassword.value = "";
+    elements.accessPassword.focus();
+    return;
+  }
+
+  state.accessRole = role;
+  storeRole(role);
+  applyAccessRestrictions();
+  buildSuggestions();
+  hideAccessModal();
+  if (typeof state.accessResolver === "function") {
+    const resolver = state.accessResolver;
+    state.accessResolver = null;
+    resolver();
+  }
+}
+
+function setupAccessControlEvents() {
+  elements.accessOptionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const role = button.dataset.accessRole;
+      selectAccessRole(role);
+    });
+  });
+
+  if (elements.accessBack) {
+    elements.accessBack.addEventListener("click", () => {
+      resetAccessModal();
+      const firstButton = elements.accessOptionButtons?.[0];
+      firstButton?.focus();
+    });
+  }
+
+  if (elements.accessForm) {
+    elements.accessForm.addEventListener("submit", handleAccessSubmit);
+  }
+}
+
+async function initializeAccessControl() {
+  const storedRole = getStoredRole();
+  if (storedRole) {
+    state.accessRole = storedRole;
+    applyAccessRestrictions();
+    return;
+  }
+
+  if (!elements.accessModal) {
+    state.accessRole = ACCESS_ROLES.RESPONSIBLE;
+    applyAccessRestrictions();
+    return;
+  }
+
+  await new Promise((resolve) => {
+    state.accessResolver = resolve;
+    showAccessModal();
+  });
+}
 
 async function fetchSheetData() {
   setStatus("Atualizando dados...");
@@ -380,7 +818,7 @@ function updateDashboard() {
   if (elements.braves) elements.braves.textContent = counters.braves;
   if (elements.stewards) elements.stewards.textContent = counters.stewards;
 
-  updateOverallChart(enrichedRecords);
+  updateOverallChart(getAccessibleEntries());
 }
 
 function parseDate(rawValue) {
@@ -649,7 +1087,14 @@ function setActiveSummaryCard(categoryId) {
 }
 
 function renderCategory(categoryId = "total") {
-  const category = CATEGORY_BY_ID[categoryId] ?? CATEGORY_BY_ID.total;
+  const enforcedCategoryId = ensureAccessibleCategory(categoryId);
+  const category =
+    CATEGORY_BY_ID[enforcedCategoryId] ?? CATEGORY_BY_ID.total;
+  if (isCategoryPage && enforcedCategoryId !== categoryId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("category", category.id);
+    window.history.replaceState({}, "", url);
+  }
   state.activeCategory = category.id;
 
   elements.categoryLinks.forEach((link) => {
@@ -674,7 +1119,7 @@ function renderCategory(categoryId = "total") {
 
   setActiveSummaryCard(category.id);
 
-  let filteredEntries = state.enrichedRecords.filter((entry) =>
+  let filteredEntries = getAccessibleEntries().filter((entry) =>
     category.filter(entry)
   );
 
@@ -753,19 +1198,26 @@ function buildSuggestions() {
   if (!elements.search || !elements.suggestions) {
     return;
   }
-  const { records, nameColumn } = state;
+  const { nameColumn } = state;
+  const records = getAccessibleRecords();
   const list = elements.suggestions;
   list.innerHTML = "";
   list.classList.remove("visible");
 
   if (!records.length) {
     elements.search.disabled = true;
-    elements.search.placeholder = "Nenhum registro disponível";
+    elements.search.placeholder =
+      state.accessRole === ACCESS_ROLES.CAPTAIN
+        ? "Nenhum adolescente disponível"
+        : "Nenhum registro disponível";
     return;
   }
 
   elements.search.disabled = false;
-  elements.search.placeholder = "Digite o nome";
+  elements.search.placeholder =
+    state.accessRole === ACCESS_ROLES.CAPTAIN
+      ? "Pesquise adolescentes (11-17 anos)"
+      : "Digite o nome";
 
   if (!nameColumn) {
     elements.search.disabled = true;
@@ -777,7 +1229,8 @@ function buildSuggestions() {
 function handleSearchInput(event) {
   if (!elements.suggestions) return;
   const query = event.target.value.trim();
-  const { records, nameColumn } = state;
+  const { nameColumn } = state;
+  const records = getAccessibleRecords();
 
   if (!nameColumn || !records.length) {
     elements.suggestions.classList.remove("visible");
@@ -796,13 +1249,15 @@ function handleSearchInput(event) {
     return value && normalizeString(value).includes(normalizedQuery);
   });
 
-  renderSuggestions(matches.slice(0, 8));
+  renderSuggestions(matches.slice(0, 8), records);
 }
 
-function renderSuggestions(items) {
+function renderSuggestions(items, pool = []) {
   const list = elements.suggestions;
   if (!list) return;
   list.innerHTML = "";
+
+  state.searchPool = pool;
 
   if (!items.length) {
     list.classList.remove("visible");
@@ -814,12 +1269,22 @@ function renderSuggestions(items) {
     item.textContent = record[state.nameColumn] ?? "(Sem nome)";
     item.setAttribute("role", "option");
     item.tabIndex = 0;
-    item.dataset.index = String(state.records.indexOf(record));
-    item.addEventListener("click", () => openRecord(record));
+    item.dataset.poolIndex = String(pool.indexOf(record));
+    item.addEventListener("click", () => {
+      const poolIndex = Number(item.dataset.poolIndex);
+      const target = state.searchPool?.[poolIndex];
+      if (target) {
+        openRecord(target);
+      }
+    });
     item.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openRecord(record);
+        const poolIndex = Number(item.dataset.poolIndex);
+        const target = state.searchPool?.[poolIndex];
+        if (target) {
+          openRecord(target);
+        }
       }
     });
     list.appendChild(item);
@@ -834,8 +1299,11 @@ function handleSearchKeydown(event) {
     event.preventDefault();
     const firstSuggestion = elements.suggestions.querySelector("li");
     if (firstSuggestion) {
-      const index = Number(firstSuggestion.dataset.index);
-      openRecord(state.records[index]);
+      const poolIndex = Number(firstSuggestion.dataset.poolIndex);
+      const record = state.searchPool?.[poolIndex];
+      if (record) {
+        openRecord(record);
+      }
     }
   }
 }
@@ -848,6 +1316,10 @@ function openRecord(record) {
     !elements.modalName ||
     !elements.detailTemplate
   ) {
+    return;
+  }
+  if (!canAccessRecord(record)) {
+    showAccessRestrictionMessage();
     return;
   }
   const { nameColumn } = state;
@@ -896,6 +1368,10 @@ function handleDocumentClick(event) {
 
 function openCategoryView(categoryId) {
   if (!categoryId) return;
+  if (!isCategoryAllowed(categoryId)) {
+    showAccessRestrictionMessage();
+    return;
+  }
   const url = new URL("category.html", window.location.href);
   url.searchParams.set("category", categoryId);
   window.location.assign(url.toString());
@@ -952,6 +1428,11 @@ function setupEventListeners() {
     link.addEventListener("click", (event) => {
       const categoryId = link.dataset.categoryLink;
       if (!categoryId) return;
+      if (!isCategoryAllowed(categoryId)) {
+        event.preventDefault();
+        showAccessRestrictionMessage();
+        return;
+      }
       if (isCategoryPage) {
         event.preventDefault();
         const url = new URL(window.location.href);
@@ -964,8 +1445,17 @@ function setupEventListeners() {
   });
 }
 
-setupEventListeners();
-if (isCategoryPage) {
-  renderCategory(state.activeCategory);
+setupAccessControlEvents();
+
+async function bootstrap() {
+  await initializeAccessControl();
+  applyAccessRestrictions();
+  setupEventListeners();
+  if (isCategoryPage) {
+    state.activeCategory = ensureAccessibleCategory(state.activeCategory);
+    renderCategory(state.activeCategory);
+  }
+  fetchSheetData();
 }
-fetchSheetData();
+
+bootstrap();
