@@ -37,6 +37,8 @@ const elements = {
   categoryLinks: Array.from(
     document.querySelectorAll("[data-category-link]")
   ),
+  teensFilter: document.getElementById("teens-filter"),
+  teensFilterToggle: document.getElementById("teens-filter-toggle"),
 };
 
 const CATEGORY_CONFIG = [
@@ -59,7 +61,8 @@ const CATEGORY_CONFIG = [
   {
     id: "teens",
     title: "Adolescentes (11-17)",
-    description: "Irmãos com idades entre 11 e 17 anos.",
+    description:
+      "Irmãos com idades entre 11 e 17 anos. Ative o filtro \"Idade apta para colportagem\" para destacar apenas 16 e 17 anos.",
     chartLabel: "Idades dos adolescentes",
     emptyMessage: "Nenhum adolescente cadastrado até o momento.",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
@@ -121,6 +124,7 @@ const state = {
     overall: null,
     category: null,
   },
+  teensFilterActive: false,
 };
 
 async function fetchSheetData() {
@@ -670,14 +674,37 @@ function renderCategory(categoryId = "total") {
 
   setActiveSummaryCard(category.id);
 
-  const filteredEntries = state.enrichedRecords.filter((entry) =>
+  let filteredEntries = state.enrichedRecords.filter((entry) =>
     category.filter(entry)
   );
+
+  if (category.id === "teens") {
+    if (elements.teensFilter) {
+      elements.teensFilter.hidden = false;
+    }
+    if (elements.teensFilterToggle) {
+      elements.teensFilterToggle.checked = state.teensFilterActive;
+    }
+
+    if (state.teensFilterActive) {
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.age >= 16 && entry.age <= 17
+      );
+    }
+  } else {
+    if (elements.teensFilter) {
+      elements.teensFilter.hidden = true;
+    }
+  }
 
   if (elements.categoryMeta) {
     const count = filteredEntries.length;
     const noun = count === 1 ? "irmão" : "irmãos";
-    elements.categoryMeta.textContent = `${count} ${noun} nesta categoria`;
+    let metaText = `${count} ${noun} nesta categoria`;
+    if (category.id === "teens" && state.teensFilterActive) {
+      metaText += " · filtro \"Idade apta para colportagem\" ativo";
+    }
+    elements.categoryMeta.textContent = metaText;
   }
 
   if (isCategoryPage) {
@@ -896,6 +923,13 @@ function setupEventListeners() {
       if (!elements.search?.parentElement?.contains(event.target)) {
         elements.suggestions?.classList.remove("visible");
       }
+    });
+  }
+
+  if (elements.teensFilterToggle) {
+    elements.teensFilterToggle.addEventListener("change", (event) => {
+      state.teensFilterActive = event.target.checked;
+      renderCategory(state.activeCategory);
     });
   }
 

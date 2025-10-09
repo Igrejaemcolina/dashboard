@@ -29,3 +29,4 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
   - Valentes de Davi: 30 a 49 anos
   - Intendentes: 50 anos ou mais
 - Cada página de categoria inclui um gráfico de distribuição de idades, a contagem de irmãos daquela faixa e cartões clicáveis com nome, idade calculada a partir da data de nascimento e telefone.
+- A aba de adolescentes oferece um filtro extra chamado **"Idade apta para colportagem"**, que quando ativado exibe somente os jovens com 16 e 17 anos.
