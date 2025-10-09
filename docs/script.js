@@ -24,24 +24,28 @@ const ACCESS_DESCRIPTIONS = {
     "Acesso restrito às informações e buscas dos adolescentes (11-17 anos).",
 };
 
-const ROLE_PASSWORDS = {
+const NAME_SECRET = "IGCOLINA2025";
+
+const ROLE_CREDENTIALS = {
   [ACCESS_ROLES.RESPONSIBLE]: {
     "7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":
-      "Marcelino Silva",
+      "0426312c2925272f5d10615c253122",
     "73a2af8864fc500fa49048bf3003776c19938f360e56bd03663866fb3087884a":
-      "Mialichi",
+      "042e2223252a2628",
     "b74b7e3fcb623d805dacf98db27530f845760c47e3b0faa702b84e9ff3902c37":
-      "André Silva",
+      "0829273da5691d285e4653",
     "b411746bdf09bde7f1fe70ddc8fa57241a0cb79d14d6e9c27e598635ca7dae4d":
-      "Serginho",
+      "1a2231282527262e",
     "3f95b1b8a32c2c0251dfdbc3c8a30aab6d6e680cf0ef03e8af84a65dff0c4a85":
-      "Cido",
+      "0a2e2720",
     "060e33205a731400c2eb92bc12cf921a4e44cf1851d216f144337dd6ec5350a7":
-      "Carlinhos",
+      "0a2631232527262e41",
+    "ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":
+      "2337252e2f21272f53",
   },
   [ACCESS_ROLES.CAPTAIN]: {
     "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342":
-      "Capitães de Tropa",
+      "0a26332638aa2b32125457151d352c3f2d",
   },
 };
 
@@ -171,6 +175,15 @@ function getInitialCategory() {
   return "total";
 }
 
+const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
+  [
+    "Nome do Adolescente(a):",
+    "Data de aniversário do Adolescente:",
+    "Data de aniversario do Adolescente:",
+    "Telefone do adolescente:",
+  ].map((label) => normalizeColumnLabel(label))
+);
+
 const state = {
   records: [],
   columns: [],
@@ -197,12 +210,59 @@ const state = {
   accessResolver: null,
   searchPool: [],
   activeUserName: null,
+  activeUserSecret: null,
 };
 
 const defaultTexts = {
   overviewTitle: elements.overviewTitle?.textContent ?? "",
   overviewDescription: elements.overviewDescription?.textContent ?? "",
 };
+
+function normalizeColumnLabel(label) {
+  if (label == null) return "";
+  return normalizeString(label)
+    .replace(/[:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function xorCipher(inputBytes, keyBytes) {
+  return inputBytes.map((byte, index) => byte ^ keyBytes[index % keyBytes.length]);
+}
+
+function hexToBytes(hexString) {
+  if (!hexString || typeof hexString !== "string") return [];
+  const matches = hexString.match(/.{1,2}/g);
+  if (!matches) return [];
+  return matches.map((chunk) => parseInt(chunk, 16));
+}
+
+function bytesToString(bytes) {
+  return String.fromCharCode(...bytes);
+}
+
+function stringToBytes(text) {
+  return Array.from(text).map((char) => char.charCodeAt(0));
+}
+
+function decryptNameSecret(encrypted) {
+  if (!encrypted) return "";
+  const keyBytes = stringToBytes(NAME_SECRET);
+  const cipherBytes = hexToBytes(encrypted);
+  if (!cipherBytes.length || !keyBytes.length) {
+    return "";
+  }
+  const plainBytes = xorCipher(cipherBytes, keyBytes);
+  return bytesToString(plainBytes);
+}
+
+function encryptNameSecret(plain) {
+  if (!plain) return "";
+  const keyBytes = stringToBytes(NAME_SECRET);
+  const plainBytes = stringToBytes(plain);
+  const cipherBytes = xorCipher(plainBytes, keyBytes);
+  return cipherBytes.map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 function getStoredAccess() {
   try {
@@ -212,16 +272,33 @@ function getStoredAccess() {
     }
 
     if (Object.values(ACCESS_ROLES).includes(stored)) {
-      return { role: stored, userName: null };
+      return { role: stored, userSecret: null };
     }
 
     const parsed = JSON.parse(stored);
     if (parsed && Object.values(ACCESS_ROLES).includes(parsed.role)) {
-      const userName =
+      const userSecret =
+        typeof parsed.userSecret === "string" && parsed.userSecret.trim()
+          ? parsed.userSecret.trim()
+          : null;
+
+      if (userSecret) {
+        return { role: parsed.role, userSecret };
+      }
+
+      const legacyUserName =
         typeof parsed.userName === "string" && parsed.userName.trim()
           ? parsed.userName.trim()
           : null;
-      return { role: parsed.role, userName };
+
+      if (legacyUserName) {
+        return {
+          role: parsed.role,
+          userSecret: encryptNameSecret(legacyUserName),
+        };
+      }
+
+      return { role: parsed.role, userSecret: null };
     }
   } catch (error) {
     console.warn("Não foi possível ler a sessão de acesso:", error);
@@ -229,9 +306,9 @@ function getStoredAccess() {
   return null;
 }
 
-function storeAccess(role, userName) {
+function storeAccess(role, userSecret) {
   try {
-    const payload = JSON.stringify({ role, userName: userName ?? null });
+    const payload = JSON.stringify({ role, userSecret: userSecret ?? null });
     sessionStorage.setItem(ACCESS_SESSION_KEY, payload);
   } catch (error) {
     console.warn("Não foi possível persistir a sessão de acesso:", error);
@@ -539,7 +616,9 @@ function updateUserProfileUI() {
   }
 
   const roleLabel = ACCESS_LABELS[accessRole];
-  const displayName = state.activeUserName ?? roleLabel;
+  const trimmedName =
+    typeof state.activeUserName === "string" ? state.activeUserName.trim() : "";
+  const displayName = trimmedName || roleLabel;
   elements.userProfile.hidden = false;
   if (elements.userProfileLabel) {
     elements.userProfileLabel.textContent = displayName;
@@ -557,6 +636,7 @@ function handleSwitchUser() {
   state.accessRole = null;
   state.pendingAccessRole = null;
   state.activeUserName = null;
+  state.activeUserSecret = null;
   clearStoredAccess();
   applyAccessRestrictions();
   updateDashboard();
@@ -675,10 +755,11 @@ async function handleAccessSubmit(event) {
   }
 
   const hashed = await hashPassword(password);
-  const allowedUsers = ROLE_PASSWORDS[role] ?? {};
-  const userName = allowedUsers[hashed];
+  const allowedUsers = ROLE_CREDENTIALS[role] ?? {};
+  const userSecret = allowedUsers[hashed];
+  const userName = decryptNameSecret(userSecret);
 
-  if (!userName) {
+  if (!userSecret || !userName) {
     if (elements.accessError) {
       elements.accessError.textContent = "Senha incorreta. Tente novamente.";
     }
@@ -690,7 +771,8 @@ async function handleAccessSubmit(event) {
   state.accessRole = role;
   state.pendingAccessRole = null;
   state.activeUserName = userName;
-  storeAccess(role, userName);
+  state.activeUserSecret = userSecret;
+  storeAccess(role, userSecret);
   applyAccessRestrictions();
   buildSuggestions();
   hideAccessModal();
@@ -726,7 +808,13 @@ async function initializeAccessControl() {
   const storedAccess = getStoredAccess();
   if (storedAccess) {
     state.accessRole = storedAccess.role;
-    state.activeUserName = storedAccess.userName;
+    state.activeUserSecret = storedAccess.userSecret ?? null;
+    state.activeUserName = storedAccess.userSecret
+      ? decryptNameSecret(storedAccess.userSecret)
+      : null;
+    if (state.accessRole && state.activeUserSecret) {
+      storeAccess(state.accessRole, state.activeUserSecret);
+    }
     applyAccessRestrictions();
     return;
   }
@@ -1686,38 +1774,77 @@ function renderSuggestions(items, pool = []) {
   list.classList.add("visible");
 }
 
-function mergeRecordDetails(primaryRecord, supplementalRecord) {
-  const merged = new Map();
+function mergeRecordDetails(primaryRecord, supplementalRecord, entry) {
+  const merged = [];
 
-  const addRecord = (record) => {
+  const addValue = (key, value) => {
+    if (!key || key === "__raw") {
+      return;
+    }
+
+    const normalizedKey = normalizeColumnLabel(key);
+    if (!normalizedKey) {
+      return;
+    }
+
+    const existingIndex = merged.findIndex(
+      (item) => item.normalizedKey === normalizedKey
+    );
+
+    const stringValue = value == null ? "" : String(value).trim();
+
+    if (existingIndex >= 0) {
+      const existing = merged[existingIndex];
+      if (!existing.value && stringValue) {
+        merged[existingIndex] = {
+          ...existing,
+          value: stringValue,
+        };
+      }
+      return;
+    }
+
+    merged.push({
+      key,
+      value: stringValue,
+      normalizedKey,
+    });
+  };
+
+  const addRecord = (record, { skipExcluded = false } = {}) => {
     if (!record) return;
 
     Object.entries(record).forEach(([key, value]) => {
-      if (key === "__raw") {
+      if (
+        skipExcluded &&
+        SUPPLEMENTAL_EXCLUDED_KEYS.has(normalizeColumnLabel(key))
+      ) {
         return;
       }
-
-      const stringValue = value == null ? "" : String(value).trim();
-
-      if (!merged.has(key)) {
-        merged.set(key, stringValue);
-        return;
-      }
-
-      const existing = merged.get(key);
-      if ((!existing || (typeof existing === "string" && !existing.trim())) && stringValue) {
-        merged.set(key, stringValue);
-      }
+      addValue(key, value);
     });
   };
 
   addRecord(primaryRecord);
-  addRecord(supplementalRecord);
+  addRecord(supplementalRecord, { skipExcluded: true });
 
-  return Array.from(merged.entries()).map(([key, value]) => ({
-    key,
-    value,
-  }));
+  const isTeenEntry = Number.isFinite(entry?.age) && entry.age >= 11 && entry.age <= 17;
+  if (isTeenEntry && Array.isArray(state.supplementalColumns)) {
+    state.supplementalColumns.forEach((column) => {
+      const normalized = normalizeColumnLabel(column);
+      if (!normalized || SUPPLEMENTAL_EXCLUDED_KEYS.has(normalized)) {
+        return;
+      }
+
+      const exists = merged.some((item) => item.normalizedKey === normalized);
+      if (!exists) {
+        const supplementalValue = supplementalRecord ? supplementalRecord[column] : "";
+        addValue(column, supplementalValue);
+      }
+    });
+  }
+
+  return merged.map(({ key, value }) => ({ key, value }));
 }
 
 function handleSearchKeydown(event) {
@@ -1765,7 +1892,7 @@ function openRecord(record) {
   }
   elements.modalDetails.innerHTML = "";
 
-  const details = mergeRecordDetails(record, supplementalRecord);
+  const details = mergeRecordDetails(record, supplementalRecord, entry);
 
   details.forEach(({ key, value }) => {
     const template = elements.detailTemplate.content.cloneNode(true);

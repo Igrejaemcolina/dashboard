@@ -29,13 +29,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 - Ao abrir o site é exibido um modal com a mensagem **"Selecione a seguir sua função"** (Irmão Responsável ou Capitães de Tropa).
 - Cada opção exige uma senha pré-configurada que é comparada utilizando hash SHA-256. As versões cifradas ficam no código e as senhas em texto puro não são expostas.
-- As senhas dos responsáveis identificam automaticamente o usuário autenticado:
-  - Marcelino Silva — senha `1010`
-  - Mialichi — senha `2020`
-  - André Silva — senha `3030`
-  - Serginho — senha `4040`
-  - Cido — senha `5050`
-  - Carlinhos — senha `6060`
+- Os nomes vinculados a cada credencial também são armazenados cifrados no código-fonte para evitar exposição direta.
 - **Irmão Responsável** tem acesso completo a todas as abas, buscas e gráficos.
 - **Capitães de Tropa** visualizam os contadores gerais, porém só podem abrir e pesquisar a aba de adolescentes (11–17 anos); as demais categorias ficam bloqueadas.
 - A sessão é mantida em `sessionStorage` para não solicitar senha novamente enquanto o navegador permanecer aberto na mesma aba.
