@@ -224,6 +224,7 @@ const state = {
   assistant: {
     greeted: false,
     customMode: false,
+    typingTimeouts: new Set(),
   },
 };
 
@@ -1623,6 +1624,21 @@ function isAssistantOpen() {
   return elements.assistantPanel && !elements.assistantPanel.hasAttribute("hidden");
 }
 
+function clearAssistantTypingIndicators() {
+  state.assistant.typingTimeouts.forEach((timeout) => {
+    clearTimeout(timeout);
+  });
+  state.assistant.typingTimeouts.clear();
+
+  if (!elements.assistantConversation) {
+    return;
+  }
+
+  elements.assistantConversation
+    .querySelectorAll(".assistant-message.typing")
+    .forEach((node) => node.remove());
+}
+
 function setAssistantOpen(open) {
   if (!elements.assistantPanel || !elements.assistantToggle) {
     return;
@@ -1642,6 +1658,7 @@ function setAssistantOpen(open) {
     elements.assistantPanel.hidden = true;
     elements.assistantToggle.setAttribute("aria-expanded", "false");
     state.assistant.customMode = false;
+    clearAssistantTypingIndicators();
     if (elements.assistantForm) {
       elements.assistantForm.hidden = true;
     }
@@ -1674,6 +1691,50 @@ function appendAssistantMessage(author, message) {
   elements.assistantConversation.appendChild(wrapper);
   elements.assistantConversation.scrollTop =
     elements.assistantConversation.scrollHeight;
+}
+
+function queueAssistantResponse(message) {
+  if (!elements.assistantConversation) {
+    return;
+  }
+
+  const resolveMessage =
+    typeof message === "function" ? message : () => message;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "assistant-message assistant typing";
+
+  const heading = document.createElement("strong");
+  heading.textContent = "Assistente";
+  wrapper.appendChild(heading);
+
+  const body = document.createElement("p");
+  body.className = "assistant-typing";
+  body.append("digitando");
+
+  const dots = document.createElement("span");
+  dots.className = "typing-dots";
+
+  for (let index = 0; index < 3; index += 1) {
+    const dot = document.createElement("span");
+    dots.appendChild(dot);
+  }
+
+  body.append(" ");
+  body.appendChild(dots);
+  wrapper.appendChild(body);
+
+  elements.assistantConversation.appendChild(wrapper);
+  elements.assistantConversation.scrollTop =
+    elements.assistantConversation.scrollHeight;
+
+  const timeout = setTimeout(() => {
+    wrapper.remove();
+    state.assistant.typingTimeouts.delete(timeout);
+    appendAssistantMessage("assistant", resolveMessage());
+  }, 2000);
+
+  state.assistant.typingTimeouts.add(timeout);
 }
 
 function renderAssistantQuestions() {
@@ -1756,7 +1817,7 @@ function handleAssistantQuestionSelection(questionId) {
   }
 
   appendAssistantMessage("user", question.label);
-  appendAssistantMessage("assistant", getAssistantAnswer(question.id));
+  queueAssistantResponse(() => getAssistantAnswer(question.id));
 }
 
 function handleAssistantFormSubmit(event) {
@@ -1772,7 +1833,7 @@ function handleAssistantFormSubmit(event) {
   }
 
   appendAssistantMessage("user", value);
-  appendAssistantMessage("assistant", generateCustomAssistantAnswer(value));
+  queueAssistantResponse(() => generateCustomAssistantAnswer(value));
   elements.assistantInput.value = "";
   state.assistant.customMode = false;
   if (elements.assistantForm) {
@@ -1787,10 +1848,31 @@ function setupAssistant() {
 
   renderAssistantQuestions();
 
-  elements.assistantToggle.addEventListener("click", () => {
-    setAssistantOpen(!isAssistantOpen());
+  elements.assistantToggle.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || !target.closest("img")) {
+      return;
+    }
+
+    event.preventDefault();
     if (isAssistantOpen()) {
+      closeAssistant();
+      elements.assistantToggle?.focus();
+    } else {
+      setAssistantOpen(true);
       elements.assistantPanel.focus?.();
+    }
+  });
+
+  elements.assistantToggle.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setAssistantOpen(!isAssistantOpen());
+      if (isAssistantOpen()) {
+        elements.assistantPanel.focus?.();
+      } else {
+        elements.assistantToggle?.focus();
+      }
     }
   });
 
@@ -1815,6 +1897,8 @@ function setupAssistant() {
   if (elements.assistantForm) {
     elements.assistantForm.addEventListener("submit", handleAssistantFormSubmit);
   }
+
+  setAssistantOpen(false);
 }
 
 function parseDate(rawValue) {

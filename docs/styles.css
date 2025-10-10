@@ -870,6 +870,54 @@ main {
   line-height: 1.45;
 }
 
+.assistant-message.typing {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.assistant-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.typing-dots span {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.25;
+  transform: translateY(0);
+  animation: assistantTyping 1s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes assistantTyping {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-0.2rem);
+  }
+}
+
 .assistant-questions {
   display: grid;
   gap: 0.5rem;
