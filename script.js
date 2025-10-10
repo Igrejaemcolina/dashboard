@@ -1700,7 +1700,7 @@ function getAssistantAnswer(questionId) {
         : "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente.";
     case "search":
       return state.accessRole === ACCESS_ROLES.CAPTAIN
-        ? "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos.";
+        ? "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos."
         : "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão.";
     case "categories":
       return state.accessRole === ACCESS_ROLES.CAPTAIN
