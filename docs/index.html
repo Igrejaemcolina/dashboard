@@ -131,6 +131,24 @@
         </div>
       </section>
 
+      <section
+        class="birthdays"
+        id="birthday-section"
+        aria-labelledby="birthday-title"
+        hidden
+      >
+        <div class="section-header">
+          <h2 id="birthday-title">Aniversariantes de hoje</h2>
+          <p class="birthdays-description">
+            Celebre com os irmãos que comemoram aniversário nesta data.
+          </p>
+        </div>
+        <ul class="birthday-list" id="birthday-list" aria-live="polite"></ul>
+        <p class="empty-message" id="birthday-empty">
+          Nenhum aniversariante encontrado para hoje.
+        </p>
+      </section>
+
       <section id="status" class="status"></section>
     </main>
 
@@ -187,6 +205,64 @@
         <dd></dd>
       </div>
     </template>
+
+    <button
+      type="button"
+      class="assistant-toggle"
+      id="assistant-toggle"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="assistant-panel"
+    >
+      <img
+        src="https://simp6.selti-delivery.ru/images3/3d-friendly-cute-robot-assistente-virtual-inteligente-bot-chatbot-mascote-ai-inteligencia-artificial_95505-3959f41aca59707a80b.jpg"
+        alt="Abrir assistente virtual"
+      />
+    </button>
+    <div
+      class="assistant-panel"
+      id="assistant-panel"
+      role="dialog"
+      aria-modal="false"
+      tabindex="-1"
+      hidden
+    >
+      <div class="assistant-header">
+        <div>
+          <h2>Assistente IGColina</h2>
+          <p>Posso ajudar com dúvidas sobre a dashboard.</p>
+        </div>
+        <button
+          type="button"
+          class="assistant-close"
+          id="assistant-close"
+          aria-label="Fechar assistente"
+        >
+          &times;
+        </button>
+      </div>
+      <div class="assistant-body">
+        <div
+          class="assistant-conversation"
+          id="assistant-conversation"
+          aria-live="polite"
+        ></div>
+        <div class="assistant-questions" id="assistant-questions"></div>
+        <form class="assistant-form" id="assistant-form" hidden>
+          <label class="sr-only" for="assistant-input">Descreva sua dúvida</label>
+          <div class="assistant-input-group">
+            <input
+              type="text"
+              id="assistant-input"
+              name="assistant-input"
+              placeholder="Digite sua dúvida"
+              autocomplete="off"
+            />
+            <button type="submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js" type="module"></script>

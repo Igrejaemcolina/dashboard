@@ -81,6 +81,9 @@ const elements = {
   overallEmpty: document.getElementById("overall-empty"),
   overallChart: document.getElementById("overall-age-chart"),
   categoryChart: document.getElementById("category-age-chart"),
+  birthdaySection: document.getElementById("birthday-section"),
+  birthdayList: document.getElementById("birthday-list"),
+  birthdayEmpty: document.getElementById("birthday-empty"),
   categoryLinks: Array.from(
     document.querySelectorAll("[data-category-link]")
   ),
@@ -103,6 +106,13 @@ const elements = {
   accessOptionButtons: Array.from(
     document.querySelectorAll("[data-access-role]")
   ),
+  assistantToggle: document.getElementById("assistant-toggle"),
+  assistantPanel: document.getElementById("assistant-panel"),
+  assistantClose: document.getElementById("assistant-close"),
+  assistantQuestions: document.getElementById("assistant-questions"),
+  assistantForm: document.getElementById("assistant-form"),
+  assistantInput: document.getElementById("assistant-input"),
+  assistantConversation: document.getElementById("assistant-conversation"),
 };
 
 const CATEGORY_CONFIG = [
@@ -211,12 +221,42 @@ const state = {
   searchPool: [],
   activeUserName: null,
   activeUserSecret: null,
+  assistant: {
+    greeted: false,
+    customMode: false,
+  },
 };
 
 const defaultTexts = {
   overviewTitle: elements.overviewTitle?.textContent ?? "",
   overviewDescription: elements.overviewDescription?.textContent ?? "",
 };
+
+const ASSISTANT_QUESTIONS = [
+  {
+    id: "refresh",
+    label: "Como os dados são atualizados?",
+    answer:
+      "Os dados vêm diretamente das planilhas compartilhadas e são atualizados automaticamente a cada minuto. Você também pode recarregar a página para sincronizar imediatamente.",
+  },
+  {
+    id: "search",
+    label: "Como pesquisar um irmão?",
+    answer:
+      "Use o campo de pesquisa no topo: digite parte do nome e selecione uma das sugestões para abrir os detalhes completos.",
+  },
+  {
+    id: "categories",
+    label: "Como acessar as categorias?",
+    answer:
+      "Clique nos cartões do painel ou utilize o menu de categorias. Cada visão mostra os cards correspondentes com idade e telefone.",
+  },
+  {
+    id: "custom",
+    label: "Outros",
+    custom: true,
+  },
+];
 
 function normalizeColumnLabel(label) {
   if (label == null) return "";
@@ -521,6 +561,15 @@ function applyAccessRestrictions() {
   elements.summaryCards.forEach((card) => {
     const categoryId = card.dataset.category;
     if (!categoryId) return;
+    const hideCard =
+      state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens";
+    card.hidden = hideCard;
+    if (hideCard) {
+      card.removeAttribute("aria-disabled");
+      card.tabIndex = -1;
+      return;
+    }
+
     const allowed = isCategoryAllowed(categoryId);
     card.classList.toggle("restricted", !allowed);
     if (!allowed) {
@@ -535,6 +584,16 @@ function applyAccessRestrictions() {
   elements.categoryLinks.forEach((link) => {
     const categoryId = link.dataset.categoryLink;
     if (!categoryId) return;
+    const listItem = link.closest("li");
+    const hideLink =
+      state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens";
+    if (hideLink) {
+      if (listItem) listItem.hidden = true;
+      else link.hidden = true;
+    } else {
+      if (listItem) listItem.hidden = false;
+      else link.hidden = false;
+    }
     const allowed = isCategoryAllowed(categoryId);
     link.classList.toggle("restricted", !allowed);
     if (!allowed) {
@@ -559,6 +618,7 @@ function applyAccessRestrictions() {
   }
 
   updateUserProfileUI();
+  updateBirthdays();
 }
 
 function isUserMenuOpen() {
@@ -1397,6 +1457,7 @@ function buildEnrichedRecords(records) {
     return {
       record,
       age,
+      birthDate,
       name: nameColumn ? record[nameColumn] ?? "" : "",
       phone: displayPhone,
       supplemental: supplementalEntry,
@@ -1439,6 +1500,321 @@ function updateDashboard() {
   if (elements.stewards) elements.stewards.textContent = counters.stewards;
 
   updateOverallChart(getAccessibleEntries());
+  updateBirthdays();
+}
+
+function isBirthdayToday(birthDate, referenceDate) {
+  if (!(birthDate instanceof Date)) {
+    return false;
+  }
+
+  if (Number.isNaN(birthDate.getTime())) {
+    return false;
+  }
+
+  const reference = referenceDate ?? new Date();
+  return (
+    birthDate.getMonth() === reference.getMonth() &&
+    birthDate.getDate() === reference.getDate()
+  );
+}
+
+function renderBirthdays(entries) {
+  const { birthdaySection, birthdayList, birthdayEmpty } = elements;
+
+  if (!birthdaySection || !birthdayList || !birthdayEmpty) {
+    return;
+  }
+
+  if (!state.accessRole) {
+    birthdaySection.hidden = true;
+    birthdayList.innerHTML = "";
+    birthdayList.hidden = true;
+    birthdayEmpty.hidden = true;
+    return;
+  }
+
+  birthdaySection.hidden = false;
+  birthdayList.innerHTML = "";
+
+  if (!entries.length) {
+    birthdayList.hidden = true;
+    birthdayEmpty.hidden = false;
+    return;
+  }
+
+  birthdayList.hidden = false;
+  birthdayEmpty.hidden = true;
+
+  const sortedEntries = entries.slice().sort((first, second) => {
+    const nameA = typeof first.name === "string" ? first.name : "";
+    const nameB = typeof second.name === "string" ? second.name : "";
+    return collator.compare(nameA, nameB);
+  });
+
+  sortedEntries.forEach((entry) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "birthday-item";
+
+    const name = document.createElement("span");
+    name.className = "birthday-name";
+    name.textContent = entry.name?.trim() || "Nome não informado";
+    item.appendChild(name);
+
+    const meta = document.createElement("div");
+    meta.className = "birthday-meta";
+
+    const age = Number.isFinite(entry.age) ? entry.age : null;
+    const ageSpan = document.createElement("span");
+    ageSpan.textContent = age != null ? `${age} anos` : "Idade não informada";
+    meta.appendChild(ageSpan);
+
+    if (entry.phone) {
+      const phoneSpan = document.createElement("span");
+      phoneSpan.textContent = entry.phone;
+      meta.appendChild(phoneSpan);
+    }
+
+    item.appendChild(meta);
+
+    item.addEventListener("click", () => {
+      openRecord(entry.record);
+    });
+
+    item.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openRecord(entry.record);
+      }
+    });
+
+    birthdayList.appendChild(item);
+  });
+}
+
+function updateBirthdays() {
+  if (!elements.birthdaySection) {
+    return;
+  }
+
+  if (elements.birthdayEmpty) {
+    elements.birthdayEmpty.textContent =
+      state.accessRole === ACCESS_ROLES.CAPTAIN
+        ? "Nenhum adolescente aniversariante encontrado para hoje."
+        : "Nenhum aniversariante encontrado para hoje.";
+  }
+
+  if (!state.accessRole) {
+    renderBirthdays([]);
+    return;
+  }
+
+  const today = new Date();
+  const accessibleEntries = getAccessibleEntries();
+  const birthdayEntries = accessibleEntries.filter((entry) =>
+    isBirthdayToday(entry.birthDate, today)
+  );
+
+  renderBirthdays(birthdayEntries);
+}
+
+function isAssistantOpen() {
+  return elements.assistantPanel && !elements.assistantPanel.hasAttribute("hidden");
+}
+
+function setAssistantOpen(open) {
+  if (!elements.assistantPanel || !elements.assistantToggle) {
+    return;
+  }
+
+  if (open) {
+    elements.assistantPanel.hidden = false;
+    elements.assistantToggle.setAttribute("aria-expanded", "true");
+    if (!state.assistant.greeted) {
+      appendAssistantMessage(
+        "assistant",
+        "Olá! Sou a assistente virtual da dashboard. Escolha uma pergunta ou use a opção \"Outros\" para tirar dúvidas específicas."
+      );
+      state.assistant.greeted = true;
+    }
+  } else {
+    elements.assistantPanel.hidden = true;
+    elements.assistantToggle.setAttribute("aria-expanded", "false");
+    state.assistant.customMode = false;
+    if (elements.assistantForm) {
+      elements.assistantForm.hidden = true;
+    }
+  }
+}
+
+function closeAssistant() {
+  setAssistantOpen(false);
+}
+
+function appendAssistantMessage(author, message) {
+  if (!elements.assistantConversation || !message) {
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = `assistant-message ${author}`;
+
+  const heading = document.createElement("strong");
+  heading.textContent =
+    author === "assistant"
+      ? "Assistente"
+      : state.activeUserName?.trim() || "Você";
+  wrapper.appendChild(heading);
+
+  const body = document.createElement("p");
+  body.textContent = message;
+  wrapper.appendChild(body);
+
+  elements.assistantConversation.appendChild(wrapper);
+  elements.assistantConversation.scrollTop =
+    elements.assistantConversation.scrollHeight;
+}
+
+function renderAssistantQuestions() {
+  if (!elements.assistantQuestions) {
+    return;
+  }
+
+  elements.assistantQuestions.innerHTML = "";
+
+  ASSISTANT_QUESTIONS.forEach((question) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = question.label;
+    button.dataset.assistantQuestion = question.id;
+    elements.assistantQuestions.appendChild(button);
+  });
+}
+
+function getAssistantAnswer(questionId) {
+  switch (questionId) {
+    case "refresh":
+      return state.accessRole === ACCESS_ROLES.CAPTAIN
+        ? "Os registros de adolescentes são atualizados automaticamente a cada minuto com os dados das planilhas. Recarregue a página se precisar forçar uma nova consulta."
+        : "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente.";
+    case "search":
+      return state.accessRole === ACCESS_ROLES.CAPTAIN
+        ? "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos.";
+        : "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão.";
+    case "categories":
+      return state.accessRole === ACCESS_ROLES.CAPTAIN
+        ? "Como Capitão de Tropa, você visualiza apenas o cartão de adolescentes. Clique nele para abrir a lista com cards e gráfico específicos."
+        : "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados.";
+    default:
+      return "Estou aqui para ajudar com as principais dúvidas do painel.";
+  }
+}
+
+function generateCustomAssistantAnswer(questionText) {
+  const cleanedQuestion = questionText.trim();
+  const scopeMessage =
+    state.accessRole === ACCESS_ROLES.CAPTAIN
+      ? "Como Capitão de Tropa, lembre-se de que seu acesso é focado nos adolescentes de 11 a 17 anos."
+      : "Como Irmão Responsável, você possui acesso completo a todas as categorias da dashboard.";
+
+  return [
+    cleanedQuestion
+      ? `Entendi sua dúvida: "${cleanedQuestion}".`
+      : "Recebi sua dúvida.",
+    scopeMessage,
+    "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function handleAssistantQuestionSelection(questionId) {
+  const question = ASSISTANT_QUESTIONS.find((item) => item.id === questionId);
+  if (!question) {
+    return;
+  }
+
+  if (question.custom) {
+    if (!state.assistant.customMode) {
+      appendAssistantMessage(
+        "assistant",
+        "Conte qual é a sua dúvida e eu trago orientações sobre como resolver no painel."
+      );
+    }
+    state.assistant.customMode = true;
+    if (elements.assistantForm) {
+      elements.assistantForm.hidden = false;
+    }
+    elements.assistantInput?.focus();
+    return;
+  }
+
+  state.assistant.customMode = false;
+  if (elements.assistantForm) {
+    elements.assistantForm.hidden = true;
+  }
+
+  appendAssistantMessage("user", question.label);
+  appendAssistantMessage("assistant", getAssistantAnswer(question.id));
+}
+
+function handleAssistantFormSubmit(event) {
+  event.preventDefault();
+  if (!elements.assistantInput) {
+    return;
+  }
+
+  const value = elements.assistantInput.value.trim();
+  if (!value) {
+    elements.assistantInput.focus();
+    return;
+  }
+
+  appendAssistantMessage("user", value);
+  appendAssistantMessage("assistant", generateCustomAssistantAnswer(value));
+  elements.assistantInput.value = "";
+  state.assistant.customMode = false;
+  if (elements.assistantForm) {
+    elements.assistantForm.hidden = true;
+  }
+}
+
+function setupAssistant() {
+  if (!elements.assistantToggle || !elements.assistantPanel) {
+    return;
+  }
+
+  renderAssistantQuestions();
+
+  elements.assistantToggle.addEventListener("click", () => {
+    setAssistantOpen(!isAssistantOpen());
+    if (isAssistantOpen()) {
+      elements.assistantPanel.focus?.();
+    }
+  });
+
+  if (elements.assistantClose) {
+    elements.assistantClose.addEventListener("click", () => {
+      closeAssistant();
+      elements.assistantToggle?.focus();
+    });
+  }
+
+  if (elements.assistantQuestions) {
+    elements.assistantQuestions.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-assistant-question]");
+      if (!button) return;
+      if (!isAssistantOpen()) {
+        setAssistantOpen(true);
+      }
+      handleAssistantQuestionSelection(button.dataset.assistantQuestion);
+    });
+  }
+
+  if (elements.assistantForm) {
+    elements.assistantForm.addEventListener("submit", handleAssistantFormSubmit);
+  }
 }
 
 function parseDate(rawValue) {
@@ -2066,13 +2442,19 @@ function configureAutoRefresh() {
 }
 
 function handleDocumentClick(event) {
-  if (!elements.modal) return;
-  if (!elements.modal.contains(event.target)) {
-    return;
+  if (elements.modal && elements.modal.contains(event.target)) {
+    if (event.target === elements.modal) {
+      closeModal();
+    }
   }
 
-  if (event.target === elements.modal) {
-    closeModal();
+  if (
+    elements.assistantPanel &&
+    !elements.assistantPanel.hidden &&
+    !elements.assistantPanel.contains(event.target) &&
+    !elements.assistantToggle?.contains(event.target)
+  ) {
+    closeAssistant();
   }
 }
 
@@ -2101,6 +2483,7 @@ function setupEventListeners() {
     if (event.key === "Escape") {
       closeModal();
       closeUserMenu();
+      closeAssistant();
     }
   });
   document.addEventListener("click", handleDocumentClick);
@@ -2158,6 +2541,7 @@ function setupEventListeners() {
 
 setupAccessControlEvents();
 setupUserProfileEvents();
+setupAssistant();
 
 async function bootstrap() {
   await initializeAccessControl();

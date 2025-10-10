@@ -31,7 +31,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - Cada opção exige uma senha pré-configurada que é comparada utilizando hash SHA-256. As versões cifradas ficam no código e as senhas em texto puro não são expostas.
 - Os nomes vinculados a cada credencial também são armazenados cifrados no código-fonte para evitar exposição direta.
 - **Irmão Responsável** tem acesso completo a todas as abas, buscas e gráficos.
-- **Capitães de Tropa** visualizam os contadores gerais, porém só podem abrir e pesquisar a aba de adolescentes (11–17 anos); as demais categorias ficam bloqueadas.
+- **Capitães de Tropa** visualizam apenas o cartão e a categoria de adolescentes (11–17 anos); os demais blocos ficam ocultos e indisponíveis para consulta.
 - A sessão é mantida em `sessionStorage` para não solicitar senha novamente enquanto o navegador permanecer aberto na mesma aba.
 - O perfil autenticado aparece no cabeçalho da dashboard e oferece a opção **"Trocar de usuário"** para voltar ao modal de acesso quando necessário.
 
@@ -46,3 +46,15 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
   - Intendentes: 50 anos ou mais
 - Cada página de categoria inclui um gráfico de distribuição de idades, a contagem de irmãos daquela faixa e cartões clicáveis com nome, idade calculada a partir da data de nascimento e telefone.
 - A aba de adolescentes oferece um filtro extra chamado **"Idade apta para colportagem"**, que quando ativado exibe somente os jovens com 16 e 17 anos.
+
+### Aniversariantes do dia
+
+- O painel identifica automaticamente quem faz aniversário na data atual utilizando a coluna de data de nascimento.
+- Irmãos Responsáveis visualizam aniversariantes de todas as faixas; Capitães de Tropa enxergam apenas adolescentes.
+- Cada aniversariante aparece em um cartão clicável com idade e telefone para facilitar o contato imediato.
+
+### Assistente virtual IGColina
+
+- Um botão flutuante no canto inferior direito abre a assistente com perguntas frequentes sobre o uso da dashboard.
+- Três dúvidas comuns já ficam disponíveis e uma quarta opção **"Outros"** permite digitar perguntas personalizadas.
+- As respostas levam em consideração o perfil autenticado, indicando as ações disponíveis para cada função.
