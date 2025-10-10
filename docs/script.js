@@ -1094,10 +1094,17 @@ function detectColumn(columns, records, targets) {
 }
 
 function normalizeString(value) {
+  if (value == null) {
+    return "";
+  }
+
   return String(value)
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function buildSupplementalEntries(records, nameColumn, birthColumn, phoneColumn) {
@@ -1211,6 +1218,151 @@ function sanitizePhone(value) {
   return String(value).replace(/\D+/g, "");
 }
 
+function isPhoneLikeLabel(label) {
+  const normalized = normalizeString(label);
+  if (!normalized) return false;
+
+  return (
+    normalized.includes("telefone") ||
+    normalized.includes("celular") ||
+    normalized.includes("whatsapp") ||
+    normalized.includes("contato")
+  );
+}
+
+function extractPhoneDigits(value) {
+  if (value == null) {
+    return "";
+  }
+
+  const digits = String(value).replace(/\D+/g, "");
+  return digits.length >= 8 ? digits : "";
+}
+
+function formatPhoneDigits(digits) {
+  if (!digits) {
+    return "";
+  }
+
+  const normalized = digits.trim();
+
+  if (normalized.length === 13 && normalized.startsWith("55")) {
+    const areaCode = normalized.slice(2, 4);
+    const remaining = normalized.slice(4);
+    const local = formatPhoneDigits(remaining);
+    return `+55 (${areaCode}) ${local}`;
+  }
+
+  if (normalized.length === 12 && normalized.startsWith("55")) {
+    const areaCode = normalized.slice(2, 4);
+    const local = normalized.slice(4);
+    return `+55 (${areaCode}) ${formatPhoneDigits(local)}`;
+  }
+
+  if (normalized.length === 11) {
+    return `(${normalized.slice(0, 2)}) ${normalized.slice(2, 7)}-${normalized.slice(7)}`;
+  }
+
+  if (normalized.length === 10) {
+    return `(${normalized.slice(0, 2)}) ${normalized.slice(2, 6)}-${normalized.slice(6)}`;
+  }
+
+  if (normalized.length === 9) {
+    return `${normalized.slice(0, 5)}-${normalized.slice(5)}`;
+  }
+
+  if (normalized.length === 8) {
+    return `${normalized.slice(0, 4)}-${normalized.slice(4)}`;
+  }
+
+  return normalized;
+}
+
+function resolveDisplayPhone(record, supplementalEntry, baseValue = "") {
+  const candidates = [];
+  const seen = new Set();
+
+  const pushCandidate = (value) => {
+    const digits = extractPhoneDigits(value);
+    if (!digits || seen.has(digits)) {
+      return;
+    }
+    seen.add(digits);
+    candidates.push({ digits });
+  };
+
+  if (baseValue) {
+    pushCandidate(baseValue);
+  }
+
+  if (state.phoneColumn) {
+    const rawCandidate = record?.__raw?.[state.phoneColumn];
+    if (rawCandidate != null) {
+      pushCandidate(rawCandidate);
+    }
+  }
+
+  if (supplementalEntry) {
+    pushCandidate(supplementalEntry.phone);
+    const supplementalRecord = supplementalEntry.record;
+
+    if (supplementalRecord) {
+      if (state.supplementalPhoneColumn) {
+        pushCandidate(supplementalRecord[state.supplementalPhoneColumn]);
+        const rawSupplemental = supplementalRecord.__raw?.[state.supplementalPhoneColumn];
+        if (rawSupplemental != null) {
+          pushCandidate(rawSupplemental);
+        }
+      }
+
+      Object.entries(supplementalRecord).forEach(([key, value]) => {
+        if (key === "__raw") return;
+        if (isPhoneLikeLabel(key)) {
+          pushCandidate(value);
+        }
+      });
+
+      if (supplementalRecord.__raw) {
+        Object.entries(supplementalRecord.__raw).forEach(([key, value]) => {
+          if (isPhoneLikeLabel(key)) {
+            pushCandidate(value);
+          }
+        });
+      }
+    }
+  }
+
+  const primaryRecord = record ?? null;
+
+  if (primaryRecord) {
+    Object.entries(primaryRecord).forEach(([key, value]) => {
+      if (key === "__raw") return;
+      if (isPhoneLikeLabel(key)) {
+        pushCandidate(value);
+      }
+    });
+
+    if (primaryRecord.__raw) {
+      Object.entries(primaryRecord.__raw).forEach(([key, value]) => {
+        if (isPhoneLikeLabel(key)) {
+          pushCandidate(value);
+        }
+      });
+    }
+  }
+
+  if (candidates.length) {
+    candidates.sort((a, b) => b.digits.length - a.digits.length);
+    return formatPhoneDigits(candidates[0].digits);
+  }
+
+  if (typeof baseValue === "string") {
+    return baseValue.trim();
+  }
+
+  return String(baseValue ?? "").trim();
+}
+
 function isSameDate(first, second) {
   if (!(first instanceof Date) || !(second instanceof Date)) {
     return false;
@@ -1236,30 +1388,17 @@ function buildEnrichedRecords(records) {
     const supplementalEntry = matchSupplementalRecord(record, birthDate);
 
     let phoneValue = phoneColumn ? record[phoneColumn] ?? "" : "";
-    let normalizedPhone =
-      typeof phoneValue === "string"
-        ? phoneValue.trim()
-        : String(phoneValue ?? "").trim();
-
-    if (!normalizedPhone && supplementalEntry) {
-      const supplementalPhone = state.supplementalPhoneColumn
-        ? supplementalEntry.record?.[state.supplementalPhoneColumn]
-        : supplementalEntry?.phone;
-      if (supplementalPhone != null) {
-        phoneValue = String(supplementalPhone);
-        normalizedPhone = phoneValue.trim();
-      }
-    }
-
     if (typeof phoneValue !== "string") {
       phoneValue = String(phoneValue ?? "");
     }
+
+    const displayPhone = resolveDisplayPhone(record, supplementalEntry, phoneValue);
 
     return {
       record,
       age,
       name: nameColumn ? record[nameColumn] ?? "" : "",
-      phone: phoneValue,
+      phone: displayPhone,
       supplemental: supplementalEntry,
     };
   });
@@ -1558,6 +1697,12 @@ function formatPhone(phone) {
   if (!phone) {
     return "não informado";
   }
+
+  const digits = extractPhoneDigits(phone);
+  if (digits) {
+    return formatPhoneDigits(digits);
+  }
+
   return phone;
 }
 
