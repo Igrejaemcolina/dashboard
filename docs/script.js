@@ -1655,7 +1655,7 @@ function setAssistantOpen(open) {
     if (!state.assistant.greeted) {
       appendAssistantMessage(
         "assistant",
-        "Olá! Sou a assistente virtual da dashboard. Escolha uma pergunta ou use a opção \"Outros\" para tirar dúvidas específicas."
+        "Olá! Sou a JP assistant da dashboard. Escolha uma pergunta ou use a opção \"Outros\" para tirar dúvidas específicas."
       );
       state.assistant.greeted = true;
     }
@@ -1685,7 +1685,7 @@ function appendAssistantMessage(author, message) {
   const heading = document.createElement("strong");
   heading.textContent =
     author === "assistant"
-      ? "Assistente"
+      ? "JP assistant"
       : state.activeUserName?.trim() || "Você";
   wrapper.appendChild(heading);
 
@@ -1710,7 +1710,7 @@ function queueAssistantResponse(message) {
   wrapper.className = "assistant-message assistant typing";
 
   const heading = document.createElement("strong");
-  heading.textContent = "Assistente";
+  heading.textContent = "JP assistant";
   wrapper.appendChild(heading);
 
   const body = document.createElement("p");
