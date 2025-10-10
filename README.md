@@ -19,6 +19,12 @@ Basta abrir o `index.html` em um navegador para testar localmente.
 
 Os dados são carregados automaticamente a partir da planilha configurada em `script.js`.
 
+### Suporte a idiomas
+
+- A interface está disponível em Português (PT), Inglês (EN) e Espanhol (ES).
+- O seletor aparece ao lado do perfil no cabeçalho; clique no código do idioma para abrir a lista e escolher outra tradução.
+- A preferência fica registrada no navegador (via `localStorage`) e é aplicada automaticamente nas próximas visitas.
+
 ### Dados complementares
 
 - Além da planilha principal, o código consulta a planilha complementar dos adolescentes (`1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ`).
@@ -53,8 +59,8 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - Irmãos Responsáveis visualizam aniversariantes de todas as faixas; Capitães de Tropa enxergam apenas adolescentes.
 - Cada aniversariante aparece em um cartão clicável com idade e telefone para facilitar o contato imediato.
 
-### Assistente virtual IGColina
+### JP assistant
 
-- Um botão flutuante no canto inferior direito abre a assistente com perguntas frequentes sobre o uso da dashboard.
+- Um botão flutuante no canto inferior direito abre o JP assistant com perguntas frequentes sobre o uso da dashboard.
 - Três dúvidas comuns já ficam disponíveis e uma quarta opção **"Outros"** permite digitar perguntas personalizadas.
-- As respostas levam em consideração o perfil autenticado, indicando as ações disponíveis para cada função.
+- As respostas levam em consideração o perfil autenticado, mencionando o nome do usuário e as ações disponíveis para cada função.

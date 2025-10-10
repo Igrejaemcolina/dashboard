@@ -3,25 +3,705 @@ const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
-const collator = new Intl.Collator("pt-BR", { sensitivity: "base" });
+
 const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
 const isCategoryPage = pageType === "category";
+
+const LANGUAGE_STORAGE_KEY = "igcolina-language";
+const LANGUAGE_OPTIONS = {
+  pt: { code: "pt", label: "PT", name: "Português", locale: "pt-BR" },
+  en: { code: "en", label: "EN", name: "English", locale: "en-US" },
+  es: { code: "es", label: "ES", name: "Español", locale: "es-ES" },
+};
+
+const TRANSLATIONS = {
+  pt: {
+    app: {
+      title: "Dados da IGColina",
+      tagline: "Dashboard criada para uso da Igreja em Colina® 2025",
+      homeAria: "Início · Dados da IGColina",
+      document: ({ page }) =>
+        page ? `${page} · Dados da IGColina` : "Dados da IGColina",
+    },
+    header: {
+      lastUpdated: {
+        loading: "Carregando dados...",
+        text: ({ datetime }) => `Atualizado em ${datetime}`,
+      },
+    },
+    search: {
+      label: "Pesquisar Irmão",
+      suggestionsAria: "Sugestões",
+      placeholder: {
+        default: "Digite o nome",
+        captain: "Pesquise adolescentes (11-17 anos)",
+        noRecords: "Nenhum registro disponível",
+        noTeens: "Nenhum adolescente disponível",
+        noNameColumn: "Coluna de nome não encontrada",
+      },
+    },
+    cards: {
+      hint: "Clique para acessar as informações correspondentes.",
+    },
+    categories: {
+      total: {
+        title: "Total de Irmãos",
+        description: "Veja todos os irmãos cadastrados na planilha.",
+        chartLabel: "Idades de todos os irmãos",
+        empty: "Nenhum irmão encontrado nesta categoria.",
+      },
+      children: {
+        title: "Crianças (0-10)",
+        description: "Irmãos com idades entre 0 e 10 anos.",
+        chartLabel: "Idades das crianças",
+        empty: "Nenhuma criança cadastrada até o momento.",
+      },
+      teens: {
+        title: "Adolescentes (11-17)",
+        description:
+          "Irmãos com idades entre 11 e 17 anos. Ative o filtro \"Idade apta para colportagem\" para destacar apenas 16 e 17 anos.",
+        chartLabel: "Idades dos adolescentes",
+        empty: "Nenhum adolescente cadastrado até o momento.",
+      },
+      captains: {
+        title: "Capitães de Tropa (18-29)",
+        description: "Irmãos com idades entre 18 e 29 anos.",
+        chartLabel: "Idades dos capitães de tropa",
+        empty: "Nenhum capitão de tropa cadastrado até o momento.",
+      },
+      braves: {
+        title: "Valentes de Davi (30-49)",
+        description: "Irmãos com idades entre 30 e 49 anos.",
+        chartLabel: "Idades dos valentes de Davi",
+        empty: "Nenhum valente cadastrado até o momento.",
+      },
+      stewards: {
+        title: "Intendentes (50+)",
+        description: "Irmãos com 50 anos ou mais.",
+        chartLabel: "Idades dos intendentes",
+        empty: "Nenhum intendente cadastrado até o momento.",
+      },
+    },
+    overview: {
+      title: "Distribuição geral de idades",
+      description: "Visualize a idade de todos os irmãos cadastrados.",
+      empty: "Nenhum dado de idade disponível.",
+      datasetLabel: "Quantidade de irmãos",
+      captainTitle: "Distribuição de idades dos adolescentes",
+      captainDescription:
+        "Visualize as idades apenas dos adolescentes entre 11 e 17 anos.",
+    },
+    birthdays: {
+      title: "Aniversariantes de hoje",
+      description: "Celebre com os irmãos que comemoram aniversário nesta data.",
+      empty: {
+        general: "Nenhum aniversariante encontrado para hoje.",
+        teens: "Nenhum adolescente aniversariante encontrado para hoje.",
+      },
+      nameFallback: "Nome não informado",
+      age: ({ age }) => `${age} anos`,
+      ageMissing: "Idade não informada",
+    },
+    status: {
+      updated: "Dados atualizados.",
+      noBirthColumn:
+        "Não encontramos a coluna de data de nascimento. Certifique-se de que uma coluna tenha esse nome.",
+      noRecords: "Nenhum registro encontrado na planilha ainda.",
+      errorLoad:
+        "Não foi possível carregar os dados. Verifique se a planilha está publicada para o público e tente novamente.",
+      loading: "Atualizando dados...",
+    },
+    errors: {
+      primaryLoad: "Não foi possível carregar a planilha principal.",
+      fetchStatus: ({ status }) => `Erro ao acessar a planilha (status ${status})`,
+      unexpectedResponse: "Resposta inesperada da API do Google Sheets.",
+    },
+    category: {
+      loadingTitle: "Carregando categoria...",
+      loadingDescription: "Estamos preparando os dados.",
+      meta: ({ count, noun, filter }) =>
+        `${count} ${noun} nesta categoria${filter ? ` · ${filter}` : ""}`,
+      nounSingular: "irmão",
+      nounPlural: "irmãos",
+      filterNote: 'filtro "Idade apta para colportagem" ativo',
+      chartEmpty: "Não há idades disponíveis para esta categoria.",
+      navBack: "← Voltar ao painel principal",
+      navAria: "Categorias disponíveis",
+    },
+    filters: {
+      teens: {
+        label: "Idade apta para colportagem",
+        hint: "(mostra apenas 16 e 17 anos)",
+      },
+    },
+    modal: {
+      title: "Detalhes",
+      close: "Fechar",
+      noName: "(Sem nome)",
+    },
+    format: {
+      phoneMissing: "não informado",
+      ageMissing: "não informada",
+      age: ({ count }) => `${count} ${count === 1 ? "ano" : "anos"}`,
+    },
+    people: {
+      ageLabel: ({ value }) => `Idade: ${value}`,
+      phoneLabel: ({ value }) => `Telefone: ${value}`,
+      you: "Você",
+    },
+    access: {
+      modalTitle: "Selecione a seguir sua função:",
+      modalDescription: "Escolha uma opção para continuar:",
+      selectedRole: ({ role }) => `Função selecionada: ${role}`,
+      passwordLabel: "Digite a senha",
+      back: "Voltar",
+      confirm: "Confirmar",
+      errorInvalid: "Senha incorreta. Tente novamente.",
+      errorRequired: "Informe a senha para continuar.",
+      restrictionCaptain:
+        "Perfil de Capitães de Tropa: acesso disponível apenas para adolescentes (11-17 anos).",
+      requireSelection: "Selecione uma função para continuar.",
+      selectedRolePrefix: "Função selecionada:",
+      roles: {
+        responsavel: {
+          label: "Irmão Responsável",
+          description: "Acesso completo a todas as áreas do painel.",
+        },
+        capitao: {
+          label: "Capitães de Tropa",
+          description:
+            "Acesso restrito às informações e buscas dos adolescentes (11-17 anos).",
+        },
+      },
+    },
+    profile: {
+      label: "Perfil",
+      title: "Perfil atual",
+      switch: "Trocar de usuário",
+    },
+    language: {
+      toggleAria: "Selecionar idioma",
+    },
+    assistant: {
+      toggleAlt: "Abrir assistente virtual",
+      title: "JP assistant",
+      subtitle: "Posso ajudar com dúvidas sobre a dashboard.",
+      closeLabel: "Fechar assistente",
+      inputLabel: "Descreva sua dúvida",
+      inputPlaceholder: "Digite sua dúvida",
+      submit: "Enviar",
+      typing: "digitando",
+      userLabel: "Você",
+      greeting: ({ name }) =>
+        name
+          ? `Olá, ${name}! Eu sou o JP assistant da dashboard. Escolha uma pergunta ou use a opção "Outros" para tirar dúvidas específicas.`
+          : "Olá! Eu sou o JP assistant da dashboard. Escolha uma pergunta ou use a opção \"Outros\" para tirar dúvidas específicas.",
+      questions: {
+        refresh: "Como os dados são atualizados?",
+        search: "Como pesquisar um irmão?",
+        categories: "Como acessar as categorias?",
+        custom: "Outros",
+      },
+      answers: {
+        refresh: {
+          responsavel:
+            "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente.",
+          capitao:
+            "Os registros de adolescentes são atualizados automaticamente a cada minuto com os dados das planilhas. Recarregue a página se precisar forçar uma nova consulta.",
+        },
+        search: {
+          responsavel:
+            "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão.",
+          capitao:
+            "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos.",
+        },
+        categories: {
+          responsavel:
+            "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados.",
+          capitao:
+            "Como Capitão de Tropa, você visualiza apenas o cartão de adolescentes. Clique nele para abrir a lista com cards e gráfico específicos.",
+        },
+        fallback: "Estou aqui para ajudar com as principais dúvidas do painel.",
+      },
+      customIntro:
+        "conte qual é a sua dúvida e eu trarei orientações sobre como resolver no painel.",
+      customReceived: ({ question }) =>
+        question ? `Entendi sua dúvida: \"${question}\".` : "Recebi sua dúvida.",
+      customScope: {
+        responsavel:
+          "Como Irmão Responsável, você possui acesso completo a todas as categorias da dashboard.",
+        capitao:
+          "Como Capitão de Tropa, lembre-se de que seu acesso é focado nos adolescentes de 11 a 17 anos.",
+      },
+      customFollowUp:
+        "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
+    },
+  },
+  en: {
+    app: {
+      title: "IGColina Data",
+      tagline: "Dashboard created for Igreja em Colina® 2025",
+      homeAria: "Home · IGColina Data",
+      document: ({ page }) =>
+        page ? `${page} · IGColina Data` : "IGColina Data",
+    },
+    header: {
+      lastUpdated: {
+        loading: "Loading data...",
+        text: ({ datetime }) => `Updated on ${datetime}`,
+      },
+    },
+    search: {
+      label: "Search Member",
+      suggestionsAria: "Suggestions",
+      placeholder: {
+        default: "Type a name",
+        captain: "Search teens (11-17 years)",
+        noRecords: "No records available",
+        noTeens: "No teens available",
+        noNameColumn: "Name column not found",
+      },
+    },
+    cards: {
+      hint: "Click to access the corresponding information.",
+    },
+    categories: {
+      total: {
+        title: "All Members",
+        description: "View every registered member from the spreadsheet.",
+        chartLabel: "Ages of all members",
+        empty: "No members found in this category.",
+      },
+      children: {
+        title: "Children (0-10)",
+        description: "Members aged between 0 and 10 years.",
+        chartLabel: "Ages of children",
+        empty: "No children registered so far.",
+      },
+      teens: {
+        title: "Teens (11-17)",
+        description:
+          "Members aged 11 to 17 years. Enable the \"Age fit for colporteur work\" filter to highlight only 16 and 17 years.",
+        chartLabel: "Ages of teens",
+        empty: "No teens registered so far.",
+      },
+      captains: {
+        title: "Troop Captains (18-29)",
+        description: "Members aged between 18 and 29 years.",
+        chartLabel: "Ages of troop captains",
+        empty: "No troop captains registered so far.",
+      },
+      braves: {
+        title: "David's Valiants (30-49)",
+        description: "Members aged between 30 and 49 years.",
+        chartLabel: "Ages of David's valiant warriors",
+        empty: "No valiant warriors registered so far.",
+      },
+      stewards: {
+        title: "Stewards (50+)",
+        description: "Members aged 50 years or above.",
+        chartLabel: "Ages of stewards",
+        empty: "No stewards registered so far.",
+      },
+    },
+    overview: {
+      title: "Overall age distribution",
+      description: "See the age distribution of every registered member.",
+      empty: "No age data available.",
+      datasetLabel: "Number of members",
+      captainTitle: "Teen age distribution",
+      captainDescription:
+        "View ages only for teens between 11 and 17 years old.",
+    },
+    birthdays: {
+      title: "Today's birthdays",
+      description: "Celebrate the members whose birthday is today.",
+      empty: {
+        general: "No birthdays found for today.",
+        teens: "No teen birthdays found for today.",
+      },
+      nameFallback: "Name unavailable",
+      age: ({ age }) => `${age} years`,
+      ageMissing: "Age unavailable",
+    },
+    status: {
+      updated: "Data updated.",
+      noBirthColumn:
+        "We couldn't find the birthdate column. Make sure one of the columns uses that name.",
+      noRecords: "No records have been found in the spreadsheet yet.",
+      errorLoad:
+        "We couldn't load the data. Check if the spreadsheet is published to the web and try again.",
+      loading: "Updating data...",
+    },
+    errors: {
+      primaryLoad: "Unable to load the primary spreadsheet.",
+      fetchStatus: ({ status }) => `Spreadsheet request failed (status ${status}).`,
+      unexpectedResponse: "Unexpected response from the Google Sheets API.",
+    },
+    category: {
+      loadingTitle: "Loading category...",
+      loadingDescription: "We're preparing the data.",
+      meta: ({ count, noun, filter }) =>
+        `${count} ${noun} in this category${filter ? ` · ${filter}` : ""}`,
+      nounSingular: "member",
+      nounPlural: "members",
+      filterNote: '"Age fit for colporteur work" filter enabled',
+      chartEmpty: "No ages available for this category.",
+      navBack: "← Back to the main dashboard",
+      navAria: "Available categories",
+    },
+    filters: {
+      teens: {
+        label: "Age fit for colporteur work",
+        hint: "(shows only ages 16 and 17)",
+      },
+    },
+    modal: {
+      title: "Details",
+      close: "Close",
+      noName: "(No name)",
+    },
+    format: {
+      phoneMissing: "not provided",
+      ageMissing: "not provided",
+      age: ({ count }) => `${count} ${count === 1 ? "year" : "years"}`,
+    },
+    people: {
+      ageLabel: ({ value }) => `Age: ${value}`,
+      phoneLabel: ({ value }) => `Phone: ${value}`,
+      you: "You",
+    },
+    access: {
+      modalTitle: "Select your role below:",
+      modalDescription: "Choose an option to continue:",
+      selectedRole: ({ role }) => `Selected role: ${role}`,
+      passwordLabel: "Enter the password",
+      back: "Back",
+      confirm: "Confirm",
+      errorInvalid: "Incorrect password. Try again.",
+      errorRequired: "Enter the password to continue.",
+      restrictionCaptain:
+        "Troop Captain profile: access is limited to teens (11-17 years old).",
+      requireSelection: "Select a role to continue.",
+      selectedRolePrefix: "Selected role:",
+      roles: {
+        responsavel: {
+          label: "Responsible Brother",
+          description: "Full access to every area of the dashboard.",
+        },
+        capitao: {
+          label: "Troop Captains",
+          description:
+            "Restricted access to teen information and searches (ages 11-17).",
+        },
+      },
+    },
+    profile: {
+      label: "Profile",
+      title: "Current profile",
+      switch: "Switch user",
+    },
+    language: {
+      toggleAria: "Choose language",
+    },
+    assistant: {
+      toggleAlt: "Open virtual assistant",
+      title: "JP assistant",
+      subtitle: "I can help with questions about the dashboard.",
+      closeLabel: "Close assistant",
+      inputLabel: "Describe your question",
+      inputPlaceholder: "Type your question",
+      submit: "Send",
+      typing: "typing",
+      userLabel: "You",
+      greeting: ({ name }) =>
+        name
+          ? `Hello, ${name}! I'm the JP assistant for this dashboard. Choose a question or use \"Others\" to ask something specific.`
+          : "Hello! I'm the JP assistant for this dashboard. Choose a question or use \"Others\" to ask something specific.",
+      questions: {
+        refresh: "How is the data updated?",
+        search: "How do I search for a member?",
+        categories: "How do I access the categories?",
+        custom: "Others",
+      },
+      answers: {
+        refresh: {
+          responsavel:
+            "The entire dashboard syncs with the spreadsheets every minute. You can refresh the page to update immediately.",
+          capitao:
+            "Teen records are refreshed automatically every minute from the spreadsheets. Reload the page if you need to force an update.",
+        },
+        search: {
+          responsavel:
+            "Type part of the name in the search field and pick one of the suggestions to open the full record.",
+          capitao:
+            "In the search field, type the teen's name (11-17 years). Choose a suggestion to open the detailed record.",
+        },
+        categories: {
+          responsavel:
+            "Use the cards on the home page or the categories menu to navigate. Each tab shows that group's members with charts and detailed cards.",
+          capitao:
+            "As a Troop Captain, you only see the teen card. Click it to open the list with dedicated cards and chart.",
+        },
+        fallback: "I'm here to help with the main questions about the dashboard.",
+      },
+      customIntro:
+        "tell me your question and I'll guide you on how to solve it inside the dashboard.",
+      customReceived: ({ question }) =>
+        question ? `I understand your question: \"${question}\".` : "I've received your question.",
+      customScope: {
+        responsavel:
+          "As a Responsible Brother, you have full access to every dashboard category.",
+        capitao:
+          "As a Troop Captain, remember that your access focuses on teens aged 11 to 17.",
+      },
+      customFollowUp:
+        "Make sure the data is up to date in the spreadsheet and use the cards or search to quickly locate the information you need. If the question persists, contact the IGColina leadership.",
+    },
+  },
+  es: {
+    app: {
+      title: "Datos de IGColina",
+      tagline: "Panel creado para uso de la Iglesia en Colina® 2025",
+      homeAria: "Inicio · Datos de IGColina",
+      document: ({ page }) =>
+        page ? `${page} · Datos de IGColina` : "Datos de IGColina",
+    },
+    header: {
+      lastUpdated: {
+        loading: "Cargando datos...",
+        text: ({ datetime }) => `Actualizado el ${datetime}`,
+      },
+    },
+    search: {
+      label: "Buscar Hermano",
+      suggestionsAria: "Sugerencias",
+      placeholder: {
+        default: "Escriba el nombre",
+        captain: "Busque adolescentes (11-17 años)",
+        noRecords: "No hay registros disponibles",
+        noTeens: "No hay adolescentes disponibles",
+        noNameColumn: "No se encontró la columna de nombre",
+      },
+    },
+    cards: {
+      hint: "Haz clic para acceder a la información correspondiente.",
+    },
+    categories: {
+      total: {
+        title: "Total de Hermanos",
+        description: "Vea a todos los hermanos registrados en la planilla.",
+        chartLabel: "Edades de todos los hermanos",
+        empty: "No se encontraron hermanos en esta categoría.",
+      },
+      children: {
+        title: "Niños (0-10)",
+        description: "Hermanos con edades entre 0 y 10 años.",
+        chartLabel: "Edades de los niños",
+        empty: "No hay niños registrados por el momento.",
+      },
+      teens: {
+        title: "Adolescentes (11-17)",
+        description:
+          "Hermanos con edades entre 11 y 17 años. Active el filtro \"Edad apta para colportaje\" para destacar solo 16 y 17 años.",
+        chartLabel: "Edades de los adolescentes",
+        empty: "No hay adolescentes registrados por el momento.",
+      },
+      captains: {
+        title: "Capitanes de Tropa (18-29)",
+        description: "Hermanos con edades entre 18 y 29 años.",
+        chartLabel: "Edades de los capitanes de tropa",
+        empty: "No hay capitanes de tropa registrados por el momento.",
+      },
+      braves: {
+        title: "Valientes de David (30-49)",
+        description: "Hermanos con edades entre 30 y 49 años.",
+        chartLabel: "Edades de los valientes de David",
+        empty: "No hay valientes registrados por el momento.",
+      },
+      stewards: {
+        title: "Intendentes (50+)",
+        description: "Hermanos con 50 años o más.",
+        chartLabel: "Edades de los intendentes",
+        empty: "No hay intendentes registrados por el momento.",
+      },
+    },
+    overview: {
+      title: "Distribución general de edades",
+      description: "Visualiza la edad de todos los hermanos registrados.",
+      empty: "No hay datos de edad disponibles.",
+      datasetLabel: "Cantidad de hermanos",
+      captainTitle: "Distribución de edades de los adolescentes",
+      captainDescription:
+        "Visualiza solo las edades de los adolescentes entre 11 y 17 años.",
+    },
+    birthdays: {
+      title: "Cumpleaños de hoy",
+      description: "Celebra a los hermanos que cumplen años en esta fecha.",
+      empty: {
+        general: "No se encontraron cumpleaños para hoy.",
+        teens: "No se encontraron cumpleaños de adolescentes para hoy.",
+      },
+      nameFallback: "Nombre no disponible",
+      age: ({ age }) => `${age} años`,
+      ageMissing: "Edad no informada",
+    },
+    status: {
+      updated: "Datos actualizados.",
+      noBirthColumn:
+        "No encontramos la columna de fecha de nacimiento. Asegúrate de que una columna tenga ese nombre.",
+      noRecords: "Aún no se encontraron registros en la planilla.",
+      errorLoad:
+        "No fue posible cargar los datos. Verifica si la planilla está publicada al público e inténtalo nuevamente.",
+      loading: "Actualizando datos...",
+    },
+    errors: {
+      primaryLoad: "No se pudo cargar la planilla principal.",
+      fetchStatus: ({ status }) => `No fue posible acceder a la planilla (estado ${status}).`,
+      unexpectedResponse: "Respuesta inesperada de la API de Google Sheets.",
+    },
+    category: {
+      loadingTitle: "Cargando categoría...",
+      loadingDescription: "Estamos preparando los datos.",
+      meta: ({ count, noun, filter }) =>
+        `${count} ${noun} en esta categoría${filter ? ` · ${filter}` : ""}`,
+      nounSingular: "hermano",
+      nounPlural: "hermanos",
+      filterNote: 'filtro "Edad apta para colportaje" activo',
+      chartEmpty: "No hay edades disponibles para esta categoría.",
+      navBack: "← Volver al panel principal",
+      navAria: "Categorías disponibles",
+    },
+    filters: {
+      teens: {
+        label: "Edad apta para colportaje",
+        hint: "(muestra solo 16 y 17 años)",
+      },
+    },
+    modal: {
+      title: "Detalles",
+      close: "Cerrar",
+      noName: "(Sin nombre)",
+    },
+    format: {
+      phoneMissing: "no informado",
+      ageMissing: "no informada",
+      age: ({ count }) => `${count} ${count === 1 ? "año" : "años"}`,
+    },
+    people: {
+      ageLabel: ({ value }) => `Edad: ${value}`,
+      phoneLabel: ({ value }) => `Teléfono: ${value}`,
+      you: "Tú",
+    },
+    access: {
+      modalTitle: "Selecciona a continuación tu función:",
+      modalDescription: "Elige una opción para continuar:",
+      selectedRole: ({ role }) => `Función seleccionada: ${role}`,
+      passwordLabel: "Ingresa la contraseña",
+      back: "Volver",
+      confirm: "Confirmar",
+      errorInvalid: "Contraseña incorrecta. Inténtalo nuevamente.",
+      errorRequired: "Ingresa la contraseña para continuar.",
+      restrictionCaptain:
+        "Perfil de Capitanes de Tropa: el acceso está disponible solo para adolescentes (11-17 años).",
+      requireSelection: "Selecciona una función para continuar.",
+      selectedRolePrefix: "Función seleccionada:",
+      roles: {
+        responsavel: {
+          label: "Hermano Responsable",
+          description: "Acceso completo a todas las áreas del panel.",
+        },
+        capitao: {
+          label: "Capitanes de Tropa",
+          description:
+            "Acceso restringido a la información y búsquedas de adolescentes (11-17 años).",
+        },
+      },
+    },
+    profile: {
+      label: "Perfil",
+      title: "Perfil actual",
+      switch: "Cambiar usuario",
+    },
+    language: {
+      toggleAria: "Seleccionar idioma",
+    },
+    assistant: {
+      toggleAlt: "Abrir asistente virtual",
+      title: "JP assistant",
+      subtitle: "Puedo ayudarte con dudas sobre el panel.",
+      closeLabel: "Cerrar asistente",
+      inputLabel: "Describe tu duda",
+      inputPlaceholder: "Escribe tu duda",
+      submit: "Enviar",
+      typing: "escribiendo",
+      userLabel: "Tú",
+      greeting: ({ name }) =>
+        name
+          ? `¡Hola, ${name}! Soy el JP assistant del panel. Elige una pregunta o usa \"Otros\" para dudas específicas.`
+          : "¡Hola! Soy el JP assistant del panel. Elige una pregunta o usa \"Otros\" para dudas específicas.",
+      questions: {
+        refresh: "¿Cómo se actualizan los datos?",
+        search: "¿Cómo buscar a un hermano?",
+        categories: "¿Cómo acceder a las categorías?",
+        custom: "Otros",
+      },
+      answers: {
+        refresh: {
+          responsavel:
+            "Todo el panel se sincroniza con las planillas cada minuto. Puedes recargar la página para actualizar al instante.",
+          capitao:
+            "Los registros de adolescentes se actualizan automáticamente cada minuto con los datos de las planillas. Recarga la página si necesitas forzar una nueva consulta.",
+        },
+        search: {
+          responsavel:
+            "Escribe parte del nombre en el campo de búsqueda y selecciona una sugerencia para abrir el registro completo.",
+          capitao:
+            "En el campo de búsqueda, escribe el nombre del adolescente (11-17 años). Elige una sugerencia para abrir los detalles completos.",
+        },
+        categories: {
+          responsavel:
+            "Usa las tarjetas de la página inicial o el menú de categorías para navegar. Cada pestaña muestra a los hermanos de ese grupo con gráficos y tarjetas detalladas.",
+          capitao:
+            "Como Capitán de Tropa, solo ves la tarjeta de adolescentes. Haz clic para abrir la lista con tarjetas y gráfico específicos.",
+        },
+        fallback: "Estoy aquí para ayudarte con las principales dudas del panel.",
+      },
+      customIntro:
+        "cuéntame tu duda y te guiaré sobre cómo resolverla en el panel.",
+      customReceived: ({ question }) =>
+        question ? `Entendí tu duda: \"${question}\".` : "Recibí tu duda.",
+      customScope: {
+        responsavel:
+          "Como Hermano Responsable, tienes acceso completo a todas las categorías del panel.",
+        capitao:
+          "Como Capitán de Tropa, recuerda que tu acceso se enfoca en los adolescentes de 11 a 17 años.",
+      },
+      customFollowUp:
+        "Verifica que los datos estén actualizados en la planilla y utiliza las tarjetas o la búsqueda para localizar rápidamente la información deseada. Si la duda persiste, ponte en contacto con la lideranza de IGColina.",
+    },
+  },
+};
+
+let collator = new Intl.Collator(LANGUAGE_OPTIONS.pt.locale, {
+  sensitivity: "base",
+});
 
 const ACCESS_ROLES = {
   RESPONSIBLE: "responsavel",
   CAPTAIN: "capitao",
 };
 
-const ACCESS_LABELS = {
-  [ACCESS_ROLES.RESPONSIBLE]: "Irmão Responsável",
-  [ACCESS_ROLES.CAPTAIN]: "Capitães de Tropa",
-};
-
-const ACCESS_DESCRIPTIONS = {
-  [ACCESS_ROLES.RESPONSIBLE]: "Acesso completo a todas as áreas do painel.",
-  [ACCESS_ROLES.CAPTAIN]:
-    "Acesso restrito às informações e buscas dos adolescentes (11-17 anos).",
+const ACCESS_METADATA = {
+  [ACCESS_ROLES.RESPONSIBLE]: {
+    labelKey: "access.roles.responsavel.label",
+    descriptionKey: "access.roles.responsavel.description",
+  },
+  [ACCESS_ROLES.CAPTAIN]: {
+    labelKey: "access.roles.capitao.label",
+    descriptionKey: "access.roles.capitao.description",
+  },
 };
 
 const NAME_SECRET = "IGCOLINA2025";
@@ -52,6 +732,14 @@ const ROLE_CREDENTIALS = {
 const ACCESS_SESSION_KEY = "igcolina-access-role";
 
 const elements = {
+  appTitle: document.getElementById("app-title"),
+  appTitleLink: document.getElementById("app-title-link"),
+  logoLink: document.querySelector(".logo-link"),
+  languageSwitcher: document.getElementById("language-switcher"),
+  languageToggle: document.getElementById("language-toggle"),
+  languageToggleLabel: document.getElementById("language-toggle-label"),
+  languageMenu: document.getElementById("language-menu"),
+  searchLabel: document.getElementById("search-label"),
   total: document.getElementById("total-count"),
   children: document.getElementById("children-count"),
   teens: document.getElementById("teens-count"),
@@ -87,12 +775,15 @@ const elements = {
   categoryLinks: Array.from(
     document.querySelectorAll("[data-category-link]")
   ),
+  categoryNav: document.getElementById("category-nav"),
+  backLink: document.getElementById("back-link"),
   teensFilter: document.getElementById("teens-filter"),
   teensFilterToggle: document.getElementById("teens-filter-toggle"),
   userProfile: document.getElementById("user-profile"),
   userMenuToggle: document.getElementById("user-menu-toggle"),
   userMenu: document.getElementById("user-menu"),
   userProfileLabel: document.getElementById("user-profile-label"),
+  userProfileTitle: document.getElementById("user-profile-title"),
   userMenuRole: document.getElementById("user-menu-role"),
   userMenuDetail: document.getElementById("user-menu-detail"),
   switchUser: document.getElementById("switch-user"),
@@ -102,7 +793,12 @@ const elements = {
   accessPassword: document.getElementById("access-password"),
   accessError: document.getElementById("access-error"),
   accessRoleLabel: document.getElementById("selected-role-label"),
+  accessSelectedText: document.getElementById("access-selected-text"),
+  accessPasswordLabel: document.getElementById("access-password-label"),
+  accessTitle: document.getElementById("access-title"),
+  accessDescription: document.getElementById("access-description"),
   accessBack: document.getElementById("access-back"),
+  accessConfirm: document.getElementById("access-confirm"),
   accessOptionButtons: Array.from(
     document.querySelectorAll("[data-access-role]")
   ),
@@ -113,56 +809,59 @@ const elements = {
   assistantForm: document.getElementById("assistant-form"),
   assistantInput: document.getElementById("assistant-input"),
   assistantConversation: document.getElementById("assistant-conversation"),
+  assistantTitle: document.getElementById("assistant-title"),
+  assistantSubtitle: document.getElementById("assistant-subtitle"),
+  assistantInputLabel: document.getElementById("assistant-input-label"),
+  assistantSubmit: document.getElementById("assistant-submit"),
 };
 
 const CATEGORY_CONFIG = [
   {
     id: "total",
-    title: "Total de Irmãos",
-    description: "Veja todos os irmãos cadastrados na planilha.",
-    chartLabel: "Idades de todos os irmãos",
-    emptyMessage: "Nenhum irmão encontrado nesta categoria.",
+    titleKey: "categories.total.title",
+    descriptionKey: "categories.total.description",
+    chartLabelKey: "categories.total.chartLabel",
+    emptyMessageKey: "categories.total.empty",
     filter: () => true,
   },
   {
     id: "children",
-    title: "Crianças (0-10)",
-    description: "Irmãos com idades entre 0 e 10 anos.",
-    chartLabel: "Idades das crianças",
-    emptyMessage: "Nenhuma criança cadastrada até o momento.",
+    titleKey: "categories.children.title",
+    descriptionKey: "categories.children.description",
+    chartLabelKey: "categories.children.chartLabel",
+    emptyMessageKey: "categories.children.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 0 && entry.age <= 10,
   },
   {
     id: "teens",
-    title: "Adolescentes (11-17)",
-    description:
-      "Irmãos com idades entre 11 e 17 anos. Ative o filtro \"Idade apta para colportagem\" para destacar apenas 16 e 17 anos.",
-    chartLabel: "Idades dos adolescentes",
-    emptyMessage: "Nenhum adolescente cadastrado até o momento.",
+    titleKey: "categories.teens.title",
+    descriptionKey: "categories.teens.description",
+    chartLabelKey: "categories.teens.chartLabel",
+    emptyMessageKey: "categories.teens.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
   },
   {
     id: "captains",
-    title: "Capitães de Tropa (18-29)",
-    description: "Irmãos com idades entre 18 e 29 anos.",
-    chartLabel: "Idades dos capitães de tropa",
-    emptyMessage: "Nenhum capitão de tropa cadastrado até o momento.",
+    titleKey: "categories.captains.title",
+    descriptionKey: "categories.captains.description",
+    chartLabelKey: "categories.captains.chartLabel",
+    emptyMessageKey: "categories.captains.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 18 && entry.age <= 29,
   },
   {
     id: "braves",
-    title: "Valentes de Davi (30-49)",
-    description: "Irmãos com idades entre 30 e 49 anos.",
-    chartLabel: "Idades dos valentes de Davi",
-    emptyMessage: "Nenhum valente cadastrado até o momento.",
+    titleKey: "categories.braves.title",
+    descriptionKey: "categories.braves.description",
+    chartLabelKey: "categories.braves.chartLabel",
+    emptyMessageKey: "categories.braves.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 30 && entry.age <= 49,
   },
   {
     id: "stewards",
-    title: "Intendentes (50+)",
-    description: "Irmãos com 50 anos ou mais.",
-    chartLabel: "Idades dos intendentes",
-    emptyMessage: "Nenhum intendente cadastrado até o momento.",
+    titleKey: "categories.stewards.title",
+    descriptionKey: "categories.stewards.description",
+    chartLabelKey: "categories.stewards.chartLabel",
+    emptyMessageKey: "categories.stewards.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 50,
   },
 ];
@@ -180,7 +879,7 @@ function getInitialCategory() {
       return requested;
     }
   } catch (error) {
-    console.warn("Não foi possível ler os parâmetros de URL:", error);
+    console.warn("Unable to read URL parameters:", error);
   }
   return "total";
 }
@@ -227,38 +926,538 @@ const state = {
     typingTimeouts: new Set(),
     questionsRendered: false,
   },
-};
-
-const defaultTexts = {
-  overviewTitle: elements.overviewTitle?.textContent ?? "",
-  overviewDescription: elements.overviewDescription?.textContent ?? "",
+  language: null,
 };
 
 const ASSISTANT_QUESTIONS = [
   {
     id: "refresh",
-    label: "Como os dados são atualizados?",
-    answer:
-      "Os dados vêm diretamente das planilhas compartilhadas e são atualizados automaticamente a cada minuto. Você também pode recarregar a página para sincronizar imediatamente.",
+    labelKey: "assistant.questions.refresh",
   },
   {
     id: "search",
-    label: "Como pesquisar um irmão?",
-    answer:
-      "Use o campo de pesquisa no topo: digite parte do nome e selecione uma das sugestões para abrir os detalhes completos.",
+    labelKey: "assistant.questions.search",
   },
   {
     id: "categories",
-    label: "Como acessar as categorias?",
-    answer:
-      "Clique nos cartões do painel ou utilize o menu de categorias. Cada visão mostra os cards correspondentes com idade e telefone.",
+    labelKey: "assistant.questions.categories",
   },
   {
     id: "custom",
-    label: "Outros",
+    labelKey: "assistant.questions.custom",
     custom: true,
   },
 ];
+
+function getValidLanguage(language) {
+  if (!language) return null;
+  const normalized = language.toLowerCase();
+  if (LANGUAGE_OPTIONS[normalized]) {
+    return normalized;
+  }
+  const match = Object.values(LANGUAGE_OPTIONS).find((option) => {
+    if (!option.locale) return false;
+    return option.locale.toLowerCase().startsWith(normalized);
+  });
+  return match?.code ?? null;
+}
+
+function getDefaultLanguage() {
+  const browserLanguage =
+    typeof navigator !== "undefined" ? navigator.language : null;
+  const detected = getValidLanguage(browserLanguage ?? "");
+  return detected ?? "pt";
+}
+
+function getLanguageConfig(language) {
+  const valid = getValidLanguage(language) ?? "pt";
+  return LANGUAGE_OPTIONS[valid] ?? LANGUAGE_OPTIONS.pt;
+}
+
+function getTranslationObject(language) {
+  const valid = getValidLanguage(language) ?? "pt";
+  return TRANSLATIONS[valid] ?? TRANSLATIONS.pt;
+}
+
+function formatTranslationString(template, replacements) {
+  if (!template || typeof template !== "string") {
+    return template ?? "";
+  }
+  if (!replacements) {
+    return template;
+  }
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    if (Object.prototype.hasOwnProperty.call(replacements, key)) {
+      const value = replacements[key];
+      return value == null ? "" : String(value);
+    }
+    return match;
+  });
+}
+
+function translate(key, replacements = {}, language = state.language ?? "pt") {
+  if (!key) return "";
+  const segments = String(key).split(".").filter(Boolean);
+  const fallback = getTranslationObject("pt");
+  const target = getTranslationObject(language);
+
+  let value = target;
+  for (const segment of segments) {
+    if (value && Object.prototype.hasOwnProperty.call(value, segment)) {
+      value = value[segment];
+    } else {
+      value = undefined;
+      break;
+    }
+  }
+
+  if (value === undefined) {
+    value = fallback;
+    for (const segment of segments) {
+      if (value && Object.prototype.hasOwnProperty.call(value, segment)) {
+        value = value[segment];
+      } else {
+        value = key;
+        break;
+      }
+    }
+  }
+
+  if (typeof value === "function") {
+    try {
+      return value(replacements ?? {}, { language });
+    } catch (error) {
+    console.warn(`Failed to evaluate translation for ${key}:`, error);
+      return "";
+    }
+  }
+
+  return formatTranslationString(value, replacements);
+}
+
+function translateCategoryField(category, field) {
+  if (!category) return "";
+  const key = category[`${field}Key`];
+  if (!key) return "";
+  return translate(key);
+}
+
+function getRoleLabel(role) {
+  const metadata = ACCESS_METADATA[role];
+  return metadata ? translate(metadata.labelKey) : "";
+}
+
+function getRoleDescription(role) {
+  const metadata = ACCESS_METADATA[role];
+  return metadata ? translate(metadata.descriptionKey) : "";
+}
+
+function getAppTitle(pageTitle = null) {
+  return translate("app.document", { page: pageTitle });
+}
+
+function updateCollatorForLanguage(language) {
+  const config = getLanguageConfig(language);
+  collator = new Intl.Collator(config.locale ?? "pt-BR", {
+    sensitivity: "base",
+  });
+}
+
+function getStoredLanguage() {
+  try {
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (!stored) return null;
+    return getValidLanguage(stored);
+  } catch (error) {
+    console.warn("Unable to read stored language preference:", error);
+  }
+  return null;
+}
+
+function storeLanguage(language) {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch (error) {
+    console.warn("Unable to save language preference:", error);
+  }
+}
+
+function updateLanguageToggleLabel() {
+  if (!elements.languageToggleLabel || !state.language) {
+    return;
+  }
+  const config = getLanguageConfig(state.language);
+  elements.languageToggleLabel.textContent = config.label;
+}
+
+function renderLanguageMenu() {
+  if (!elements.languageMenu) {
+    return;
+  }
+
+  const current = state.language ?? getDefaultLanguage();
+  const fragment = document.createDocumentFragment();
+
+  Object.values(LANGUAGE_OPTIONS).forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.language = option.code;
+    button.textContent = option.label;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = option.name;
+    button.appendChild(nameSpan);
+
+    if (option.code === current) {
+      button.classList.add("active");
+    }
+
+    button.addEventListener("click", () => {
+      setLanguage(option.code);
+      closeLanguageMenu();
+      elements.languageToggle?.focus();
+    });
+
+    fragment.appendChild(button);
+  });
+
+  elements.languageMenu.innerHTML = "";
+  elements.languageMenu.appendChild(fragment);
+}
+
+function openLanguageMenu() {
+  if (!elements.languageMenu || !elements.languageSwitcher) {
+    return;
+  }
+  elements.languageMenu.hidden = false;
+  elements.languageSwitcher.classList.add("open");
+  elements.languageToggle?.setAttribute("aria-expanded", "true");
+}
+
+function closeLanguageMenu() {
+  if (!elements.languageMenu || !elements.languageSwitcher) {
+    return;
+  }
+  elements.languageMenu.hidden = true;
+  elements.languageSwitcher.classList.remove("open");
+  elements.languageToggle?.setAttribute("aria-expanded", "false");
+}
+
+function toggleLanguageMenu() {
+  if (!elements.languageMenu) return;
+  const isHidden = elements.languageMenu.hidden !== false;
+  if (isHidden) {
+    openLanguageMenu();
+  } else {
+    closeLanguageMenu();
+  }
+}
+
+function handleLanguageOutsideClick(event) {
+  if (!elements.languageSwitcher) {
+    return;
+  }
+  if (elements.languageSwitcher.contains(event.target)) {
+    return;
+  }
+  closeLanguageMenu();
+}
+
+function handleLanguageKeydown(event) {
+  if (event.key === "Escape") {
+    closeLanguageMenu();
+  }
+}
+
+function setupLanguageSwitcher() {
+  if (!elements.languageSwitcher || !elements.languageToggle) {
+    return;
+  }
+
+  elements.languageSwitcher.hidden = false;
+  elements.languageToggle.setAttribute(
+    "aria-label",
+    translate("language.toggleAria")
+  );
+  renderLanguageMenu();
+  updateLanguageToggleLabel();
+
+  elements.languageToggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    toggleLanguageMenu();
+  });
+
+  document.addEventListener("click", handleLanguageOutsideClick);
+  document.addEventListener("keydown", handleLanguageKeydown);
+  closeLanguageMenu();
+}
+
+function applyLanguage(options = {}) {
+  const { reapplyStatus = true } = options;
+  const language = state.language ?? getDefaultLanguage();
+  const config = getLanguageConfig(language);
+
+  document.documentElement.lang = config.locale ?? language;
+
+  if (elements.appTitle) {
+    elements.appTitle.textContent = translate("app.title");
+  }
+
+  if (elements.appTitleLink) {
+    elements.appTitleLink.textContent = translate("app.title");
+  }
+
+  if (elements.logoLink) {
+    elements.logoLink.setAttribute("aria-label", translate("app.homeAria"));
+  }
+
+  if (elements.lastUpdated) {
+    elements.lastUpdated.textContent = translate("header.lastUpdated.loading");
+  }
+
+  if (elements.searchLabel) {
+    elements.searchLabel.textContent = translate("search.label");
+  }
+
+  if (elements.suggestions) {
+    elements.suggestions.setAttribute(
+      "aria-label",
+      translate("search.suggestionsAria")
+    );
+  }
+
+  elements.summaryCards.forEach((card) => {
+    const categoryId = card.dataset.category;
+    const category = CATEGORY_BY_ID[categoryId];
+    if (!category) return;
+    const titleElement = card.querySelector("h2");
+    if (titleElement) {
+      titleElement.textContent = translateCategoryField(category, "title");
+    }
+    const hintElement = card.querySelector(".card-hint");
+    if (hintElement) {
+      hintElement.textContent = translate("cards.hint");
+    }
+  });
+
+  if (elements.overviewTitle) {
+    elements.overviewTitle.textContent = translate("overview.title");
+  }
+  if (elements.overviewDescription) {
+    elements.overviewDescription.textContent = translate(
+      "overview.description"
+    );
+  }
+  if (elements.overallEmpty) {
+    elements.overallEmpty.textContent = translate("overview.empty");
+  }
+
+  if (elements.categoryNav) {
+    elements.categoryNav.setAttribute(
+      "aria-label",
+      translate("category.navAria")
+    );
+  }
+
+  if (elements.backLink) {
+    elements.backLink.textContent = translate("category.navBack");
+  }
+
+  elements.categoryLinks.forEach((link) => {
+    const categoryId = link.dataset.categoryLink;
+    const category = CATEGORY_BY_ID[categoryId];
+    if (!category) return;
+    link.textContent = translateCategoryField(category, "title");
+  });
+
+  if (elements.categoryChartEmpty) {
+    elements.categoryChartEmpty.textContent = translate("category.chartEmpty");
+  }
+
+  if (elements.categoryTitle && !state.enrichedRecords.length) {
+    elements.categoryTitle.textContent = translate("category.loadingTitle");
+  }
+  if (elements.categoryDescription && !state.enrichedRecords.length) {
+    elements.categoryDescription.textContent = translate(
+      "category.loadingDescription"
+    );
+  }
+
+  if (elements.birthdaySection) {
+    const title = translate("birthdays.title");
+    if (title && elements.birthdaySection) {
+      const heading = elements.birthdaySection.querySelector("#birthday-title");
+      if (heading) heading.textContent = title;
+    }
+  }
+
+  if (elements.birthdaySection) {
+    const descriptionElement = elements.birthdaySection.querySelector(
+      ".birthdays-description"
+    );
+    if (descriptionElement) {
+      descriptionElement.textContent = translate("birthdays.description");
+    }
+  }
+
+  if (elements.birthdayEmpty) {
+    elements.birthdayEmpty.textContent = translate("birthdays.empty.general");
+  }
+
+  if (elements.status && state.lastStatusMessage) {
+    if (reapplyStatus) {
+      if (state.lastStatusKey) {
+        setStatusFromKey(state.lastStatusKey, {}, state.lastStatusError);
+      } else {
+        setStatus(state.lastStatusMessage, state.lastStatusError);
+      }
+    }
+  }
+
+  if (elements.userProfileTitle) {
+    elements.userProfileTitle.textContent = translate("profile.title");
+  }
+  if (elements.switchUser) {
+    elements.switchUser.textContent = translate("profile.switch");
+  }
+
+  if (elements.accessTitle) {
+    elements.accessTitle.textContent = translate("access.modalTitle");
+  }
+  if (elements.accessDescription) {
+    elements.accessDescription.textContent = translate(
+      "access.modalDescription"
+    );
+  }
+  if (elements.accessPasswordLabel) {
+    elements.accessPasswordLabel.textContent = translate(
+      "access.passwordLabel"
+    );
+  }
+  if (elements.accessBack) {
+    elements.accessBack.textContent = translate("access.back");
+  }
+  if (elements.accessConfirm) {
+    elements.accessConfirm.textContent = translate("access.confirm");
+  }
+  if (elements.accessOptionButtons.length) {
+    elements.accessOptionButtons.forEach((button) => {
+      const role = button.dataset.accessRole;
+      button.textContent = getRoleLabel(role);
+    });
+  }
+
+  const pendingRole = state.pendingAccessRole;
+  const selectedRoleLabel = pendingRole ? getRoleLabel(pendingRole) : "";
+  updateAccessSelectedLabel(selectedRoleLabel);
+
+  if (elements.teensFilter) {
+    const span = elements.teensFilter.querySelector("span");
+    const small = elements.teensFilter.querySelector("small");
+    if (span) {
+      span.childNodes.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          node.nodeValue = `${translate("filters.teens.label")} `;
+        }
+      });
+    }
+    if (small) {
+      small.textContent = translate("filters.teens.hint");
+    }
+  }
+
+  if (elements.assistantTitle) {
+    elements.assistantTitle.textContent = translate("assistant.title");
+  }
+  if (elements.assistantSubtitle) {
+    elements.assistantSubtitle.textContent = translate(
+      "assistant.subtitle"
+    );
+  }
+  if (elements.assistantToggle) {
+    elements.assistantToggle.setAttribute(
+      "aria-label",
+      translate("assistant.toggleAlt")
+    );
+    const image = elements.assistantToggle.querySelector("img");
+    if (image) {
+      image.alt = translate("assistant.toggleAlt");
+    }
+  }
+  if (elements.assistantClose) {
+    elements.assistantClose.setAttribute(
+      "aria-label",
+      translate("assistant.closeLabel")
+    );
+  }
+  if (elements.assistantInputLabel) {
+    elements.assistantInputLabel.textContent = translate(
+      "assistant.inputLabel"
+    );
+  }
+  if (elements.assistantInput) {
+    elements.assistantInput.placeholder = translate(
+      "assistant.inputPlaceholder"
+    );
+  }
+  if (elements.assistantSubmit) {
+    elements.assistantSubmit.textContent = translate("assistant.submit");
+  }
+
+  if (elements.languageToggle) {
+    elements.languageToggle.setAttribute(
+      "aria-label",
+      translate("language.toggleAria")
+    );
+  }
+  if (elements.closeModal) {
+    elements.closeModal.setAttribute("aria-label", translate("modal.close"));
+  }
+  updateLanguageToggleLabel();
+  renderLanguageMenu();
+
+  if (state.assistant.questionsRendered) {
+    renderAssistantQuestions();
+  }
+
+  if (!isCategoryPage) {
+    document.title = getAppTitle();
+  }
+}
+
+function setLanguage(language, { persist = true } = {}) {
+  const valid = getValidLanguage(language) ?? getDefaultLanguage();
+  if (state.language === valid) {
+    return;
+  }
+
+  state.language = valid;
+  updateCollatorForLanguage(valid);
+
+  if (persist) {
+    storeLanguage(valid);
+  }
+
+  applyLanguage();
+  buildSuggestions();
+  updateDashboard();
+  updateUserProfileUI();
+  if (elements.categoryCards || elements.categoryTitle) {
+    renderCategory(state.activeCategory);
+  }
+  updateBirthdays();
+  updateLastUpdated();
+}
+
+function initializeLanguage() {
+  const stored = getStoredLanguage();
+  const initial = stored ?? getDefaultLanguage();
+  state.language = initial;
+  updateCollatorForLanguage(initial);
+  applyLanguage({ reapplyStatus: false });
+  setupLanguageSwitcher();
+  updateUserProfileUI();
+}
 
 function normalizeColumnLabel(label) {
   if (label == null) return "";
@@ -343,7 +1542,7 @@ function getStoredAccess() {
       return { role: parsed.role, userSecret: null };
     }
   } catch (error) {
-    console.warn("Não foi possível ler a sessão de acesso:", error);
+    console.warn("Unable to read access session:", error);
   }
   return null;
 }
@@ -353,7 +1552,7 @@ function storeAccess(role, userSecret) {
     const payload = JSON.stringify({ role, userSecret: userSecret ?? null });
     sessionStorage.setItem(ACCESS_SESSION_KEY, payload);
   } catch (error) {
-    console.warn("Não foi possível persistir a sessão de acesso:", error);
+    console.warn("Unable to persist access session:", error);
   }
 }
 
@@ -361,7 +1560,7 @@ function clearStoredAccess() {
   try {
     sessionStorage.removeItem(ACCESS_SESSION_KEY);
   } catch (error) {
-    console.warn("Não foi possível limpar a sessão de acesso:", error);
+    console.warn("Unable to clear access session:", error);
   }
 }
 
@@ -378,7 +1577,7 @@ async function hashPassword(password) {
       const digest = await window.crypto.subtle.digest("SHA-256", data);
       return bufferToHex(new Uint8Array(digest));
     } catch (error) {
-      console.warn("Falha ao usar crypto.subtle, utilizando fallback:", error);
+      console.warn("Failed to use crypto.subtle, falling back to custom SHA-256:", error);
     }
   }
 
@@ -551,9 +1750,7 @@ function canAccessRecord(record) {
 
 function showAccessRestrictionMessage() {
   if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
-    setStatus(
-      "Perfil de Capitães de Tropa: acesso disponível apenas para adolescentes (11-17 anos)."
-    );
+    setStatusFromKey("access.restrictionCaptain");
   }
 }
 
@@ -609,13 +1806,15 @@ function applyAccessRestrictions() {
 
   if (elements.overviewTitle && elements.overviewDescription) {
     if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
-      elements.overviewTitle.textContent =
-        "Distribuição de idades dos adolescentes";
-      elements.overviewDescription.textContent =
-        "Visualize as idades apenas dos adolescentes entre 11 e 17 anos.";
+      elements.overviewTitle.textContent = translate("overview.captainTitle");
+      elements.overviewDescription.textContent = translate(
+        "overview.captainDescription"
+      );
     } else {
-      elements.overviewTitle.textContent = defaultTexts.overviewTitle;
-      elements.overviewDescription.textContent = defaultTexts.overviewDescription;
+      elements.overviewTitle.textContent = translate("overview.title");
+      elements.overviewDescription.textContent = translate(
+        "overview.description"
+      );
     }
   }
 
@@ -654,18 +1853,14 @@ function toggleUserMenu() {
   setUserMenuOpen(!isUserMenuOpen());
 }
 
-function getRoleDescription(role) {
-  return ACCESS_DESCRIPTIONS[role] ?? "";
-}
-
 function updateUserProfileUI() {
   if (!elements.userProfile) return;
 
   const { accessRole } = state;
-  if (!accessRole || !ACCESS_LABELS[accessRole]) {
+  if (!accessRole || !ACCESS_METADATA[accessRole]) {
     elements.userProfile.hidden = true;
     if (elements.userProfileLabel) {
-      elements.userProfileLabel.textContent = "Perfil";
+      elements.userProfileLabel.textContent = translate("profile.label");
     }
     if (elements.userMenuRole) {
       elements.userMenuRole.textContent = "—";
@@ -677,7 +1872,7 @@ function updateUserProfileUI() {
     return;
   }
 
-  const roleLabel = ACCESS_LABELS[accessRole];
+  const roleLabel = getRoleLabel(accessRole);
   const trimmedName =
     typeof state.activeUserName === "string" ? state.activeUserName.trim() : "";
   const displayName = trimmedName || roleLabel;
@@ -707,7 +1902,7 @@ function handleSwitchUser() {
     renderCategory(state.activeCategory);
   }
   buildSuggestions();
-  setStatus("Selecione uma função para continuar.");
+  setStatusFromKey("access.requireSelection");
   showAccessModal();
 }
 
@@ -746,14 +1941,40 @@ function resetAccessModal() {
   if (elements.accessPassword) {
     elements.accessPassword.value = "";
   }
-  if (elements.accessRoleLabel) {
-    elements.accessRoleLabel.textContent = "";
-  }
+  updateAccessSelectedLabel("");
   if (elements.accessOptions) {
     elements.accessOptions.hidden = false;
   }
   if (elements.accessForm) {
     elements.accessForm.hidden = true;
+  }
+}
+
+function updateAccessSelectedLabel(roleLabel = "") {
+  if (!elements.accessSelectedText) {
+    if (elements.accessRoleLabel) {
+      elements.accessRoleLabel.textContent = roleLabel;
+    }
+    return;
+  }
+
+  const prefix = translate("access.selectedRolePrefix");
+  const textNode = Array.from(elements.accessSelectedText.childNodes).find(
+    (node) => node.nodeType === Node.TEXT_NODE
+  );
+
+  const textContent = roleLabel ? `${prefix} ` : prefix;
+  if (textNode) {
+    textNode.textContent = textContent;
+  } else {
+    elements.accessSelectedText.insertBefore(
+      document.createTextNode(textContent),
+      elements.accessSelectedText.firstChild || null
+    );
+  }
+
+  if (elements.accessRoleLabel) {
+    elements.accessRoleLabel.textContent = roleLabel;
   }
 }
 
@@ -775,13 +1996,12 @@ function hideAccessModal() {
 }
 
 function selectAccessRole(role) {
-  if (!ACCESS_LABELS[role]) {
+  if (!ACCESS_METADATA[role]) {
     return;
   }
   state.pendingAccessRole = role;
-  if (elements.accessRoleLabel) {
-    elements.accessRoleLabel.textContent = ACCESS_LABELS[role];
-  }
+  const roleLabel = getRoleLabel(role);
+  updateAccessSelectedLabel(roleLabel);
   if (elements.accessOptions) {
     elements.accessOptions.hidden = true;
   }
@@ -811,7 +2031,7 @@ async function handleAccessSubmit(event) {
   const password = elements.accessPassword.value;
   if (!password.trim()) {
     if (elements.accessError) {
-      elements.accessError.textContent = "Informe a senha para continuar.";
+      elements.accessError.textContent = translate("access.errorRequired");
     }
     return;
   }
@@ -823,7 +2043,7 @@ async function handleAccessSubmit(event) {
 
   if (!userSecret || !userName) {
     if (elements.accessError) {
-      elements.accessError.textContent = "Senha incorreta. Tente novamente.";
+      elements.accessError.textContent = translate("access.errorInvalid");
     }
     elements.accessPassword.value = "";
     elements.accessPassword.focus();
@@ -894,7 +2114,7 @@ async function initializeAccessControl() {
 }
 
 async function fetchSheetData() {
-  setStatus("Atualizando dados...");
+  setStatusFromKey("status.loading");
   try {
     const [primaryResult, supplementalResult] = await Promise.allSettled([
       fetchGvizTable(GVIZ_URL),
@@ -902,7 +2122,9 @@ async function fetchSheetData() {
     ]);
 
     if (primaryResult.status !== "fulfilled") {
-      throw primaryResult.reason ?? new Error("Erro ao carregar a planilha principal.");
+      throw (
+        primaryResult.reason ?? new Error(translate("errors.primaryLoad"))
+      );
     }
 
     const { records, columns } = primaryResult.value;
@@ -975,7 +2197,7 @@ async function fetchSheetData() {
       state.supplementalIndex = buildSupplementalIndex(state.supplementalEntries);
     } else {
       console.warn(
-        "Não foi possível carregar a planilha complementar:",
+        "Unable to load the supplemental spreadsheet:",
         supplementalResult.reason
       );
       state.supplementalRecords = [];
@@ -1003,31 +2225,25 @@ async function fetchSheetData() {
     configureAutoRefresh();
     const missingBirthColumn = !state.birthColumn;
     if (missingBirthColumn) {
-      setStatus(
-        "Não encontramos a coluna de data de nascimento. Certifique-se de que uma coluna tenha esse nome.",
-        true
-      );
+      setStatusFromKey("status.noBirthColumn", {}, true);
+    } else if (records.length) {
+      setStatusFromKey("status.updated");
     } else {
-      setStatus(
-        records.length
-          ? "Dados atualizados."
-          : "Nenhum registro encontrado na planilha ainda."
-      );
+      setStatusFromKey("status.noRecords");
     }
     updateLastUpdated();
   } catch (error) {
     console.error(error);
-    setStatus(
-      "Não foi possível carregar os dados. Verifique se a planilha está publicada para o público e tente novamente.",
-      true
-    );
+    setStatusFromKey("status.errorLoad", {}, true);
   }
 }
 
 async function fetchGvizTable(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
-    throw new Error(`Erro ao acessar a planilha (status ${response.status})`);
+    throw new Error(
+      translate("errors.fetchStatus", { status: response.status })
+    );
   }
 
   const text = await response.text();
@@ -1038,7 +2254,7 @@ async function fetchGvizTable(url) {
 function extractGvizPayload(rawText) {
   const match = rawText.match(/google\.visualization\.Query\.setResponse\((.*)\);/s);
   if (!match) {
-    throw new Error("Resposta inesperada da API do Google Sheets");
+    throw new Error(translate("errors.unexpectedResponse"));
   }
   return JSON.parse(match[1]);
 }
@@ -1561,7 +2777,7 @@ function renderBirthdays(entries) {
 
     const name = document.createElement("span");
     name.className = "birthday-name";
-    name.textContent = entry.name?.trim() || "Nome não informado";
+    name.textContent = entry.name?.trim() || translate("birthdays.nameFallback");
     item.appendChild(name);
 
     const meta = document.createElement("div");
@@ -1569,12 +2785,15 @@ function renderBirthdays(entries) {
 
     const age = Number.isFinite(entry.age) ? entry.age : null;
     const ageSpan = document.createElement("span");
-    ageSpan.textContent = age != null ? `${age} anos` : "Idade não informada";
+    ageSpan.textContent =
+      age != null
+        ? translate("birthdays.age", { age })
+        : translate("birthdays.ageMissing");
     meta.appendChild(ageSpan);
 
     if (entry.phone) {
       const phoneSpan = document.createElement("span");
-      phoneSpan.textContent = entry.phone;
+      phoneSpan.textContent = formatPhone(entry.phone);
       meta.appendChild(phoneSpan);
     }
 
@@ -1603,8 +2822,8 @@ function updateBirthdays() {
   if (elements.birthdayEmpty) {
     elements.birthdayEmpty.textContent =
       state.accessRole === ACCESS_ROLES.CAPTAIN
-        ? "Nenhum adolescente aniversariante encontrado para hoje."
-        : "Nenhum aniversariante encontrado para hoje.";
+        ? translate("birthdays.empty.teens")
+        : translate("birthdays.empty.general");
   }
 
   if (!state.accessRole) {
@@ -1648,11 +2867,11 @@ function getAssistantUserPrefix() {
 }
 
 function getAssistantGreetingMessage() {
-  const name = typeof state.activeUserName === "string"
-    ? state.activeUserName.trim()
-    : "";
-  const greeting = name ? `Olá, ${name}!` : "Olá!";
-  return `${greeting} Eu sou o JP assistant da dashboard. Escolha uma pergunta ou use a opção "Outros" para tirar dúvidas específicas.`;
+  const name =
+    typeof state.activeUserName === "string"
+      ? state.activeUserName.trim()
+      : "";
+  return translate("assistant.greeting", { name });
 }
 
 function withAssistantUserPrefix(message) {
@@ -1711,8 +2930,8 @@ function appendAssistantMessage(author, message) {
   const heading = document.createElement("strong");
   heading.textContent =
     author === "assistant"
-      ? "JP assistant"
-      : state.activeUserName?.trim() || "Você";
+      ? translate("assistant.title")
+      : state.activeUserName?.trim() || translate("assistant.userLabel");
   wrapper.appendChild(heading);
 
   const body = document.createElement("p");
@@ -1736,12 +2955,12 @@ function queueAssistantResponse(message) {
   wrapper.className = "assistant-message assistant typing";
 
   const heading = document.createElement("strong");
-  heading.textContent = "JP assistant";
+  heading.textContent = translate("assistant.title");
   wrapper.appendChild(heading);
 
   const body = document.createElement("p");
   body.className = "assistant-typing";
-  body.append("digitando");
+  body.append(translate("assistant.typing"));
 
   const dots = document.createElement("span");
   dots.className = "typing-dots";
@@ -1778,7 +2997,7 @@ function renderAssistantQuestions() {
   ASSISTANT_QUESTIONS.forEach((question) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = question.label;
+    button.textContent = translate(question.labelKey);
     button.dataset.assistantQuestion = question.id;
     elements.assistantQuestions.appendChild(button);
   });
@@ -1790,26 +3009,30 @@ function getAssistantAnswer(questionId) {
   switch (questionId) {
     case "refresh":
       return withAssistantUserPrefix(
-        state.accessRole === ACCESS_ROLES.CAPTAIN
-          ? "Os registros de adolescentes são atualizados automaticamente a cada minuto com os dados das planilhas. Recarregue a página se precisar forçar uma nova consulta."
-          : "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente."
+        translate(
+          state.accessRole === ACCESS_ROLES.CAPTAIN
+            ? "assistant.answers.refresh.capitao"
+            : "assistant.answers.refresh.responsavel"
+        )
       );
     case "search":
       return withAssistantUserPrefix(
-        state.accessRole === ACCESS_ROLES.CAPTAIN
-          ? "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos."
-          : "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão."
+        translate(
+          state.accessRole === ACCESS_ROLES.CAPTAIN
+            ? "assistant.answers.search.capitao"
+            : "assistant.answers.search.responsavel"
+        )
       );
     case "categories":
       return withAssistantUserPrefix(
-        state.accessRole === ACCESS_ROLES.CAPTAIN
-          ? "Como Capitão de Tropa, você visualiza apenas o cartão de adolescentes. Clique nele para abrir a lista com cards e gráfico específicos."
-          : "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados."
+        translate(
+          state.accessRole === ACCESS_ROLES.CAPTAIN
+            ? "assistant.answers.categories.capitao"
+            : "assistant.answers.categories.responsavel"
+        )
       );
     default:
-      return withAssistantUserPrefix(
-        "Estou aqui para ajudar com as principais dúvidas do painel."
-      );
+      return withAssistantUserPrefix(translate("assistant.answers.fallback"));
   }
 }
 
@@ -1817,16 +3040,14 @@ function generateCustomAssistantAnswer(questionText) {
   const cleanedQuestion = questionText.trim();
   const scopeMessage =
     state.accessRole === ACCESS_ROLES.CAPTAIN
-      ? "Como Capitão de Tropa, lembre-se de que seu acesso é focado nos adolescentes de 11 a 17 anos."
-      : "Como Irmão Responsável, você possui acesso completo a todas as categorias da dashboard.";
+      ? translate("assistant.customScope.capitao")
+      : translate("assistant.customScope.responsavel");
 
   return withAssistantUserPrefix(
     [
-      cleanedQuestion
-        ? `Entendi sua dúvida: "${cleanedQuestion}".`
-        : "Recebi sua dúvida.",
+      translate("assistant.customReceived", { question: cleanedQuestion }),
       scopeMessage,
-      "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
+      translate("assistant.customFollowUp"),
     ]
       .filter(Boolean)
       .join(" ")
@@ -1844,7 +3065,7 @@ function handleAssistantQuestionSelection(questionId) {
       appendAssistantMessage(
         "assistant",
         withAssistantUserPrefix(
-          "Conte qual é a sua dúvida e eu trarei orientações sobre como resolver no painel."
+          translate("assistant.customIntro")
         )
       );
     }
@@ -1861,7 +3082,7 @@ function handleAssistantQuestionSelection(questionId) {
     elements.assistantForm.hidden = true;
   }
 
-  appendAssistantMessage("user", question.label);
+  appendAssistantMessage("user", translate(question.labelKey));
   queueAssistantResponse(() => getAssistantAnswer(question.id));
 }
 
@@ -2062,12 +3283,12 @@ function updateOverallChart(entries) {
   }
 
   if (typeof Chart === "undefined") {
-    console.warn("Chart.js não foi carregado. Gráficos não serão exibidos.");
+    console.warn("Chart.js was not loaded. Charts will not be displayed.");
     return;
   }
 
   const dataset = {
-    label: "Quantidade de irmãos",
+    label: translate("overview.datasetLabel"),
     backgroundColor: "rgba(56, 189, 248, 0.35)",
     borderColor: "#38bdf8",
     borderWidth: 2,
@@ -2087,6 +3308,7 @@ function updateOverallChart(entries) {
   } else {
     const chart = state.charts.overall;
     chart.data.labels = distribution.labels;
+    chart.data.datasets[0].label = translate("overview.datasetLabel");
     chart.data.datasets[0].data = distribution.data;
     chart.update();
   }
@@ -2111,12 +3333,12 @@ function updateCategoryChart(entries, category) {
   }
 
   if (typeof Chart === "undefined") {
-    console.warn("Chart.js não foi carregado. Gráficos não serão exibidos.");
+    console.warn("Chart.js was not loaded. Charts will not be displayed.");
     return;
   }
 
   const dataset = {
-    label: category.chartLabel,
+    label: translateCategoryField(category, "chartLabel"),
     backgroundColor: "rgba(56, 189, 248, 0.35)",
     borderColor: "#38bdf8",
     borderWidth: 2,
@@ -2136,7 +3358,10 @@ function updateCategoryChart(entries, category) {
   } else {
     const chart = state.charts.category;
     chart.data.labels = distribution.labels;
-    chart.data.datasets[0].label = category.chartLabel;
+    chart.data.datasets[0].label = translateCategoryField(
+      category,
+      "chartLabel"
+    );
     chart.data.datasets[0].data = distribution.data;
     chart.update();
   }
@@ -2150,7 +3375,10 @@ function updateCategoryCards(entries, category) {
   container.innerHTML = "";
 
   if (!entries.length) {
-    elements.categoryEmpty.textContent = category.emptyMessage;
+    elements.categoryEmpty.textContent = translateCategoryField(
+      category,
+      "emptyMessage"
+    );
     elements.categoryEmpty.classList.add("visible");
     return;
   }
@@ -2167,13 +3395,17 @@ function updateCategoryCards(entries, category) {
     card.tabIndex = 0;
 
     const nameElement = document.createElement("strong");
-    nameElement.textContent = entry.name || "(Sem nome)";
+    nameElement.textContent = entry.name || translate("modal.noName");
 
     const ageElement = document.createElement("span");
-    ageElement.textContent = `Idade: ${formatAge(entry.age)}`;
+    ageElement.textContent = translate("people.ageLabel", {
+      value: formatAge(entry.age),
+    });
 
     const phoneElement = document.createElement("span");
-    phoneElement.textContent = `Telefone: ${formatPhone(entry.phone)}`;
+    phoneElement.textContent = translate("people.phoneLabel", {
+      value: formatPhone(entry.phone),
+    });
 
     card.append(nameElement, ageElement, phoneElement);
 
@@ -2191,14 +3423,14 @@ function updateCategoryCards(entries, category) {
 
 function formatAge(age) {
   if (!Number.isFinite(age)) {
-    return "não informada";
+    return translate("format.ageMissing");
   }
-  return `${age} ${age === 1 ? "ano" : "anos"}`;
+  return translate("format.age", { count: age });
 }
 
 function formatPhone(phone) {
   if (!phone) {
-    return "não informado";
+    return translate("format.phoneMissing");
   }
 
   const digits = extractPhoneDigits(phone);
@@ -2237,13 +3469,22 @@ function renderCategory(categoryId = "total") {
   });
 
   if (elements.categoryTitle) {
-    elements.categoryTitle.textContent = category.title;
+    elements.categoryTitle.textContent = translateCategoryField(
+      category,
+      "title"
+    );
   }
   if (elements.categoryDescription) {
-    elements.categoryDescription.textContent = category.description;
+    elements.categoryDescription.textContent = translateCategoryField(
+      category,
+      "description"
+    );
   }
   if (elements.categoryEmpty) {
-    elements.categoryEmpty.textContent = category.emptyMessage;
+    elements.categoryEmpty.textContent = translateCategoryField(
+      category,
+      "emptyMessage"
+    );
   }
 
   setActiveSummaryCard(category.id);
@@ -2273,26 +3514,39 @@ function renderCategory(categoryId = "total") {
 
   if (elements.categoryMeta) {
     const count = filteredEntries.length;
-    const noun = count === 1 ? "irmão" : "irmãos";
-    let metaText = `${count} ${noun} nesta categoria`;
-    if (category.id === "teens" && state.teensFilterActive) {
-      metaText += " · filtro \"Idade apta para colportagem\" ativo";
-    }
+    const noun =
+      count === 1
+        ? translate("category.nounSingular")
+        : translate("category.nounPlural");
+    const filterNote =
+      category.id === "teens" && state.teensFilterActive
+        ? translate("category.filterNote")
+        : "";
+    const metaText = translate("category.meta", {
+      count,
+      noun,
+      filter: filterNote,
+    });
     elements.categoryMeta.textContent = metaText;
   }
 
   if (isCategoryPage) {
-    document.title = `${category.title} · Dados da IGColina`;
+    const pageTitle = translateCategoryField(category, "title");
+    document.title = getAppTitle(pageTitle);
   }
 
   updateCategoryCards(filteredEntries, category);
   updateCategoryChart(filteredEntries, category);
 }
 
-function setStatus(message, isError = false) {
+function setStatus(message, isError = false, statusKey = null) {
   if (!elements.status) return;
 
   elements.status.classList.toggle("error", Boolean(isError));
+
+  state.lastStatusKey = statusKey;
+  state.lastStatusMessage = message;
+  state.lastStatusError = Boolean(isError);
 
   if (!message) {
     elements.status.innerHTML = "";
@@ -2306,21 +3560,35 @@ function setStatus(message, isError = false) {
   messageElement.textContent = message;
   elements.status.append(messageElement);
 
-  if (!isError && message.trim() === "Dados atualizados.") {
+  const successMessage = translate("status.updated");
+  if (
+    !isError &&
+    (statusKey === "status.updated" || message.trim() === successMessage)
+  ) {
     const tagline = document.createElement("p");
     tagline.className = "status-tagline";
-    tagline.textContent = "Dashboard criada para uso da Igreja em Colina® 2025";
+    tagline.textContent = translate("app.tagline");
     elements.status.append(tagline);
   }
+}
+
+function setStatusFromKey(key, replacements = {}, isError = false) {
+  const message = translate(key, replacements);
+  setStatus(message, isError, key);
 }
 
 function updateLastUpdated() {
   if (!elements.lastUpdated) return;
   const now = new Date();
-  elements.lastUpdated.textContent = `Atualizado em ${new Intl.DateTimeFormat("pt-BR", {
+  const config = getLanguageConfig(state.language);
+  const locale = config.locale ?? "pt-BR";
+  const formatted = new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
-  }).format(now)}`;
+  }).format(now);
+  elements.lastUpdated.textContent = translate("header.lastUpdated.text", {
+    datetime: formatted,
+  });
 }
 
 function buildSuggestions() {
@@ -2337,20 +3605,20 @@ function buildSuggestions() {
     elements.search.disabled = true;
     elements.search.placeholder =
       state.accessRole === ACCESS_ROLES.CAPTAIN
-        ? "Nenhum adolescente disponível"
-        : "Nenhum registro disponível";
+        ? translate("search.placeholder.noTeens")
+        : translate("search.placeholder.noRecords");
     return;
   }
 
   elements.search.disabled = false;
   elements.search.placeholder =
     state.accessRole === ACCESS_ROLES.CAPTAIN
-      ? "Pesquise adolescentes (11-17 anos)"
-      : "Digite o nome";
+      ? translate("search.placeholder.captain")
+      : translate("search.placeholder.default");
 
   if (!nameColumn) {
     elements.search.disabled = true;
-    elements.search.placeholder = "Coluna de nome não encontrada";
+    elements.search.placeholder = translate("search.placeholder.noNameColumn");
     return;
   }
 }
@@ -2395,7 +3663,7 @@ function renderSuggestions(items, pool = []) {
 
   items.forEach((record, index) => {
     const item = document.createElement("li");
-    item.textContent = record[state.nameColumn] ?? "(Sem nome)";
+    item.textContent = record[state.nameColumn] ?? translate("modal.noName");
     item.setAttribute("role", "option");
     item.tabIndex = 0;
     item.dataset.poolIndex = String(pool.indexOf(record));
@@ -2532,7 +3800,7 @@ function openRecord(record) {
       ? supplementalRecord[state.supplementalNameColumn] ?? ""
       : "";
   const displayName =
-    (nameColumn && record[nameColumn]) || supplementalName || "Detalhes";
+    (nameColumn && record[nameColumn]) || supplementalName || translate("modal.title");
 
   elements.modalName.textContent = displayName;
   if (elements.search && nameColumn) {
@@ -2666,6 +3934,7 @@ function setupEventListeners() {
   });
 }
 
+initializeLanguage();
 setupAccessControlEvents();
 setupUserProfileEvents();
 setupAssistant();

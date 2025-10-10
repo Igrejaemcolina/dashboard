@@ -28,9 +28,24 @@
         </a>
         <div class="header-content">
           <h1>
-            <a class="home-link" href="index.html">Dados da IGColina</a>
+            <a class="home-link" id="app-title-link" href="index.html"
+              >Dados da IGColina</a
+            >
           </h1>
           <p id="last-updated">Carregando dados...</p>
+        </div>
+        <div class="language-switcher" id="language-switcher" hidden>
+          <button
+            type="button"
+            class="language-toggle"
+            id="language-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Selecionar idioma"
+          >
+            <span id="language-toggle-label">PT</span>
+          </button>
+          <ul class="language-menu" id="language-menu" role="menu" hidden></ul>
         </div>
         <div class="user-profile" id="user-profile" hidden>
           <button
@@ -45,7 +60,7 @@
             >
           </button>
           <div class="user-profile-menu" id="user-menu" role="menu" hidden>
-            <p class="user-profile-title">Perfil atual</p>
+            <p class="user-profile-title" id="user-profile-title">Perfil atual</p>
             <p class="user-profile-role" id="user-menu-role">—</p>
             <p class="user-profile-description" id="user-menu-detail"></p>
             <button
@@ -60,7 +75,7 @@
         </div>
       </div>
       <div class="search-wrapper">
-        <label for="search">Pesquisar Irmão</label>
+        <label for="search" id="search-label">Pesquisar Irmão</label>
         <div class="search-input">
           <input
             type="search"
@@ -75,8 +90,14 @@
     </header>
 
     <main>
-      <nav class="category-nav" aria-label="Categorias disponíveis">
-        <a class="back-link" href="index.html">← Voltar ao painel principal</a>
+      <nav
+        class="category-nav"
+        id="category-nav"
+        aria-label="Categorias disponíveis"
+      >
+        <a class="back-link" id="back-link" href="index.html"
+          >← Voltar ao painel principal</a
+        >
         <ul class="category-nav-list">
           <li><a data-category-link="total" href="category.html?category=total">Total de Irmãos</a></li>
           <li><a data-category-link="children" href="category.html?category=children">Crianças (0-10)</a></li>
@@ -149,8 +170,8 @@
       aria-hidden="true"
     >
       <div class="access-modal-content">
-        <h2>Selecione a seguir sua função:</h2>
-        <p>Escolha uma opção para continuar:</p>
+        <h2 id="access-title">Selecione a seguir sua função:</h2>
+        <p id="access-description">Escolha uma opção para continuar:</p>
         <div class="access-options" id="access-options">
           <button type="button" data-access-role="responsavel">
             Irmão Responsável
@@ -160,10 +181,12 @@
           </button>
         </div>
         <form class="access-form" id="access-form" hidden>
-          <p class="access-selected-role">
+          <p class="access-selected-role" id="access-selected-text">
             Função selecionada: <span id="selected-role-label"></span>
           </p>
-          <label for="access-password">Digite a senha</label>
+          <label for="access-password" id="access-password-label"
+            >Digite a senha</label
+          >
           <input
             type="password"
             id="access-password"
@@ -174,7 +197,7 @@
           <p class="access-error" id="access-error" role="alert"></p>
           <div class="access-actions">
             <button type="button" id="access-back">Voltar</button>
-            <button type="submit">Confirmar</button>
+            <button type="submit" id="access-confirm">Confirmar</button>
           </div>
         </form>
       </div>
@@ -182,7 +205,9 @@
 
     <div class="modal" id="details-modal" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="modal-content">
-        <button class="close-button" id="close-modal" aria-label="Fechar">&times;</button>
+        <button class="close-button" id="close-modal" aria-label="Fechar">
+          &times;
+        </button>
         <h2 id="modal-name">Detalhes</h2>
         <dl id="modal-details"></dl>
       </div>
@@ -218,8 +243,8 @@
     >
       <div class="assistant-header">
         <div>
-          <h2>JP assistant</h2>
-          <p>Posso ajudar com dúvidas sobre a dashboard.</p>
+          <h2 id="assistant-title">JP assistant</h2>
+          <p id="assistant-subtitle">Posso ajudar com dúvidas sobre a dashboard.</p>
         </div>
         <button
           type="button"
@@ -238,7 +263,9 @@
         ></div>
         <div class="assistant-questions" id="assistant-questions"></div>
         <form class="assistant-form" id="assistant-form" hidden>
-          <label class="sr-only" for="assistant-input">Descreva sua dúvida</label>
+          <label class="sr-only" for="assistant-input" id="assistant-input-label"
+            >Descreva sua dúvida</label
+          >
           <div class="assistant-input-group">
             <input
               type="text"
@@ -247,7 +274,7 @@
               placeholder="Digite sua dúvida"
               autocomplete="off"
             />
-            <button type="submit">Enviar</button>
+            <button type="submit" id="assistant-submit">Enviar</button>
           </div>
         </form>
       </div>
