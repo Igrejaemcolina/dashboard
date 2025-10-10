@@ -1640,6 +1640,35 @@ function clearAssistantTypingIndicators() {
     .forEach((node) => node.remove());
 }
 
+function getAssistantUserPrefix() {
+  const name = typeof state.activeUserName === "string"
+    ? state.activeUserName.trim()
+    : "";
+  return name ? `${name}, ` : "";
+}
+
+function getAssistantGreetingMessage() {
+  const name = typeof state.activeUserName === "string"
+    ? state.activeUserName.trim()
+    : "";
+  const greeting = name ? `Olá, ${name}!` : "Olá!";
+  return `${greeting} Eu sou o JP assistant da dashboard. Escolha uma pergunta ou use a opção "Outros" para tirar dúvidas específicas.`;
+}
+
+function withAssistantUserPrefix(message) {
+  const prefix = getAssistantUserPrefix();
+  if (!prefix) {
+    return message;
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return prefix.trimEnd();
+  }
+
+  return `${prefix}${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+}
+
 function setAssistantOpen(open) {
   if (!elements.assistantPanel || !elements.assistantToggle) {
     return;
@@ -1653,10 +1682,7 @@ function setAssistantOpen(open) {
     elements.assistantPanel.hidden = false;
     elements.assistantToggle.setAttribute("aria-expanded", "true");
     if (!state.assistant.greeted) {
-      appendAssistantMessage(
-        "assistant",
-        "Olá! Sou a JP assistant da dashboard. Escolha uma pergunta ou use a opção \"Outros\" para tirar dúvidas específicas."
-      );
+      appendAssistantMessage("assistant", getAssistantGreetingMessage());
       state.assistant.greeted = true;
     }
   } else {
@@ -1763,19 +1789,27 @@ function renderAssistantQuestions() {
 function getAssistantAnswer(questionId) {
   switch (questionId) {
     case "refresh":
-      return state.accessRole === ACCESS_ROLES.CAPTAIN
-        ? "Os registros de adolescentes são atualizados automaticamente a cada minuto com os dados das planilhas. Recarregue a página se precisar forçar uma nova consulta."
-        : "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente.";
+      return withAssistantUserPrefix(
+        state.accessRole === ACCESS_ROLES.CAPTAIN
+          ? "Os registros de adolescentes são atualizados automaticamente a cada minuto com os dados das planilhas. Recarregue a página se precisar forçar uma nova consulta."
+          : "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente."
+      );
     case "search":
-      return state.accessRole === ACCESS_ROLES.CAPTAIN
-        ? "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos."
-        : "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão.";
+      return withAssistantUserPrefix(
+        state.accessRole === ACCESS_ROLES.CAPTAIN
+          ? "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos."
+          : "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão."
+      );
     case "categories":
-      return state.accessRole === ACCESS_ROLES.CAPTAIN
-        ? "Como Capitão de Tropa, você visualiza apenas o cartão de adolescentes. Clique nele para abrir a lista com cards e gráfico específicos."
-        : "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados.";
+      return withAssistantUserPrefix(
+        state.accessRole === ACCESS_ROLES.CAPTAIN
+          ? "Como Capitão de Tropa, você visualiza apenas o cartão de adolescentes. Clique nele para abrir a lista com cards e gráfico específicos."
+          : "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados."
+      );
     default:
-      return "Estou aqui para ajudar com as principais dúvidas do painel.";
+      return withAssistantUserPrefix(
+        "Estou aqui para ajudar com as principais dúvidas do painel."
+      );
   }
 }
 
@@ -1786,15 +1820,17 @@ function generateCustomAssistantAnswer(questionText) {
       ? "Como Capitão de Tropa, lembre-se de que seu acesso é focado nos adolescentes de 11 a 17 anos."
       : "Como Irmão Responsável, você possui acesso completo a todas as categorias da dashboard.";
 
-  return [
-    cleanedQuestion
-      ? `Entendi sua dúvida: "${cleanedQuestion}".`
-      : "Recebi sua dúvida.",
-    scopeMessage,
-    "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return withAssistantUserPrefix(
+    [
+      cleanedQuestion
+        ? `Entendi sua dúvida: "${cleanedQuestion}".`
+        : "Recebi sua dúvida.",
+      scopeMessage,
+      "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
 }
 
 function handleAssistantQuestionSelection(questionId) {
@@ -1807,7 +1843,9 @@ function handleAssistantQuestionSelection(questionId) {
     if (!state.assistant.customMode) {
       appendAssistantMessage(
         "assistant",
-        "Conte qual é a sua dúvida e eu trago orientações sobre como resolver no painel."
+        withAssistantUserPrefix(
+          "Conte qual é a sua dúvida e eu trarei orientações sobre como resolver no painel."
+        )
       );
     }
     state.assistant.customMode = true;
