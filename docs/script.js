@@ -225,6 +225,7 @@ const state = {
     greeted: false,
     customMode: false,
     typingTimeouts: new Set(),
+    questionsRendered: false,
   },
 };
 
@@ -1645,6 +1646,10 @@ function setAssistantOpen(open) {
   }
 
   if (open) {
+    if (!state.assistant.questionsRendered) {
+      renderAssistantQuestions();
+    }
+
     elements.assistantPanel.hidden = false;
     elements.assistantToggle.setAttribute("aria-expanded", "true");
     if (!state.assistant.greeted) {
@@ -1751,6 +1756,8 @@ function renderAssistantQuestions() {
     button.dataset.assistantQuestion = question.id;
     elements.assistantQuestions.appendChild(button);
   });
+
+  state.assistant.questionsRendered = true;
 }
 
 function getAssistantAnswer(questionId) {
@@ -1845,8 +1852,6 @@ function setupAssistant() {
   if (!elements.assistantToggle || !elements.assistantPanel) {
     return;
   }
-
-  renderAssistantQuestions();
 
   elements.assistantToggle.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
