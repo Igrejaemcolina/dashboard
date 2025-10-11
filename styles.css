@@ -914,6 +914,13 @@ main {
   font-size: 0.9rem;
 }
 
+.service-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
 .person-card .service-tag {
   display: inline-flex;
   align-items: center;
@@ -1579,25 +1586,46 @@ main {
   cursor: pointer;
 }
 
-.service-select-label {
+.service-checklist {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(15, 23, 42, 0.75);
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.service-checklist[disabled] {
+  opacity: 0.55;
+}
+
+.service-checklist legend {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
 }
 
-#service-select {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  background: rgba(15, 23, 42, 0.8);
-  color: var(--text-primary);
-  padding: 0.65rem 0.75rem;
-  font-size: 0.95rem;
+.service-checklist-options {
+  display: grid;
+  gap: 0.45rem;
 }
 
-#service-select:disabled {
-  opacity: 0.55;
+.service-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.service-option input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #38bdf8;
+  border-radius: 0.3rem;
+  cursor: pointer;
 }
 
 .service-feedback {
@@ -1738,10 +1766,9 @@ main {
 }
 
 .service-manager-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
+  display: grid;
+  gap: 0.85rem;
+  align-items: flex-start;
 }
 
 .service-manager-toggle {
@@ -1761,19 +1788,25 @@ main {
   cursor: pointer;
 }
 
-.service-manager-select {
-  min-width: 12rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  background: rgba(15, 23, 42, 0.45);
-  padding: 0.55rem 0.9rem;
-  color: var(--text-primary);
-  font-weight: 600;
+.service-manager-checklist {
+  display: grid;
+  gap: 0.45rem;
 }
 
-.service-manager-select:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+.service-manager-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.service-manager-option input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #38bdf8;
+  border-radius: 0.25rem;
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {

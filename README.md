@@ -68,9 +68,10 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 ### Serviços na vida da igreja
 
-- Dentro do modal de detalhes de cada irmão há um campo para marcar se ele serve e selecionar uma das frentes disponíveis (Literatura, Recepção, Projeção, Transmissão, Irmão Responsável, Irmão que fala a mensagem, Casa Kids e Cozinha CDA). Esses controles só ficam ativos quando autenticado como **Serviços**.
+- Ao acessar o modal de detalhes com o perfil **Serviços**, é possível ativar o controle “Serve na vida da igreja” e marcar quantas frentes forem necessárias utilizando a lista de checkboxes (Literatura, Recepção, Projeção, Transmissão, Irmão Responsável, Irmão que Fala a Mensagem, Casa Kids e Cozinha CDA). Todas as seleções ficam disponíveis simultaneamente para o mesmo irmão.
+- Nos demais perfis, o campo de edição fica oculto e apenas as tags de serviço aparecem nos cards e no modal, indicando em quais ministérios cada pessoa atua.
 - As escolhas ficam salvas no navegador por meio do `localStorage`, permitindo ajustes a qualquer momento sem depender da planilha.
-- O resumo de serviços considera tanto os dados principais quanto os complementares e atualiza os totais em tempo real para todos os perfis. Perfis de Irmão Responsável e Capitães de Tropa visualizam os dados em modo somente leitura, enquanto o perfil **Serviços** pode alterar e revisar diretamente pelo modal ou pelo gerenciador dedicado.
+- O resumo de serviços considera tanto os dados principais quanto os complementares e atualiza os totais em tempo real para todos os perfis. Perfis de Irmão Responsável e Capitães de Tropa acompanham os números em modo somente leitura, enquanto o perfil **Serviços** pode alterar e revisar diretamente pelo modal ou pelo gerenciador dedicado (`services.html`).
 
 ### JP assistant
 

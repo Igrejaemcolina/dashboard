@@ -272,12 +272,10 @@
             <input type="checkbox" id="service-toggle" />
             <span id="service-toggle-label">Serve na vida da igreja</span>
           </label>
-          <label class="service-select-label" for="service-select" id="service-select-label"
-            >Serviço desempenhado</label
-          >
-          <select id="service-select" disabled>
-            <option value="">Selecione um serviço</option>
-          </select>
+          <fieldset class="service-checklist" id="service-checklist" disabled>
+            <legend id="service-select-label">Serviços desempenhados</legend>
+            <div class="service-checklist-options" id="service-checklist-options"></div>
+          </fieldset>
           <p class="service-feedback" id="service-feedback"></p>
         </div>
       </div>

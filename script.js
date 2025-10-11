@@ -16,6 +16,16 @@ const SERVICE_OPTIONS = [
   { id: "kitchen", nameKey: "services.names.kitchen" },
 ];
 
+const EMPTY_SERVICE_ASSIGNMENT = { active: false, services: [] };
+
+function hasActiveServices(entry) {
+  return Boolean(
+    entry?.service?.active &&
+      Array.isArray(entry.service.services) &&
+      entry.service.services.length > 0
+  );
+}
+
 const CAPTAIN_ALLOWED_CATEGORIES = ["teens", "parents", "services"];
 const CAPTAIN_CARD_CATEGORIES = ["teens", "parents"];
 
@@ -238,11 +248,11 @@ const TRANSLATIONS = {
         service: ({ service }) => `serviço: ${service}`,
       },
       toggleLabel: "Serve na vida da igreja",
-      selectLabel: "Serviço desempenhado",
-      selectPlaceholder: "Selecione um serviço",
+      selectLabel: "Serviços desempenhados",
+      selectPlaceholder: "Selecione os serviços",
       feedback: {
         inactive: "Ainda não serve na vida da igreja.",
-        active: ({ service }) => `Servindo em ${service}.`,
+        active: ({ service }) => `Servindo em: ${service}.`,
       },
       names: {
         literature: "Literatura",
@@ -313,6 +323,9 @@ const TRANSLATIONS = {
         refresh: "Como os dados são atualizados?",
         search: "Como pesquisar um irmão?",
         categories: "Como acessar as categorias?",
+        assignService: "Como atribuir um serviço?",
+        removeService: "Como remover um serviço?",
+        filterServices: "Como filtrar os serviços?",
         custom: "Outros",
       },
       answers: {
@@ -340,6 +353,30 @@ const TRANSLATIONS = {
           servicos:
             "Utilize os cartões e o gerenciador de serviços para acompanhar quem serve em cada frente e atualizar quando necessário.",
         },
+        assignService: {
+          responsavel:
+            "A atribuição de serviços é exclusiva do perfil Serviços. Procure a equipe responsável para registrar esse ministério.",
+          capitao:
+            "Somente o perfil Serviços pode atribuir ministérios. Avise o responsável para que registre o serviço correto dos adolescentes.",
+          servicos:
+            "No gerenciador de serviços, abra o card do irmão, mantenha a opção 'Serve na vida da igreja' ativa e marque todas as caixas dos serviços que ele desempenha. É possível selecionar mais de uma frente ao mesmo tempo.",
+        },
+        removeService: {
+          responsavel:
+            "A remoção de serviços também é feita apenas pelo perfil Serviços. Entre em contato com quem administra as escalas para atualizar o cadastro.",
+          capitao:
+            "Somente o perfil Serviços pode remover um serviço. Avise a equipe responsável para que a alteração seja feita.",
+          servicos:
+            "Dentro do gerenciador, basta desmarcar as caixas dos serviços ou desativar o controle 'Serve na vida da igreja' para retirar completamente a participação do irmão.",
+        },
+        filterServices: {
+          responsavel:
+            "Você consegue visualizar as tags de serviço nos cards, mas a filtragem avançada e as edições ficam com o perfil Serviços.",
+          capitao:
+            "Como Capitão de Tropa, você apenas visualiza as tags dos adolescentes e de seus pais; filtros detalhados estão disponíveis para o perfil Serviços.",
+          servicos:
+            "Use os cartões de resumo ou o filtro do gerenciador para listar apenas quem serve em uma frente específica. Selecione 'Serviços' para alternar entre ativos, inativos ou um ministério determinado.",
+        },
         fallback: "Estou aqui para ajudar com as principais dúvidas do painel.",
       },
       customIntro:
@@ -352,7 +389,7 @@ const TRANSLATIONS = {
         capitao:
           "Como Capitão de Tropa, lembre-se de que seu acesso é focado nos adolescentes de 11 a 17 anos.",
         servicos:
-          "Como responsável pelos serviços, você pode atribuir ministérios e ajustar quem está servindo diretamente pelo gerenciador.",
+          "Como responsável pelos serviços, você pode atribuir ministérios (inclusive mais de um por irmão) e ajustar quem está servindo diretamente pelo gerenciador.",
       },
       customFollowUp:
         "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
@@ -577,11 +614,11 @@ const TRANSLATIONS = {
         service: ({ service }) => `service: ${service}`,
       },
       toggleLabel: "Serves in church life",
-      selectLabel: "Ministry role",
-      selectPlaceholder: "Choose a service",
+      selectLabel: "Assigned services",
+      selectPlaceholder: "Choose the services",
       feedback: {
         inactive: "Not serving in church life yet.",
-        active: ({ service }) => `Serving in ${service}.`,
+        active: ({ service }) => `Serving in: ${service}.`,
       },
       names: {
         literature: "Literature",
@@ -652,6 +689,9 @@ const TRANSLATIONS = {
         refresh: "How is the data updated?",
         search: "How do I search for a member?",
         categories: "How do I access the categories?",
+        assignService: "How do I assign a service?",
+        removeService: "How do I remove a service?",
+        filterServices: "How do I filter services?",
         custom: "Others",
       },
       answers: {
@@ -679,6 +719,30 @@ const TRANSLATIONS = {
           servicos:
             "Leverage the cards and the service manager to keep track of every ministry and update assignments whenever necessary.",
         },
+        assignService: {
+          responsavel:
+            "Service assignments are handled only by the Services profile. Reach out to the team in charge so they can record the ministry.",
+          capitao:
+            "Only the Services profile can assign ministries. Let the responsible team know so they can record the teens' assignments.",
+          servicos:
+            "In the services manager, open the member's card, keep \"Serves in church life\" enabled, and check every box that matches the ministries they serve. You can select more than one at the same time.",
+        },
+        removeService: {
+          responsavel:
+            "Removing a service also requires the Services profile. Contact the roster team to update the record.",
+          capitao:
+            "Only the Services profile can remove an assignment. Notify the team so they can apply the change.",
+          servicos:
+            "Inside the manager, uncheck the ministry boxes or turn off the \"Serves in church life\" toggle to clear the assignment completely.",
+        },
+        filterServices: {
+          responsavel:
+            "You can view the service tags on each card, but detailed filtering and edits stay with the Services profile.",
+          capitao:
+            "As a Troop Captain you only view the teen and parent tags; advanced filters live with the Services profile.",
+          servicos:
+            "Use the summary cards or the manager filter to list only those serving in a specific ministry. The \"Services\" selector lets you switch between active, inactive, or a chosen ministry.",
+        },
         fallback: "I'm here to help with the main questions about the dashboard.",
       },
       customIntro:
@@ -691,7 +755,7 @@ const TRANSLATIONS = {
         capitao:
           "As a Troop Captain, remember that your access focuses on teens aged 11 to 17 and their guardians.",
         servicos:
-          "As the services coordinator, you can assign ministries and maintain serving information directly from the manager.",
+          "As the services coordinator, you can assign ministries (even multiple per member) and maintain serving information directly from the manager.",
       },
       customFollowUp:
         "Make sure the data is up to date in the spreadsheet and use the cards or search to quickly locate the information you need. If the question persists, contact the IGColina leadership.",
@@ -918,11 +982,11 @@ const TRANSLATIONS = {
         service: ({ service }) => `servicio: ${service}`,
       },
       toggleLabel: "Sirve en la vida de la iglesia",
-      selectLabel: "Servicio desempeñado",
-      selectPlaceholder: "Elige un servicio",
+      selectLabel: "Servicios desempeñados",
+      selectPlaceholder: "Elige los servicios",
       feedback: {
         inactive: "Aún no sirve en la vida de la iglesia.",
-        active: ({ service }) => `Sirviendo en ${service}.`,
+        active: ({ service }) => `Sirviendo en: ${service}.`,
       },
       names: {
         literature: "Literatura",
@@ -993,6 +1057,9 @@ const TRANSLATIONS = {
         refresh: "¿Cómo se actualizan los datos?",
         search: "¿Cómo buscar a un hermano?",
         categories: "¿Cómo acceder a las categorías?",
+        assignService: "¿Cómo asigno un servicio?",
+        removeService: "¿Cómo quito un servicio?",
+        filterServices: "¿Cómo filtro los servicios?",
         custom: "Otros",
       },
       answers: {
@@ -1020,6 +1087,30 @@ const TRANSLATIONS = {
           servicos:
             "Aprovecha las tarjetas y el gestor de servicios para seguir cada área y actualizar las asignaciones cuando sea necesario.",
         },
+        assignService: {
+          responsavel:
+            "Las asignaciones de servicio las gestiona únicamente el perfil Servicios. Contacta al equipo encargado para que registre el ministerio.",
+          capitao:
+            "Solo el perfil Servicios puede asignar ministerios. Informa al equipo responsable para que registre el servicio de los adolescentes.",
+          servicos:
+            "En el gestor de servicios, abre la tarjeta del hermano, mantén activada la opción \"Sirve en la vida de la iglesia\" y marca todas las casillas de los servicios en los que participa. Puedes elegir más de uno a la vez.",
+        },
+        removeService: {
+          responsavel:
+            "Quitar un servicio también requiere el perfil Servicios. Comunícate con quienes administran la lista para actualizar el registro.",
+          capitao:
+            "Solo el perfil Servicios puede eliminar un servicio. Avisa al equipo responsable para que realice el cambio.",
+          servicos:
+            "Dentro del gestor, desmarca las casillas de los servicios o desactiva el control \"Sirve en la vida de la iglesia\" para eliminar completamente la asignación.",
+        },
+        filterServices: {
+          responsavel:
+            "Puedes ver las etiquetas de servicio en cada tarjeta, pero los filtros detallados y las ediciones dependen del perfil Servicios.",
+          capitao:
+            "Como Capitán de Tropa solo visualizas las etiquetas de los adolescentes y sus padres; los filtros avanzados están disponibles para el perfil Servicios.",
+          servicos:
+            "Utiliza las tarjetas de resumen o el filtro del gestor para listar solo a quienes sirven en un ministerio específico. El selector \"Servicios\" permite alternar entre activos, inactivos o un ministerio elegido.",
+        },
         fallback: "Estoy aquí para ayudarte con las principales dudas del panel.",
       },
       customIntro:
@@ -1032,7 +1123,7 @@ const TRANSLATIONS = {
         capitao:
           "Como Capitán de Tropa, recuerda que tu acceso se enfoca en los adolescentes de 11 a 17 años y sus responsables.",
         servicos:
-          "Como responsable de los servicios, puedes asignar ministerios y mantener la información actualizada directamente en el gestor.",
+          "Como responsable de los servicios, puedes asignar ministerios (incluso más de uno por hermano) y mantener la información actualizada directamente en el gestor.",
       },
       customFollowUp:
         "Verifica que los datos estén actualizados en la planilla y utiliza las tarjetas o la búsqueda para localizar rápidamente la información deseada. Si la duda persiste, ponte en contacto con la lideranza de IGColina.",
@@ -1104,9 +1195,14 @@ const RESPONSIBLE_ROLE_CREDENTIALS = {
     "2337252e2f21272f53",
 };
 
+const SERVICES_ROLE_CREDENTIALS = {
+  "1dfb4b20fb5e68711da6a808cc60651fd78ff853b24778ec292af422e58cd957":
+    "1a22313925ae2132",
+};
+
 const ROLE_CREDENTIALS = {
   [ACCESS_ROLES.RESPONSIBLE]: RESPONSIBLE_ROLE_CREDENTIALS,
-  [ACCESS_ROLES.SERVICES]: RESPONSIBLE_ROLE_CREDENTIALS,
+  [ACCESS_ROLES.SERVICES]: SERVICES_ROLE_CREDENTIALS,
   [ACCESS_ROLES.CAPTAIN]: {
     "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342":
       "0a26332638aa2b32125457151d352c3f2d",
@@ -1144,7 +1240,10 @@ const elements = {
   serviceToggle: document.getElementById("service-toggle"),
   serviceToggleLabel: document.getElementById("service-toggle-label"),
   serviceSelectLabel: document.getElementById("service-select-label"),
-  serviceSelect: document.getElementById("service-select"),
+  serviceChecklist: document.getElementById("service-checklist"),
+  serviceChecklistOptions: document.getElementById(
+    "service-checklist-options"
+  ),
   serviceFeedback: document.getElementById("service-feedback"),
   detailTemplate: document.getElementById("detail-row-template"),
   summaryCards: Array.from(
@@ -1269,7 +1368,7 @@ const CATEGORY_CONFIG = [
     descriptionKey: "categories.services.description",
     chartLabelKey: "categories.services.chartLabel",
     emptyMessageKey: "categories.services.empty",
-    filter: (entry) => Boolean(entry?.service?.active && entry.service.serviceId),
+    filter: (entry) => hasActiveServices(entry),
     isServiceCategory: true,
   },
   {
@@ -1377,25 +1476,68 @@ function canManageServices() {
   return state.accessRole === ACCESS_ROLES.SERVICES;
 }
 
-const ASSISTANT_QUESTIONS = [
-  {
-    id: "refresh",
-    labelKey: "assistant.questions.refresh",
-  },
-  {
-    id: "search",
-    labelKey: "assistant.questions.search",
-  },
-  {
-    id: "categories",
-    labelKey: "assistant.questions.categories",
-  },
-  {
-    id: "custom",
-    labelKey: "assistant.questions.custom",
-    custom: true,
-  },
-];
+const ASSISTANT_QUESTION_SETS = {
+  default: [
+    {
+      id: "refresh",
+      labelKey: "assistant.questions.refresh",
+    },
+    {
+      id: "search",
+      labelKey: "assistant.questions.search",
+    },
+    {
+      id: "categories",
+      labelKey: "assistant.questions.categories",
+    },
+    {
+      id: "custom",
+      labelKey: "assistant.questions.custom",
+      custom: true,
+    },
+  ],
+  serviceManager: [
+    {
+      id: "assignService",
+      labelKey: "assistant.questions.assignService",
+    },
+    {
+      id: "removeService",
+      labelKey: "assistant.questions.removeService",
+    },
+    {
+      id: "filterServices",
+      labelKey: "assistant.questions.filterServices",
+    },
+    {
+      id: "custom",
+      labelKey: "assistant.questions.custom",
+      custom: true,
+    },
+  ],
+};
+
+function getAssistantQuestionSet() {
+  if (isServiceManagerPage) {
+    return ASSISTANT_QUESTION_SETS.serviceManager;
+  }
+  return ASSISTANT_QUESTION_SETS.default;
+}
+
+function getAssistantQuestionById(questionId) {
+  if (!questionId) {
+    return null;
+  }
+
+  const activeSet = getAssistantQuestionSet();
+  let question = activeSet.find((item) => item.id === questionId);
+  if (question) {
+    return question;
+  }
+
+  const fallbackSet = ASSISTANT_QUESTION_SETS.default;
+  return fallbackSet.find((item) => item.id === questionId) ?? null;
+}
 
 function getValidLanguage(language) {
   if (!language) return null;
@@ -1886,8 +2028,6 @@ function applyLanguage(options = {}) {
   }
 
   ensureServiceManagerFilterOptions();
-
-  ensureServiceSelectOptions();
   if (state.activeDetailEntry) {
     renderServiceControls(state.activeDetailEntry);
   }
@@ -2247,6 +2387,16 @@ function getAccessibleRecords() {
 
 function findEntryByRecord(record) {
   return state.enrichedRecords.find((entry) => entry.record === record) ?? null;
+}
+
+function findEntryByServiceKey(serviceKey) {
+  if (!serviceKey || !Array.isArray(state.enrichedRecords)) {
+    return null;
+  }
+
+  return (
+    state.enrichedRecords.find((entry) => entry.serviceKey === serviceKey) ?? null
+  );
 }
 
 function canAccessRecord(record) {
@@ -3013,19 +3163,98 @@ function translateServiceName(serviceId) {
 }
 
 function normalizeServiceAssignment(rawAssignment) {
-  const serviceId = sanitizeServiceId(rawAssignment?.serviceId);
-  const active = Boolean(rawAssignment?.active) && Boolean(serviceId);
-
-  if (!active) {
-    return { active: false, serviceId: "" };
+  if (!rawAssignment) {
+    return { active: false, services: [] };
   }
 
-  return { active: true, serviceId };
+  let services = [];
+
+  if (Array.isArray(rawAssignment.services)) {
+    services = rawAssignment.services.slice();
+  } else if (Array.isArray(rawAssignment.serviceIds)) {
+    services = rawAssignment.serviceIds.slice();
+  } else if (typeof rawAssignment.serviceId === "string") {
+    services = [rawAssignment.serviceId];
+  } else if (typeof rawAssignment === "string") {
+    services = [rawAssignment];
+  }
+
+  const normalized = Array.from(
+    new Set(
+      services
+        .map((value) => sanitizeServiceId(value))
+        .filter(Boolean)
+    )
+  );
+
+  const isActive =
+    (rawAssignment.active ?? normalized.length > 0) && normalized.length > 0;
+
+  if (!isActive) {
+    return { active: false, services: [] };
+  }
+
+  return { active: true, services: normalized };
 }
 
-function buildServiceKey(record, supplementalEntry, context = {}) {
+function buildServiceSignature(record, supplementalRecord, context = {}) {
+  const values = new Set();
+
+  const pushValue = (prefix, value) => {
+    if (value == null) {
+      return;
+    }
+    const normalizedValue = normalizeString(String(value));
+    if (!normalizedValue) {
+      return;
+    }
+    values.add(`${prefix}:${normalizedValue}`);
+  };
+
+  if (Number.isInteger(context.rowIndex)) {
+    pushValue("row", context.rowIndex);
+  }
+
+  if (context.phone) {
+    pushValue("context-phone", context.phone);
+  }
+
+  const collectFromRecord = (source, prefix) => {
+    if (!source || typeof source !== "object") {
+      return;
+    }
+    Object.keys(source)
+      .filter((key) => key !== "__raw")
+      .forEach((key) => {
+        pushValue(`${prefix}-${normalizeString(key)}`, source[key]);
+      });
+    if (source.__raw && typeof source.__raw === "object") {
+      Object.keys(source.__raw).forEach((key) => {
+        pushValue(`${prefix}-raw-${normalizeString(key)}`, source.__raw[key]);
+      });
+    }
+  };
+
+  collectFromRecord(record, "primary");
+  collectFromRecord(supplementalRecord, "supp");
+
+  if (!values.size) {
+    return "";
+  }
+
+  const sorted = Array.from(values).sort();
+
+  try {
+    return sha256Fallback(sorted.join("|"));
+  } catch (error) {
+    console.warn("Failed to compute service signature:", error);
+    return "";
+  }
+}
+
+function resolveServiceKeys(record, supplementalEntry, context = {}) {
   if (!record) {
-    return null;
+    return { key: null, legacyKey: null };
   }
 
   const names = [];
@@ -3048,7 +3277,7 @@ function buildServiceKey(record, supplementalEntry, context = {}) {
     .find((value) => value);
 
   if (!normalizedName) {
-    return null;
+    return { key: null, legacyKey: null };
   }
 
   let birthDate = context.birthDate;
@@ -3102,20 +3331,30 @@ function buildServiceKey(record, supplementalEntry, context = {}) {
     .map((value) => extractPhoneDigits(value))
     .find((digits) => digits);
 
-  const keySource = [normalizedName, birthKey, phoneDigits]
-    .filter(Boolean)
-    .join("|");
+  const legacyParts = [normalizedName];
+  if (birthKey) legacyParts.push(birthKey);
+  if (phoneDigits) legacyParts.push(phoneDigits);
 
-  if (!keySource) {
-    return null;
+  const legacyKey = legacyParts.filter(Boolean).join("|");
+  if (!legacyKey) {
+    return { key: null, legacyKey: null };
   }
 
-  try {
-    return sha256Fallback(keySource);
-  } catch (error) {
-    console.warn("Failed to compute service key:", error);
-    return null;
+  let key = legacyKey;
+
+  const needsSignature = !birthKey || !phoneDigits;
+  if (needsSignature) {
+    const signature = buildServiceSignature(
+      record,
+      supplementalEntry?.record ?? null,
+      context
+    );
+    if (signature) {
+      key = `${legacyKey}|${signature}`;
+    }
   }
+
+  return { key, legacyKey };
 }
 
 function buildServiceSummary(entries) {
@@ -3127,13 +3366,27 @@ function buildServiceSummary(entries) {
 
   entries.forEach((entry) => {
     const assignment = entry?.service;
-    if (!assignment?.active || !assignment.serviceId) {
+    if (!assignment?.active) {
+      return;
+    }
+
+    const services = Array.isArray(assignment.services)
+      ? assignment.services
+      : [];
+
+    if (!services.length) {
       return;
     }
 
     summary.total += 1;
-    summary.perService[assignment.serviceId] =
-      (summary.perService[assignment.serviceId] ?? 0) + 1;
+    services.forEach((serviceId) => {
+      const normalized = sanitizeServiceId(serviceId);
+      if (!normalized) {
+        return;
+      }
+      summary.perService[normalized] =
+        (summary.perService[normalized] ?? 0) + 1;
+    });
   });
 
   return summary;
@@ -3164,7 +3417,7 @@ function loadServiceAssignments() {
         return;
       }
       const normalized = normalizeServiceAssignment(value);
-      if (!normalized.active || !normalized.serviceId) {
+      if (!normalized.active || !normalized.services.length) {
         return;
       }
       map.set(key, normalized);
@@ -3185,9 +3438,13 @@ function persistServiceAssignments() {
     const payload = {};
     state.serviceAssignments.forEach((assignment, key) => {
       if (!key) return;
+      const services = Array.isArray(assignment?.services)
+        ? assignment.services.filter((serviceId) => sanitizeServiceId(serviceId))
+        : [];
       payload[key] = {
-        active: Boolean(assignment?.active),
-        serviceId: assignment?.serviceId ?? "",
+        active: Boolean(assignment?.active) && services.length > 0,
+        services,
+        serviceId: services[0] ?? "",
       };
     });
     localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(payload));
@@ -3201,18 +3458,45 @@ function applyServiceAssignmentsToEntries() {
     return;
   }
 
+  let migrated = false;
+
   state.enrichedRecords.forEach((entry) => {
-    const serviceKey = buildServiceKey(entry.record, entry.supplemental, {
-      name: entry.name,
-      birthDate: entry.birthDate,
-      phone: entry.phone,
-    });
+    const { key: serviceKey, legacyKey } = resolveServiceKeys(
+      entry.record,
+      entry.supplemental,
+      {
+        name: entry.name,
+        birthDate: entry.birthDate,
+        phone: entry.phone,
+        rowIndex: entry.rowIndex,
+      }
+    );
+
     entry.serviceKey = serviceKey;
-    const assignment = serviceKey
+    entry.legacyServiceKey = legacyKey;
+
+    let assignment = serviceKey
       ? state.serviceAssignments.get(serviceKey)
       : null;
+
+    if (!assignment && legacyKey && legacyKey !== serviceKey) {
+      const legacyAssignment = state.serviceAssignments.get(legacyKey);
+      if (legacyAssignment && serviceKey) {
+        state.serviceAssignments.set(serviceKey, legacyAssignment);
+        state.serviceAssignments.delete(legacyKey);
+        assignment = legacyAssignment;
+        migrated = true;
+      } else {
+        assignment = legacyAssignment;
+      }
+    }
+
     entry.service = normalizeServiceAssignment(assignment);
   });
+
+  if (migrated) {
+    persistServiceAssignments();
+  }
 }
 
 function ensureActiveServiceFilterValid(summary) {
@@ -3474,7 +3758,7 @@ function isSameDate(first, second) {
 function buildEnrichedRecords(records) {
   const { birthColumn, nameColumn, phoneColumn } = state;
 
-  return records.map((record) => {
+  return records.map((record, index) => {
     const rawBirth = birthColumn
       ? record.__raw?.[birthColumn] ?? record[birthColumn]
       : null;
@@ -3497,6 +3781,7 @@ function buildEnrichedRecords(records) {
       name: nameColumn ? record[nameColumn] ?? "" : "",
       phone: displayPhone,
       supplemental: supplementalEntry,
+      rowIndex: index,
     };
   });
 }
@@ -3959,7 +4244,9 @@ function renderAssistantQuestions() {
 
   elements.assistantQuestions.innerHTML = "";
 
-  ASSISTANT_QUESTIONS.forEach((question) => {
+  const questions = getAssistantQuestionSet();
+
+  questions.forEach((question) => {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = translate(question.labelKey);
@@ -4004,6 +4291,18 @@ function getAssistantAnswer(questionId) {
       return withAssistantUserPrefix(
         translateAssistantForRole("assistant.answers.categories")
       );
+    case "assignService":
+      return withAssistantUserPrefix(
+        translateAssistantForRole("assistant.answers.assignService")
+      );
+    case "removeService":
+      return withAssistantUserPrefix(
+        translateAssistantForRole("assistant.answers.removeService")
+      );
+    case "filterServices":
+      return withAssistantUserPrefix(
+        translateAssistantForRole("assistant.answers.filterServices")
+      );
     default:
       return withAssistantUserPrefix(translate("assistant.answers.fallback"));
   }
@@ -4025,7 +4324,7 @@ function generateCustomAssistantAnswer(questionText) {
 }
 
 function handleAssistantQuestionSelection(questionId) {
-  const question = ASSISTANT_QUESTIONS.find((item) => item.id === questionId);
+  const question = getAssistantQuestionById(questionId);
   if (!question) {
     return;
   }
@@ -4339,37 +4638,6 @@ function updateCategoryChart(entries, category, options = {}) {
   }
 }
 
-function ensureServiceSelectOptions() {
-  if (!elements.serviceSelect) {
-    return;
-  }
-
-  const select = elements.serviceSelect;
-  const previousValue = select.value;
-  const fragment = document.createDocumentFragment();
-
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = translate("services.selectPlaceholder");
-  fragment.appendChild(placeholder);
-
-  SERVICE_OPTIONS.forEach((option) => {
-    const item = document.createElement("option");
-    item.value = option.id;
-    item.textContent = translate(option.nameKey);
-    fragment.appendChild(item);
-  });
-
-  select.innerHTML = "";
-  select.appendChild(fragment);
-
-  if (previousValue && select.querySelector(`option[value="${previousValue}"]`)) {
-    select.value = previousValue;
-  } else {
-    select.value = "";
-  }
-}
-
 function ensureServiceManagerFilterOptions() {
   if (!elements.serviceManagerFilter) {
     return;
@@ -4412,18 +4680,23 @@ function updateServiceFeedback(entry) {
     return;
   }
 
-  const assignment = entry.service ?? { active: false, serviceId: "" };
-  if (assignment.active && assignment.serviceId) {
-    const serviceName = translateServiceName(assignment.serviceId);
-    elements.serviceFeedback.textContent = translate(
-      "services.feedback.active",
-      { service: serviceName }
-    );
-  } else {
-    elements.serviceFeedback.textContent = translate(
-      "services.feedback.inactive"
-    );
+  const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
+  if (assignment.active && Array.isArray(assignment.services)) {
+    const names = assignment.services
+      .map((serviceId) => translateServiceName(serviceId))
+      .filter(Boolean);
+    if (names.length) {
+      elements.serviceFeedback.textContent = translate(
+        "services.feedback.active",
+        { service: names.join(", ") }
+      );
+      return;
+    }
   }
+
+  elements.serviceFeedback.textContent = translate(
+    "services.feedback.inactive"
+  );
 }
 
 function hideServiceControls() {
@@ -4434,30 +4707,78 @@ function hideServiceControls() {
   if (elements.serviceToggle) {
     elements.serviceToggle.checked = false;
   }
-  if (elements.serviceSelect) {
-    elements.serviceSelect.value = "";
-    elements.serviceSelect.disabled = true;
+  if (elements.serviceChecklist) {
+    elements.serviceChecklist.setAttribute("disabled", "");
+  }
+  if (elements.serviceChecklistOptions) {
+    elements.serviceChecklistOptions
+      .querySelectorAll('input[type="checkbox"]')
+      .forEach((input) => {
+        input.checked = false;
+      });
   }
   updateServiceFeedback(null);
+}
+
+function renderServiceOptions(container, selectedServices, options = {}) {
+  if (!container) {
+    return;
+  }
+
+  const { disabled = false, optionClass = "service-option", onChange } = options;
+
+  const selectedSet = new Set(
+    Array.isArray(selectedServices)
+      ? selectedServices
+          .map((serviceId) => sanitizeServiceId(serviceId))
+          .filter(Boolean)
+      : []
+  );
+
+  container.innerHTML = "";
+
+  SERVICE_OPTIONS.forEach((option) => {
+    const label = document.createElement("label");
+    label.className = optionClass;
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = option.id;
+    input.checked = selectedSet.has(option.id);
+    input.disabled = disabled;
+    input.addEventListener("change", () => {
+      if (typeof onChange !== "function") {
+        return;
+      }
+      const services = Array.from(
+        container.querySelectorAll('input[type="checkbox"]:checked')
+      )
+        .map((checkbox) => sanitizeServiceId(checkbox.value))
+        .filter(Boolean);
+      onChange(services);
+    });
+
+    const span = document.createElement("span");
+    span.textContent = translate(option.nameKey);
+
+    label.append(input, span);
+    container.appendChild(label);
+  });
 }
 
 function renderServiceControls(entry) {
   if (
     !elements.serviceControls ||
     !elements.serviceToggle ||
-    !elements.serviceSelect ||
     !elements.serviceToggleLabel ||
-    !elements.serviceSelectLabel
+    !elements.serviceSelectLabel ||
+    !elements.serviceChecklist ||
+    !elements.serviceChecklistOptions
   ) {
     return;
   }
 
-  if (!canManageServices()) {
-    hideServiceControls();
-    return;
-  }
-
-  if (!entry) {
+  if (!canManageServices() || !entry) {
     hideServiceControls();
     return;
   }
@@ -4466,26 +4787,30 @@ function renderServiceControls(entry) {
   elements.serviceToggleLabel.textContent = translate("services.toggleLabel");
   elements.serviceSelectLabel.textContent = translate("services.selectLabel");
 
-  ensureServiceSelectOptions();
-
-  const assignment = entry.service ?? { active: false, serviceId: "" };
-  const hasService = Boolean(assignment.active && assignment.serviceId);
+  const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
+  const hasService = Boolean(
+    assignment.active && Array.isArray(assignment.services) && assignment.services.length
+  );
 
   elements.serviceToggle.checked = hasService;
-  elements.serviceSelect.disabled = !hasService;
 
   if (hasService) {
-    elements.serviceSelect.value = assignment.serviceId;
-  } else if (!elements.serviceSelect.disabled) {
-    elements.serviceSelect.value = assignment.serviceId || "";
+    elements.serviceChecklist.removeAttribute("disabled");
   } else {
-    elements.serviceSelect.value = "";
+    elements.serviceChecklist.setAttribute("disabled", "");
   }
 
-  const placeholder = elements.serviceSelect.querySelector('option[value=""]');
-  if (placeholder) {
-    placeholder.textContent = translate("services.selectPlaceholder");
-  }
+  renderServiceOptions(elements.serviceChecklistOptions, assignment.services, {
+    disabled: !hasService,
+    optionClass: "service-option",
+    onChange: (services) => {
+      updateServiceAssignment(entry, {
+        active: services.length > 0,
+        services,
+      });
+      renderServiceControls(entry);
+    },
+  });
 
   updateServiceFeedback(entry);
 }
@@ -4594,14 +4919,24 @@ function updateCategoryCards(entries, category, options = {}) {
 
     card.append(nameElement, ageElement, phoneElement);
 
-    if (entry.service?.active && entry.service.serviceId) {
-      const serviceElement = document.createElement("span");
-      serviceElement.className = "service-tag";
-      const serviceName = translateServiceName(entry.service.serviceId);
-      serviceElement.textContent = translate("people.serviceLabel", {
-        value: serviceName,
+    if (entry.service?.active && Array.isArray(entry.service.services)) {
+      const tagList = document.createElement("div");
+      tagList.className = "service-tags";
+
+      entry.service.services.forEach((serviceId) => {
+        const normalized = sanitizeServiceId(serviceId);
+        if (!normalized) {
+          return;
+        }
+        const tag = document.createElement("span");
+        tag.className = "service-tag";
+        tag.textContent = translateServiceName(normalized);
+        tagList.appendChild(tag);
       });
-      card.appendChild(serviceElement);
+
+      if (tagList.children.length) {
+        card.appendChild(tagList);
+      }
     }
 
     card.addEventListener("click", () => openRecord(entry.record));
@@ -4763,9 +5098,13 @@ function renderServicesCategory(category) {
 
   let filteredEntries = servingEntries;
   if (state.activeServiceFilter !== SERVICE_FILTER_ALL) {
-    filteredEntries = servingEntries.filter(
-      (entry) => entry.service?.serviceId === state.activeServiceFilter
-    );
+    filteredEntries = servingEntries.filter((entry) => {
+      const services = entry.service?.services;
+      if (!Array.isArray(services)) {
+        return false;
+      }
+      return services.includes(state.activeServiceFilter);
+    });
   }
 
   if (elements.categoryMeta) {
@@ -4808,33 +5147,18 @@ function renderServicesCategory(category) {
 }
 
 function formatServiceStatusText(entry) {
-  const assignment = entry?.service ?? { active: false, serviceId: "" };
-  if (assignment.active && assignment.serviceId) {
-    const serviceName = translateServiceName(assignment.serviceId);
-    return translate("services.feedback.active", { service: serviceName });
+  const assignment = entry?.service ?? EMPTY_SERVICE_ASSIGNMENT;
+  if (assignment.active && Array.isArray(assignment.services)) {
+    const names = assignment.services
+      .map((serviceId) => translateServiceName(serviceId))
+      .filter(Boolean);
+    if (names.length) {
+      return translate("services.feedback.active", {
+        service: names.join(", "),
+      });
+    }
   }
   return translate("services.feedback.inactive");
-}
-
-function populateServiceManagerSelect(select, selectedValue = "") {
-  select.innerHTML = "";
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = translate("services.selectPlaceholder");
-  select.appendChild(placeholder);
-
-  SERVICE_OPTIONS.forEach((option) => {
-    const item = document.createElement("option");
-    item.value = option.id;
-    item.textContent = translate(option.nameKey);
-    select.appendChild(item);
-  });
-
-  if (selectedValue && select.querySelector(`option[value="${selectedValue}"]`)) {
-    select.value = selectedValue;
-  } else {
-    select.value = "";
-  }
 }
 
 function createServiceManagerCard(entry) {
@@ -4879,8 +5203,10 @@ function createServiceManagerCard(entry) {
   const controls = document.createElement("div");
   controls.className = "service-manager-actions";
 
-  const assignment = entry.service ?? { active: false, serviceId: "" };
-  const hasService = Boolean(assignment.active && assignment.serviceId);
+  const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
+  const hasService = Boolean(
+    assignment.active && Array.isArray(assignment.services) && assignment.services.length
+  );
 
   const toggleLabel = document.createElement("label");
   toggleLabel.className = "service-manager-toggle";
@@ -4896,11 +5222,32 @@ function createServiceManagerCard(entry) {
 
   controls.appendChild(toggleLabel);
 
-  const select = document.createElement("select");
-  select.className = "service-manager-select";
-  populateServiceManagerSelect(select, assignment.serviceId);
-  select.disabled = !hasService;
-  controls.appendChild(select);
+  const checklist = document.createElement("div");
+  checklist.className = "service-manager-checklist";
+  controls.appendChild(checklist);
+
+  const renderOptions = (disabled) => {
+    renderServiceOptions(checklist, assignment.services, {
+      disabled,
+      optionClass: "service-manager-option",
+      onChange: (services) => {
+        if (!canManageServices()) {
+          return;
+        }
+        if (!services.length) {
+          toggle.checked = false;
+          toggle.dispatchEvent(new Event("change"));
+          return;
+        }
+        if (!toggle.checked) {
+          toggle.checked = true;
+        }
+        updateServiceAssignment(entry, { active: true, services });
+      },
+    });
+  };
+
+  renderOptions(!hasService);
 
   toggle.addEventListener("change", () => {
     if (!canManageServices()) {
@@ -4909,53 +5256,24 @@ function createServiceManagerCard(entry) {
     }
 
     if (!toggle.checked) {
-      select.disabled = true;
-      select.value = "";
-      updateServiceAssignment(entry, { active: false, serviceId: "" });
-      renderServiceManager();
+      renderServiceOptions(checklist, [], {
+        disabled: true,
+        optionClass: "service-manager-option",
+      });
+      updateServiceAssignment(entry, { active: false, services: [] });
       return;
     }
 
-    select.disabled = false;
-    let serviceId = sanitizeServiceId(select.value);
-    if (!serviceId) {
-      serviceId = SERVICE_OPTIONS[0]?.id ?? "";
-      if (serviceId) {
-        select.value = serviceId;
-      }
+    const initialServices = Array.isArray(assignment.services)
+      ? assignment.services.slice()
+      : [];
+    if (!initialServices.length && SERVICE_OPTIONS[0]) {
+      initialServices.push(SERVICE_OPTIONS[0].id);
     }
-
-    if (serviceId) {
-      updateServiceAssignment(entry, { active: true, serviceId });
-    } else {
-      updateServiceAssignment(entry, { active: false, serviceId: "" });
-      toggle.checked = false;
-      select.disabled = true;
-    }
-
-    renderServiceManager();
-  });
-
-  select.addEventListener("change", (event) => {
-    if (!canManageServices()) {
-      return;
-    }
-
-    const serviceId = sanitizeServiceId(event.target.value);
-    if (!serviceId) {
-      toggle.checked = false;
-      select.disabled = true;
-      updateServiceAssignment(entry, { active: false, serviceId: "" });
-      renderServiceManager();
-      return;
-    }
-
-    if (!toggle.checked) {
-      toggle.checked = true;
-    }
-
-    updateServiceAssignment(entry, { active: true, serviceId });
-    renderServiceManager();
+    updateServiceAssignment(entry, {
+      active: initialServices.length > 0,
+      services: initialServices,
+    });
   });
 
   card.appendChild(controls);
@@ -5022,8 +5340,12 @@ function renderServiceManager() {
   let entries = state.enrichedRecords.slice();
 
   entries = entries.filter((entry) => {
-    const assignment = entry.service ?? { active: false, serviceId: "" };
-    const active = Boolean(assignment.active && assignment.serviceId);
+    const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
+    const active = Boolean(
+      assignment.active &&
+        Array.isArray(assignment.services) &&
+        assignment.services.length
+    );
     if (filterValue === "active") {
       return active;
     }
@@ -5031,7 +5353,11 @@ function renderServiceManager() {
       return !active;
     }
     if (filterValue !== "all" && normalizedFilter) {
-      return active && assignment.serviceId === normalizedFilter;
+      return (
+        active &&
+        assignment.services &&
+        assignment.services.includes(normalizedFilter)
+      );
     }
     return true;
   });
@@ -5433,24 +5759,55 @@ function updateServiceAssignment(entry, assignment) {
     return;
   }
 
-  if (!entry.serviceKey) {
-    entry.serviceKey = buildServiceKey(entry.record, entry.supplemental, {
-      name: entry.name,
-      birthDate: entry.birthDate,
-      phone: entry.phone,
-    });
-  }
+  const normalized = normalizeServiceAssignment(assignment);
 
-  entry.service = normalizeServiceAssignment(assignment);
+  const targetEntry =
+    findEntryByServiceKey(entry.serviceKey) ??
+    findEntryByRecord(entry.record) ??
+    entry;
 
-  if (!entry.serviceKey) {
+  targetEntry.service = normalized;
+  entry.service = targetEntry.service;
+
+  const { key: serviceKey, legacyKey } = resolveServiceKeys(
+    targetEntry.record,
+    targetEntry.supplemental,
+    {
+      name: targetEntry.name,
+      birthDate: targetEntry.birthDate,
+      phone: targetEntry.phone,
+      rowIndex: targetEntry.rowIndex,
+    }
+  );
+
+  targetEntry.serviceKey = serviceKey;
+  entry.serviceKey = serviceKey;
+  targetEntry.legacyServiceKey = legacyKey;
+  entry.legacyServiceKey = legacyKey;
+
+  if (!serviceKey) {
+    if (legacyKey) {
+      state.serviceAssignments.delete(legacyKey);
+    }
+    persistServiceAssignments();
+    applyServiceAssignmentsToEntries();
+    updateDashboard();
+    if (elements.categoryCards || isCategoryPage) {
+      renderCategory(state.activeCategory);
+    }
     return;
   }
 
-  if (entry.service.active && entry.service.serviceId) {
-    state.serviceAssignments.set(entry.serviceKey, entry.service);
+  if (targetEntry.service.active && targetEntry.service.services.length) {
+    state.serviceAssignments.set(serviceKey, targetEntry.service);
+    if (legacyKey && legacyKey !== serviceKey) {
+      state.serviceAssignments.delete(legacyKey);
+    }
   } else {
-    state.serviceAssignments.delete(entry.serviceKey);
+    state.serviceAssignments.delete(serviceKey);
+    if (legacyKey && legacyKey !== serviceKey) {
+      state.serviceAssignments.delete(legacyKey);
+    }
   }
 
   persistServiceAssignments();
@@ -5466,60 +5823,44 @@ function handleServiceToggleChange() {
     return;
   }
   const entry = state.activeDetailEntry;
-  if (!entry || !elements.serviceToggle || !elements.serviceSelect) {
+  if (
+    !entry ||
+    !elements.serviceToggle ||
+    !elements.serviceChecklist ||
+    !elements.serviceChecklistOptions
+  ) {
     return;
   }
 
   const isChecked = elements.serviceToggle.checked;
   if (!isChecked) {
-    elements.serviceSelect.disabled = true;
-    elements.serviceSelect.value = "";
-    updateServiceAssignment(entry, { active: false, serviceId: "" });
+    elements.serviceChecklist.setAttribute("disabled", "");
+    updateServiceAssignment(entry, { active: false, services: [] });
     renderServiceControls(entry);
     return;
   }
 
-  elements.serviceSelect.disabled = false;
-  let serviceId = sanitizeServiceId(elements.serviceSelect.value);
-  if (!serviceId) {
-    serviceId = SERVICE_OPTIONS[0]?.id ?? "";
-    if (serviceId) {
-      elements.serviceSelect.value = serviceId;
+  elements.serviceChecklist.removeAttribute("disabled");
+
+  let selected = Array.from(
+    elements.serviceChecklistOptions.querySelectorAll(
+      'input[type="checkbox"]:checked'
+    )
+  )
+    .map((input) => sanitizeServiceId(input.value))
+    .filter(Boolean);
+
+  if (!selected.length) {
+    const fallback = SERVICE_OPTIONS[0]?.id;
+    if (fallback) {
+      selected = [fallback];
     }
   }
 
-  if (serviceId) {
-    updateServiceAssignment(entry, { active: true, serviceId });
-  } else {
-    updateServiceAssignment(entry, { active: false, serviceId: "" });
-  }
-
-  renderServiceControls(entry);
-}
-
-function handleServiceSelectChange(event) {
-  if (!canManageServices()) {
-    return;
-  }
-  const entry = state.activeDetailEntry;
-  if (!entry || !elements.serviceSelect || !elements.serviceToggle) {
-    return;
-  }
-
-  const serviceId = sanitizeServiceId(event.target.value);
-  if (!serviceId) {
-    elements.serviceToggle.checked = false;
-    elements.serviceSelect.disabled = true;
-    updateServiceAssignment(entry, { active: false, serviceId: "" });
-    renderServiceControls(entry);
-    return;
-  }
-
-  if (!elements.serviceToggle.checked) {
-    elements.serviceToggle.checked = true;
-  }
-
-  updateServiceAssignment(entry, { active: true, serviceId });
+  updateServiceAssignment(entry, {
+    active: selected.length > 0,
+    services: selected,
+  });
   renderServiceControls(entry);
 }
 
@@ -5861,10 +6202,6 @@ function setupEventListeners() {
 
   if (elements.serviceToggle) {
     elements.serviceToggle.addEventListener("change", handleServiceToggleChange);
-  }
-
-  if (elements.serviceSelect) {
-    elements.serviceSelect.addEventListener("change", handleServiceSelectChange);
   }
 
   if (elements.serviceSummaryGrid) {
