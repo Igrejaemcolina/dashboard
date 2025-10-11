@@ -22,6 +22,7 @@ const CAPTAIN_CARD_CATEGORIES = ["teens", "parents"];
 const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
 const isCategoryPage = pageType === "category";
+const isServiceManagerPage = pageType === "service-manager";
 
 const LANGUAGE_STORAGE_KEY = "igcolina-language";
 const LANGUAGE_OPTIONS = {
@@ -277,12 +278,19 @@ const TRANSLATIONS = {
           description:
             "Acesso restrito às informações dos adolescentes (11-17 anos) e seus responsáveis.",
         },
+        servicos: {
+          label: "Serviços",
+          description:
+            "Perfil dedicado a gerenciar quais irmãos servem e em quais frentes atuam.",
+        },
       },
     },
     profile: {
       label: "Perfil",
       title: "Perfil atual",
       switch: "Trocar de usuário",
+      manageServices: "Gerenciar serviços",
+      openDashboard: "Ir para o painel principal",
     },
     language: {
       toggleAria: "Selecionar idioma",
@@ -313,18 +321,24 @@ const TRANSLATIONS = {
             "Toda a dashboard é sincronizada com as planilhas a cada minuto. Você pode recarregar a página para atualizar imediatamente.",
           capitao:
             "Os registros de adolescentes são atualizados automaticamente a cada minuto com os dados das planilhas. Recarregue a página se precisar forçar uma nova consulta.",
+          servicos:
+            "Você tem acesso completo aos dados e pode atualizar a página para sincronizar imediatamente após ajustar os serviços.",
         },
         search: {
           responsavel:
             "Digite parte do nome no campo de pesquisa e selecione uma das sugestões para abrir o cadastro completo do irmão.",
           capitao:
             "No campo de pesquisa, digite o nome do adolescente (11-17 anos). Escolha uma sugestão para abrir os detalhes completos.",
+          servicos:
+            "Pesquise pelo nome do irmão para revisar o cadastro e atualizar rapidamente o serviço que ele desempenha.",
         },
         categories: {
           responsavel:
             "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados.",
           capitao:
             "Como Capitão de Tropa, você visualiza os cartões de adolescentes e de pais. Clique em um deles para acessar a lista com os detalhes correspondentes.",
+          servicos:
+            "Utilize os cartões e o gerenciador de serviços para acompanhar quem serve em cada frente e atualizar quando necessário.",
         },
         fallback: "Estou aqui para ajudar com as principais dúvidas do painel.",
       },
@@ -337,9 +351,26 @@ const TRANSLATIONS = {
           "Como Irmão Responsável, você possui acesso completo a todas as categorias da dashboard.",
         capitao:
           "Como Capitão de Tropa, lembre-se de que seu acesso é focado nos adolescentes de 11 a 17 anos.",
+        servicos:
+          "Como responsável pelos serviços, você pode atribuir ministérios e ajustar quem está servindo diretamente pelo gerenciador.",
       },
       customFollowUp:
         "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
+    },
+    serviceManager: {
+      title: "Gerenciar serviços",
+      description:
+        "Defina se o irmão serve na vida da igreja e escolha a frente de atuação.",
+      back: "← Voltar ao painel principal",
+      filterLabel: "Filtrar",
+      filters: {
+        all: "Todos os registros",
+        active: "Servindo",
+        inactive: "Sem serviço",
+      },
+      empty: "Nenhum irmão encontrado para os filtros selecionados.",
+      restricted:
+        "Atribuição de serviços disponível apenas para o perfil Serviços.",
     },
   },
   en: {
@@ -586,12 +617,19 @@ const TRANSLATIONS = {
           description:
             "Restricted access to teen information (ages 11-17) and their guardians.",
         },
+        servicos: {
+          label: "Services",
+          description:
+            "Dedicated profile to manage who serves and which ministry they support.",
+        },
       },
     },
     profile: {
       label: "Profile",
       title: "Current profile",
       switch: "Switch user",
+      manageServices: "Manage services",
+      openDashboard: "Go to main dashboard",
     },
     language: {
       toggleAria: "Choose language",
@@ -622,18 +660,24 @@ const TRANSLATIONS = {
             "The entire dashboard syncs with the spreadsheets every minute. You can refresh the page to update immediately.",
           capitao:
             "Teen records are refreshed automatically every minute from the spreadsheets. Reload the page if you need to force an update.",
+          servicos:
+            "Reload the page after updating assignments to sync all service data instantly.",
         },
         search: {
           responsavel:
             "Type part of the name in the search field and pick one of the suggestions to open the full record.",
           capitao:
             "In the search field, type the teen's name (11-17 years). Choose a suggestion to open the detailed record.",
+          servicos:
+            "Search for a member's name to review the record and adjust the ministry assignment right away.",
         },
         categories: {
           responsavel:
             "Use the cards on the home page or the categories menu to navigate. Each tab shows that group's members with charts and detailed cards.",
           capitao:
             "As a Troop Captain, you see the teen and parents cards. Click either card to open the matching list with detailed records.",
+          servicos:
+            "Leverage the cards and the service manager to keep track of every ministry and update assignments whenever necessary.",
         },
         fallback: "I'm here to help with the main questions about the dashboard.",
       },
@@ -646,9 +690,26 @@ const TRANSLATIONS = {
           "As a Responsible Brother, you have full access to every dashboard category.",
         capitao:
           "As a Troop Captain, remember that your access focuses on teens aged 11 to 17 and their guardians.",
+        servicos:
+          "As the services coordinator, you can assign ministries and maintain serving information directly from the manager.",
       },
       customFollowUp:
         "Make sure the data is up to date in the spreadsheet and use the cards or search to quickly locate the information you need. If the question persists, contact the IGColina leadership.",
+    },
+    serviceManager: {
+      title: "Manage services",
+      description:
+        "Decide whether a member serves in the church life and choose the ministry.",
+      back: "← Back to main dashboard",
+      filterLabel: "Filter",
+      filters: {
+        all: "All records",
+        active: "Serving",
+        inactive: "No service",
+      },
+      empty: "No members found for the selected filters.",
+      restricted:
+        "Service assignments are available only for the Services profile.",
     },
   },
   es: {
@@ -897,12 +958,19 @@ const TRANSLATIONS = {
           description:
             "Acceso restringido a la información de los adolescentes (11-17 años) y sus responsables.",
         },
+        servicos: {
+          label: "Servicios",
+          description:
+            "Perfil dedicado a gestionar quién sirve y en qué área lo hace.",
+        },
       },
     },
     profile: {
       label: "Perfil",
       title: "Perfil actual",
       switch: "Cambiar usuario",
+      manageServices: "Gestionar servicios",
+      openDashboard: "Ir al panel principal",
     },
     language: {
       toggleAria: "Seleccionar idioma",
@@ -933,18 +1001,24 @@ const TRANSLATIONS = {
             "Todo el panel se sincroniza con las planillas cada minuto. Puedes recargar la página para actualizar al instante.",
           capitao:
             "Los registros de adolescentes se actualizan automáticamente cada minuto con los datos de las planillas. Recarga la página si necesitas forzar una nueva consulta.",
+          servicos:
+            "Después de ajustar los servicios, recarga la página para sincronizar de inmediato la información.",
         },
         search: {
           responsavel:
             "Escribe parte del nombre en el campo de búsqueda y selecciona una sugerencia para abrir el registro completo.",
           capitao:
             "En el campo de búsqueda, escribe el nombre del adolescente (11-17 años). Elige una sugerencia para abrir los detalles completos.",
+          servicos:
+            "Busca el nombre del hermano para revisar el registro y actualizar rápidamente el servicio asignado.",
         },
         categories: {
           responsavel:
             "Usa las tarjetas de la página inicial o el menú de categorías para navegar. Cada pestaña muestra a los hermanos de ese grupo con gráficos y tarjetas detalladas.",
           capitao:
             "Como Capitán de Tropa, ves las tarjetas de adolescentes y de padres. Haz clic en cualquiera para abrir la lista con los detalles correspondientes.",
+          servicos:
+            "Aprovecha las tarjetas y el gestor de servicios para seguir cada área y actualizar las asignaciones cuando sea necesario.",
         },
         fallback: "Estoy aquí para ayudarte con las principales dudas del panel.",
       },
@@ -957,9 +1031,26 @@ const TRANSLATIONS = {
           "Como Hermano Responsable, tienes acceso completo a todas las categorías del panel.",
         capitao:
           "Como Capitán de Tropa, recuerda que tu acceso se enfoca en los adolescentes de 11 a 17 años y sus responsables.",
+        servicos:
+          "Como responsable de los servicios, puedes asignar ministerios y mantener la información actualizada directamente en el gestor.",
       },
       customFollowUp:
         "Verifica que los datos estén actualizados en la planilla y utiliza las tarjetas o la búsqueda para localizar rápidamente la información deseada. Si la duda persiste, ponte en contacto con la lideranza de IGColina.",
+    },
+    serviceManager: {
+      title: "Gestionar servicios",
+      description:
+        "Define si el hermano sirve en la vida de la iglesia y elige el área de servicio.",
+      back: "← Volver al panel principal",
+      filterLabel: "Filtrar",
+      filters: {
+        all: "Todos los registros",
+        active: "Sirviendo",
+        inactive: "Sin servicio",
+      },
+      empty: "No se encontraron hermanos para los filtros seleccionados.",
+      restricted:
+        "La asignación de servicios está disponible solo para el perfil Servicios.",
     },
   },
 };
@@ -971,6 +1062,7 @@ let collator = new Intl.Collator(LANGUAGE_OPTIONS.pt.locale, {
 const ACCESS_ROLES = {
   RESPONSIBLE: "responsavel",
   CAPTAIN: "capitao",
+  SERVICES: "servicos",
 };
 
 const ACCESS_METADATA = {
@@ -982,27 +1074,39 @@ const ACCESS_METADATA = {
     labelKey: "access.roles.capitao.label",
     descriptionKey: "access.roles.capitao.description",
   },
+  [ACCESS_ROLES.SERVICES]: {
+    labelKey: "access.roles.servicos.label",
+    descriptionKey: "access.roles.servicos.description",
+  },
 };
+
+const FULL_ACCESS_ROLES = new Set([
+  ACCESS_ROLES.RESPONSIBLE,
+  ACCESS_ROLES.SERVICES,
+]);
 
 const NAME_SECRET = "IGCOLINA2025";
 
+const RESPONSIBLE_ROLE_CREDENTIALS = {
+  "7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":
+    "0426312c2925272f5d10615c253122",
+  "73a2af8864fc500fa49048bf3003776c19938f360e56bd03663866fb3087884a":
+    "042e2223252a2628",
+  "b74b7e3fcb623d805dacf98db27530f845760c47e3b0faa702b84e9ff3902c37":
+    "0829273da5691d285e4653",
+  "b411746bdf09bde7f1fe70ddc8fa57241a0cb79d14d6e9c27e598635ca7dae4d":
+    "1a2231282527262e",
+  "3f95b1b8a32c2c0251dfdbc3c8a30aab6d6e680cf0ef03e8af84a65dff0c4a85":
+    "0a2e2720",
+  "060e33205a731400c2eb92bc12cf921a4e44cf1851d216f144337dd6ec5350a7":
+    "0a2631232527262e41",
+  "ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":
+    "2337252e2f21272f53",
+};
+
 const ROLE_CREDENTIALS = {
-  [ACCESS_ROLES.RESPONSIBLE]: {
-    "7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":
-      "0426312c2925272f5d10615c253122",
-    "73a2af8864fc500fa49048bf3003776c19938f360e56bd03663866fb3087884a":
-      "042e2223252a2628",
-    "b74b7e3fcb623d805dacf98db27530f845760c47e3b0faa702b84e9ff3902c37":
-      "0829273da5691d285e4653",
-    "b411746bdf09bde7f1fe70ddc8fa57241a0cb79d14d6e9c27e598635ca7dae4d":
-      "1a2231282527262e",
-    "3f95b1b8a32c2c0251dfdbc3c8a30aab6d6e680cf0ef03e8af84a65dff0c4a85":
-      "0a2e2720",
-    "060e33205a731400c2eb92bc12cf921a4e44cf1851d216f144337dd6ec5350a7":
-      "0a2631232527262e41",
-    "ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":
-      "2337252e2f21272f53",
-  },
+  [ACCESS_ROLES.RESPONSIBLE]: RESPONSIBLE_ROLE_CREDENTIALS,
+  [ACCESS_ROLES.SERVICES]: RESPONSIBLE_ROLE_CREDENTIALS,
   [ACCESS_ROLES.CAPTAIN]: {
     "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342":
       "0a26332638aa2b32125457151d352c3f2d",
@@ -1079,6 +1183,7 @@ const elements = {
   userMenuRole: document.getElementById("user-menu-role"),
   userMenuDetail: document.getElementById("user-menu-detail"),
   switchUser: document.getElementById("switch-user"),
+  manageServices: document.getElementById("manage-services"),
   accessModal: document.getElementById("access-modal"),
   accessOptions: document.getElementById("access-options"),
   accessForm: document.getElementById("access-form"),
@@ -1113,6 +1218,15 @@ const elements = {
   parentChoiceMother: document.getElementById("parent-choice-mother"),
   parentChoiceCancel: document.getElementById("parent-choice-cancel"),
   parentChoiceClose: document.getElementById("parent-choice-close"),
+  serviceManagerSection: document.getElementById("service-manager"),
+  serviceManagerTitle: document.getElementById("service-manager-title"),
+  serviceManagerDescription: document.getElementById("service-manager-description"),
+  serviceManagerFilterLabel: document.getElementById("service-manager-filter-label"),
+  serviceManagerFilter: document.getElementById("service-manager-filter"),
+  serviceManagerList: document.getElementById("service-manager-list"),
+  serviceManagerEmpty: document.getElementById("service-manager-empty"),
+  serviceManagerBack: document.getElementById("service-manager-back"),
+  serviceManagerNotice: document.getElementById("service-manager-notice"),
 };
 
 const CATEGORY_CONFIG = [
@@ -1254,6 +1368,14 @@ const state = {
   },
   language: null,
 };
+
+function hasFullAccessRole(role) {
+  return FULL_ACCESS_ROLES.has(role);
+}
+
+function canManageServices() {
+  return state.accessRole === ACCESS_ROLES.SERVICES;
+}
 
 const ASSISTANT_QUESTIONS = [
   {
@@ -1646,6 +1768,12 @@ function applyLanguage(options = {}) {
   if (elements.switchUser) {
     elements.switchUser.textContent = translate("profile.switch");
   }
+  if (elements.manageServices) {
+    const key = isServiceManagerPage
+      ? "profile.openDashboard"
+      : "profile.manageServices";
+    elements.manageServices.textContent = translate(key);
+  }
 
   if (elements.accessTitle) {
     elements.accessTitle.textContent = translate("access.modalTitle");
@@ -1729,6 +1857,35 @@ function applyLanguage(options = {}) {
   if (elements.assistantSubmit) {
     elements.assistantSubmit.textContent = translate("assistant.submit");
   }
+
+  if (elements.serviceManagerTitle) {
+    elements.serviceManagerTitle.textContent = translate(
+      "serviceManager.title"
+    );
+  }
+  if (elements.serviceManagerDescription) {
+    elements.serviceManagerDescription.textContent = translate(
+      "serviceManager.description"
+    );
+  }
+  if (elements.serviceManagerBack) {
+    elements.serviceManagerBack.textContent = translate("serviceManager.back");
+  }
+  if (elements.serviceManagerFilterLabel) {
+    elements.serviceManagerFilterLabel.textContent = translate(
+      "serviceManager.filterLabel"
+    );
+  }
+  if (elements.serviceManagerEmpty) {
+    elements.serviceManagerEmpty.textContent = translate("serviceManager.empty");
+  }
+  if (elements.serviceManagerNotice) {
+    elements.serviceManagerNotice.textContent = translate(
+      "serviceManager.restricted"
+    );
+  }
+
+  ensureServiceManagerFilterOptions();
 
   ensureServiceSelectOptions();
   if (state.activeDetailEntry) {
@@ -2044,7 +2201,7 @@ function isCategoryAllowed(categoryId) {
     return false;
   }
 
-  if (state.accessRole === ACCESS_ROLES.RESPONSIBLE) {
+  if (hasFullAccessRole(state.accessRole)) {
     return true;
   }
 
@@ -2097,7 +2254,7 @@ function canAccessRecord(record) {
     return false;
   }
 
-  if (state.accessRole === ACCESS_ROLES.RESPONSIBLE) {
+  if (hasFullAccessRole(state.accessRole)) {
     return true;
   }
 
@@ -2183,6 +2340,10 @@ function applyAccessRestrictions() {
     }
   }
 
+  if (isServiceManagerPage) {
+    renderServiceManager();
+  }
+
   updateUserProfileUI();
   updateBirthdays();
 }
@@ -2233,6 +2394,10 @@ function updateUserProfileUI() {
     if (elements.userMenuDetail) {
       elements.userMenuDetail.textContent = "";
     }
+    if (elements.manageServices) {
+      elements.manageServices.hidden = true;
+      elements.manageServices.setAttribute("aria-hidden", "true");
+    }
     closeUserMenu();
     return;
   }
@@ -2250,6 +2415,15 @@ function updateUserProfileUI() {
   }
   if (elements.userMenuDetail) {
     elements.userMenuDetail.textContent = getRoleDescription(accessRole);
+  }
+  if (elements.manageServices) {
+    const isServiceManager = accessRole === ACCESS_ROLES.SERVICES;
+    elements.manageServices.hidden = !isServiceManager;
+    if (isServiceManager) {
+      elements.manageServices.removeAttribute("aria-hidden");
+    } else {
+      elements.manageServices.setAttribute("aria-hidden", "true");
+    }
   }
 }
 
@@ -2269,6 +2443,16 @@ function handleSwitchUser() {
   buildSuggestions();
   setStatusFromKey("access.requireSelection");
   showAccessModal();
+}
+
+function handleManageServicesNavigation() {
+  closeUserMenu();
+  if (!canManageServices()) {
+    return;
+  }
+
+  const target = isServiceManagerPage ? "index.html" : "services.html";
+  window.location.assign(target);
 }
 
 function handleUserProfileOutsideClick(event) {
@@ -2293,6 +2477,13 @@ function setupUserProfileEvents() {
 
   if (elements.switchUser) {
     elements.switchUser.addEventListener("click", handleSwitchUser);
+  }
+
+  if (elements.manageServices) {
+    elements.manageServices.addEventListener(
+      "click",
+      handleManageServicesNavigation
+    );
   }
 
   document.addEventListener("click", handleUserProfileOutsideClick);
@@ -3490,6 +3681,9 @@ function updateDashboard() {
 
   updateOverallChart(getAccessibleEntries());
   updateBirthdays();
+  if (isServiceManagerPage) {
+    renderServiceManager();
+  }
 }
 
 function isBirthdayToday(birthDate, referenceDate) {
@@ -3776,31 +3970,39 @@ function renderAssistantQuestions() {
   state.assistant.questionsRendered = true;
 }
 
+function getAssistantRoleKey() {
+  if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
+    return "capitao";
+  }
+  if (state.accessRole === ACCESS_ROLES.SERVICES) {
+    return "servicos";
+  }
+  return "responsavel";
+}
+
+function translateAssistantForRole(baseKey) {
+  const roleKey = getAssistantRoleKey();
+  const key = `${baseKey}.${roleKey}`;
+  const translation = translate(key);
+  if (translation === key && roleKey !== "responsavel") {
+    return translate(`${baseKey}.responsavel`);
+  }
+  return translation;
+}
+
 function getAssistantAnswer(questionId) {
   switch (questionId) {
     case "refresh":
       return withAssistantUserPrefix(
-        translate(
-          state.accessRole === ACCESS_ROLES.CAPTAIN
-            ? "assistant.answers.refresh.capitao"
-            : "assistant.answers.refresh.responsavel"
-        )
+        translateAssistantForRole("assistant.answers.refresh")
       );
     case "search":
       return withAssistantUserPrefix(
-        translate(
-          state.accessRole === ACCESS_ROLES.CAPTAIN
-            ? "assistant.answers.search.capitao"
-            : "assistant.answers.search.responsavel"
-        )
+        translateAssistantForRole("assistant.answers.search")
       );
     case "categories":
       return withAssistantUserPrefix(
-        translate(
-          state.accessRole === ACCESS_ROLES.CAPTAIN
-            ? "assistant.answers.categories.capitao"
-            : "assistant.answers.categories.responsavel"
-        )
+        translateAssistantForRole("assistant.answers.categories")
       );
     default:
       return withAssistantUserPrefix(translate("assistant.answers.fallback"));
@@ -3809,10 +4011,7 @@ function getAssistantAnswer(questionId) {
 
 function generateCustomAssistantAnswer(questionText) {
   const cleanedQuestion = questionText.trim();
-  const scopeMessage =
-    state.accessRole === ACCESS_ROLES.CAPTAIN
-      ? translate("assistant.customScope.capitao")
-      : translate("assistant.customScope.responsavel");
+  const scopeMessage = translateAssistantForRole("assistant.customScope");
 
   return withAssistantUserPrefix(
     [
@@ -4171,6 +4370,38 @@ function ensureServiceSelectOptions() {
   }
 }
 
+function ensureServiceManagerFilterOptions() {
+  if (!elements.serviceManagerFilter) {
+    return;
+  }
+
+  const select = elements.serviceManagerFilter;
+  const previousValue = select.value;
+  const options = [
+    { value: "all", label: translate("serviceManager.filters.all") },
+    { value: "active", label: translate("serviceManager.filters.active") },
+    { value: "inactive", label: translate("serviceManager.filters.inactive") },
+    ...SERVICE_OPTIONS.map((option) => ({
+      value: option.id,
+      label: translate(option.nameKey),
+    })),
+  ];
+
+  select.innerHTML = "";
+
+  options.forEach(({ value, label }) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  });
+
+  const hasPrevious = options.some((option) => option.value === previousValue);
+  if (hasPrevious) {
+    select.value = previousValue;
+  }
+}
+
 function updateServiceFeedback(entry) {
   if (!elements.serviceFeedback) {
     return;
@@ -4218,6 +4449,11 @@ function renderServiceControls(entry) {
     !elements.serviceToggleLabel ||
     !elements.serviceSelectLabel
   ) {
+    return;
+  }
+
+  if (!canManageServices()) {
+    hideServiceControls();
     return;
   }
 
@@ -4569,6 +4805,250 @@ function renderServicesCategory(category) {
     datasetLabel: chartLabel,
     emptyMessage,
   });
+}
+
+function formatServiceStatusText(entry) {
+  const assignment = entry?.service ?? { active: false, serviceId: "" };
+  if (assignment.active && assignment.serviceId) {
+    const serviceName = translateServiceName(assignment.serviceId);
+    return translate("services.feedback.active", { service: serviceName });
+  }
+  return translate("services.feedback.inactive");
+}
+
+function populateServiceManagerSelect(select, selectedValue = "") {
+  select.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = translate("services.selectPlaceholder");
+  select.appendChild(placeholder);
+
+  SERVICE_OPTIONS.forEach((option) => {
+    const item = document.createElement("option");
+    item.value = option.id;
+    item.textContent = translate(option.nameKey);
+    select.appendChild(item);
+  });
+
+  if (selectedValue && select.querySelector(`option[value="${selectedValue}"]`)) {
+    select.value = selectedValue;
+  } else {
+    select.value = "";
+  }
+}
+
+function createServiceManagerCard(entry) {
+  const card = document.createElement("article");
+  card.className = "service-manager-card";
+
+  const header = document.createElement("div");
+  header.className = "service-manager-card-header";
+
+  const nameButton = document.createElement("button");
+  nameButton.type = "button";
+  nameButton.className = "service-manager-name";
+  nameButton.textContent = entry.name || translate("modal.noName");
+  nameButton.addEventListener("click", () => openRecord(entry.record));
+  header.appendChild(nameButton);
+
+  const status = document.createElement("span");
+  status.className = "service-manager-status";
+  status.textContent = formatServiceStatusText(entry);
+  header.appendChild(status);
+
+  card.appendChild(header);
+
+  const meta = document.createElement("div");
+  meta.className = "service-manager-meta";
+
+  const ageSpan = document.createElement("span");
+  ageSpan.textContent = translate("people.ageLabel", {
+    value: formatAge(entry.age),
+  });
+  meta.appendChild(ageSpan);
+
+  const phoneSpan = document.createElement("span");
+  const phoneValue = entry.phone
+    ? formatPhone(entry.phone)
+    : translate("format.phoneMissing");
+  phoneSpan.textContent = translate("people.phoneLabel", { value: phoneValue });
+  meta.appendChild(phoneSpan);
+
+  card.appendChild(meta);
+
+  const controls = document.createElement("div");
+  controls.className = "service-manager-actions";
+
+  const assignment = entry.service ?? { active: false, serviceId: "" };
+  const hasService = Boolean(assignment.active && assignment.serviceId);
+
+  const toggleLabel = document.createElement("label");
+  toggleLabel.className = "service-manager-toggle";
+
+  const toggle = document.createElement("input");
+  toggle.type = "checkbox";
+  toggle.checked = hasService;
+  toggleLabel.appendChild(toggle);
+
+  const toggleText = document.createElement("span");
+  toggleText.textContent = translate("services.toggleLabel");
+  toggleLabel.appendChild(toggleText);
+
+  controls.appendChild(toggleLabel);
+
+  const select = document.createElement("select");
+  select.className = "service-manager-select";
+  populateServiceManagerSelect(select, assignment.serviceId);
+  select.disabled = !hasService;
+  controls.appendChild(select);
+
+  toggle.addEventListener("change", () => {
+    if (!canManageServices()) {
+      toggle.checked = hasService;
+      return;
+    }
+
+    if (!toggle.checked) {
+      select.disabled = true;
+      select.value = "";
+      updateServiceAssignment(entry, { active: false, serviceId: "" });
+      renderServiceManager();
+      return;
+    }
+
+    select.disabled = false;
+    let serviceId = sanitizeServiceId(select.value);
+    if (!serviceId) {
+      serviceId = SERVICE_OPTIONS[0]?.id ?? "";
+      if (serviceId) {
+        select.value = serviceId;
+      }
+    }
+
+    if (serviceId) {
+      updateServiceAssignment(entry, { active: true, serviceId });
+    } else {
+      updateServiceAssignment(entry, { active: false, serviceId: "" });
+      toggle.checked = false;
+      select.disabled = true;
+    }
+
+    renderServiceManager();
+  });
+
+  select.addEventListener("change", (event) => {
+    if (!canManageServices()) {
+      return;
+    }
+
+    const serviceId = sanitizeServiceId(event.target.value);
+    if (!serviceId) {
+      toggle.checked = false;
+      select.disabled = true;
+      updateServiceAssignment(entry, { active: false, serviceId: "" });
+      renderServiceManager();
+      return;
+    }
+
+    if (!toggle.checked) {
+      toggle.checked = true;
+    }
+
+    updateServiceAssignment(entry, { active: true, serviceId });
+    renderServiceManager();
+  });
+
+  card.appendChild(controls);
+
+  return card;
+}
+
+function renderServiceManager() {
+  if (!isServiceManagerPage) {
+    return;
+  }
+
+  const list = elements.serviceManagerList;
+  const empty = elements.serviceManagerEmpty;
+  if (!list || !empty) {
+    return;
+  }
+
+  if (!state.accessRole) {
+    list.innerHTML = "";
+    hideServiceSummary();
+    empty.textContent = translate("serviceManager.restricted");
+    empty.hidden = false;
+    if (elements.serviceManagerNotice) {
+      elements.serviceManagerNotice.hidden = false;
+    }
+    return;
+  }
+
+  if (!canManageServices()) {
+    list.innerHTML = "";
+    hideServiceSummary();
+    empty.textContent = translate("serviceManager.restricted");
+    empty.hidden = false;
+    if (elements.serviceManagerNotice) {
+      elements.serviceManagerNotice.hidden = false;
+    }
+    if (state.accessRole) {
+      setStatusFromKey("serviceManager.restricted", {}, true);
+    }
+    return;
+  }
+
+  if (elements.serviceManagerNotice) {
+    elements.serviceManagerNotice.hidden = true;
+  }
+
+  ensureServiceManagerFilterOptions();
+
+  const summary = state.serviceSummary ?? { total: 0, perService: {} };
+  renderServiceSummaryCards(summary);
+
+  const filterValue = elements.serviceManagerFilter?.value ?? "all";
+  const normalizedFilter = sanitizeServiceId(filterValue);
+
+  if (filterValue === "all" || filterValue === "active" || filterValue === "inactive") {
+    state.activeServiceFilter = SERVICE_FILTER_ALL;
+  } else if (normalizedFilter) {
+    state.activeServiceFilter = normalizedFilter;
+  } else {
+    state.activeServiceFilter = SERVICE_FILTER_ALL;
+  }
+
+  let entries = state.enrichedRecords.slice();
+
+  entries = entries.filter((entry) => {
+    const assignment = entry.service ?? { active: false, serviceId: "" };
+    const active = Boolean(assignment.active && assignment.serviceId);
+    if (filterValue === "active") {
+      return active;
+    }
+    if (filterValue === "inactive") {
+      return !active;
+    }
+    if (filterValue !== "all" && normalizedFilter) {
+      return active && assignment.serviceId === normalizedFilter;
+    }
+    return true;
+  });
+
+  entries.sort((a, b) => collator.compare(a.name || "", b.name || ""));
+
+  list.innerHTML = "";
+
+  if (!entries.length) {
+    empty.textContent = translate("serviceManager.empty");
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+    entries.forEach((entry) => {
+      list.appendChild(createServiceManagerCard(entry));
+    });
+  }
 }
 
 function formatAge(age) {
@@ -4982,6 +5462,9 @@ function updateServiceAssignment(entry, assignment) {
 }
 
 function handleServiceToggleChange() {
+  if (!canManageServices()) {
+    return;
+  }
   const entry = state.activeDetailEntry;
   if (!entry || !elements.serviceToggle || !elements.serviceSelect) {
     return;
@@ -5015,6 +5498,9 @@ function handleServiceToggleChange() {
 }
 
 function handleServiceSelectChange(event) {
+  if (!canManageServices()) {
+    return;
+  }
   const entry = state.activeDetailEntry;
   if (!entry || !elements.serviceSelect || !elements.serviceToggle) {
     return;
@@ -5049,7 +5535,18 @@ function handleServiceSummaryClick(event) {
     serviceId === SERVICE_FILTER_ALL || !sanitized
       ? SERVICE_FILTER_ALL
       : sanitized;
-  renderCategory("services");
+  if (isServiceManagerPage) {
+    if (elements.serviceManagerFilter) {
+      if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
+        elements.serviceManagerFilter.value = "all";
+      } else {
+        elements.serviceManagerFilter.value = state.activeServiceFilter;
+      }
+    }
+    renderServiceManager();
+  } else {
+    renderCategory("services");
+  }
 }
 
 function openDetailModal(title, detailItems, { searchValue } = {}) {
@@ -5372,6 +5869,21 @@ function setupEventListeners() {
 
   if (elements.serviceSummaryGrid) {
     elements.serviceSummaryGrid.addEventListener("click", handleServiceSummaryClick);
+  }
+
+  if (elements.serviceManagerFilter) {
+    elements.serviceManagerFilter.addEventListener("change", () => {
+      if (!isServiceManagerPage) {
+        return;
+      }
+      renderServiceManager();
+    });
+  }
+
+  if (elements.serviceManagerBack) {
+    elements.serviceManagerBack.addEventListener("click", () => {
+      window.location.assign("index.html");
+    });
   }
 
   if (elements.closeModal) {

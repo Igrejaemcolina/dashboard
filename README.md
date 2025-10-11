@@ -6,6 +6,7 @@ Este repositório contém a aplicação de dashboard responsiva que consome dado
 
 - `index.html`, `styles.css`, `script.js`: código-fonte principal para desenvolvimento local.
 - `category.html`: página dedicada para visualizar uma categoria específica de irmãos.
+- `services.html`: página dedicada ao gerenciamento das frentes de serviço.
 - `docs/`: cópia dos mesmos arquivos utilizada pelo GitHub Pages para servir o site.
 
 ## Publicação no GitHub Pages
@@ -33,14 +34,15 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 ### Controle de acesso
 
-- Ao abrir o site é exibido um modal com a mensagem **"Selecione a seguir sua função"** (Irmão Responsável ou Capitães de Tropa).
-- Cada opção exige uma senha pré-configurada que é comparada utilizando hash SHA-256. As versões cifradas ficam no código e as senhas em texto puro não são expostas.
-- Os nomes vinculados a cada credencial também são armazenados cifrados no código-fonte para evitar exposição direta.
-- **Irmão Responsável** tem acesso completo a todas as abas, buscas e gráficos.
-- **Capitães de Tropa** enxergam somente os cartões de **Adolescentes** e **Pais** no painel principal. A navegação superior também libera o acesso ao resumo de **Serviços** junto com os adolescentes, enquanto os demais blocos permanecem ocultos.
-- Ambos os perfis podem acessar a categoria **Pais**, selecionando entre pai ou mãe ao abrir cada registro para consultar os detalhes disponíveis daquele responsável, e o módulo de **Serviços** para acompanhar quem está servindo.
+- Ao abrir o site é exibido um modal com a mensagem **"Selecione a seguir sua função"**. Cada função possui senha própria (armazenada apenas em hash no código) e determina o nível de acesso:
+  - **Irmão Responsável** — acesso completo a todas as abas, buscas, gráficos e relatórios.
+  - **Capitães de Tropa** — visualizam somente os cartões de **Adolescentes** e **Pais** no painel principal. A navegação superior libera apenas essas categorias e o resumo de **Serviços** para consulta.
+  - **Serviços** — perfil dedicado ao gerenciamento das frentes de serviço. Tem acesso completo às páginas e é o único autorizado a ativar o campo "Serve na vida da igreja".
+- As senhas são validadas utilizando SHA-256; as versões cifradas (tanto das senhas quanto dos nomes exibidos) permanecem preservadas no código-fonte, sem exposição em texto puro.
+- Todos os perfis podem acessar a categoria **Pais**, escolhendo entre pai ou mãe ao abrir cada registro, e visualizar o módulo de **Serviços** para acompanhar quem está servindo.
 - A sessão é mantida em `sessionStorage` para não solicitar senha novamente enquanto o navegador permanecer aberto na mesma aba.
 - O perfil autenticado aparece no cabeçalho da dashboard e oferece a opção **"Trocar de usuário"** para voltar ao modal de acesso quando necessário.
+- Quando autenticado como **Serviços**, o menu do usuário também mostra **"Gerenciar serviços"**, que direciona para `services.html`. Nos demais perfis essa ação fica oculta.
 
 ### Navegação por categorias
 
@@ -55,6 +57,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - A aba de adolescentes oferece um filtro extra chamado **"Idade apta para colportagem"**, que quando ativado exibe somente os jovens com 16 e 17 anos.
 - O cartão **Pais** reúne pais e mães vinculados aos adolescentes. Na categoria correspondente, cada card exibe os nomes dos responsáveis e do filho, e ao clicar é possível escolher visualizar os dados do pai ou da mãe em um modal dedicado.
 - O cartão **Serviços** apresenta o total de irmãos que servem; ao acessá-lo, são exibidos subtotais por frente de trabalho e os cards das pessoas filtrados pelo serviço selecionado.
+- Usuários autenticados como **Serviços** também podem abrir diretamente `services.html` pelo menu do perfil para gerenciar todas as frentes em uma única tela, com filtros e resumo geral.
 
 ### Aniversariantes do dia
 
@@ -65,9 +68,9 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 ### Serviços na vida da igreja
 
-- Dentro do modal de detalhes de cada irmão há um campo para marcar se ele serve e selecionar uma das frentes disponíveis (Literatura, Recepção, Projeção, Transmissão, Irmão Responsável, Irmão que fala a mensagem, Casa Kids e Cozinha CDA).
+- Dentro do modal de detalhes de cada irmão há um campo para marcar se ele serve e selecionar uma das frentes disponíveis (Literatura, Recepção, Projeção, Transmissão, Irmão Responsável, Irmão que fala a mensagem, Casa Kids e Cozinha CDA). Esses controles só ficam ativos quando autenticado como **Serviços**.
 - As escolhas ficam salvas no navegador por meio do `localStorage`, permitindo ajustes a qualquer momento sem depender da planilha.
-- O resumo de serviços considera tanto os dados principais quanto os complementares e atualiza os totais em tempo real para todos os perfis.
+- O resumo de serviços considera tanto os dados principais quanto os complementares e atualiza os totais em tempo real para todos os perfis. Perfis de Irmão Responsável e Capitães de Tropa visualizam os dados em modo somente leitura, enquanto o perfil **Serviços** pode alterar e revisar diretamente pelo modal ou pelo gerenciador dedicado.
 
 ### JP assistant
 

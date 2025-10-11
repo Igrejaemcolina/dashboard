@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dados da IGColina</title>
+    <title>Gerenciar serviços · Dados da IGColina</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
   </head>
-  <body data-page="dashboard">
+  <body data-page="service-manager">
     <header class="app-header">
       <div class="branding">
         <a
@@ -27,7 +27,11 @@
           />
         </a>
         <div class="header-content">
-          <h1 id="app-title">Dados da IGColina</h1>
+          <h1>
+            <a class="home-link" id="app-title-link" href="index.html"
+              >Dados da IGColina</a
+            >
+          </h1>
           <p id="last-updated">Carregando dados...</p>
         </div>
         <div class="language-switcher" id="language-switcher" hidden>
@@ -94,96 +98,43 @@
     </header>
 
     <main>
-      <section class="cards" aria-live="polite">
-        <article class="card" data-category="total" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Total de Irmãos</h2>
-            <span class="value" id="total-count">0</span>
+      <section class="service-manager" id="service-manager">
+        <div class="service-manager-header">
+          <div class="section-header">
+            <h2 id="service-manager-title">Gerenciar serviços</h2>
+            <p id="service-manager-description">
+              Defina se o irmão serve na vida da igreja e escolha a frente de atuação.
+            </p>
           </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="children" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Crianças (0-10)</h2>
-            <span class="value" id="children-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="teens" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Adolescentes (11-17)</h2>
-            <span class="value" id="teens-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="parents" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Pais</h2>
-            <span class="value" id="parents-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="services" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Serviços</h2>
-            <span class="value" id="services-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="captains" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Capitães de Tropa (18-29)</h2>
-            <span class="value" id="captains-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="braves" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Valentes de Davi (30-49)</h2>
-            <span class="value" id="braves-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-        <article class="card" data-category="stewards" role="button" tabindex="0">
-          <div class="card-header">
-            <h2>Intendentes (50+)</h2>
-            <span class="value" id="stewards-count">0</span>
-          </div>
-          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
-        </article>
-      </section>
-
-      <section class="overview" aria-labelledby="overview-title">
-        <div class="section-header">
-          <h2 id="overview-title">Distribuição geral de idades</h2>
-          <p id="overview-description">
-            Visualize a idade de todos os irmãos cadastrados.
-          </p>
+          <button type="button" class="service-manager-back" id="service-manager-back">
+            ← Voltar ao painel principal
+          </button>
         </div>
-        <div class="chart-container">
-          <canvas id="overall-age-chart" aria-label="Gráfico geral de idades" role="img"></canvas>
-          <p class="empty-message" id="overall-empty">Nenhum dado de idade disponível.</p>
+        <p class="service-manager-notice" id="service-manager-notice" hidden>
+          Atribuição de serviços disponível apenas para o perfil Serviços.
+        </p>
+        <div class="service-manager-controls">
+          <label for="service-manager-filter" id="service-manager-filter-label">Filtrar</label>
+          <select id="service-manager-filter">
+            <option value="all">Todos os registros</option>
+            <option value="active">Servindo</option>
+            <option value="inactive">Sem serviço</option>
+          </select>
         </div>
-      </section>
-
-      <section
-        class="birthdays"
-        id="birthday-section"
-        aria-labelledby="birthday-title"
-        hidden
-      >
-        <div class="section-header">
-          <h2 id="birthday-title">Aniversariantes de hoje</h2>
-          <p class="birthdays-description">
-            Celebre com os irmãos que comemoram aniversário nesta data.
-          </p>
-        </div>
-        <ul class="birthday-list" id="birthday-list" aria-live="polite"></ul>
-        <p class="empty-message" id="birthday-empty">
-          Nenhum aniversariante encontrado para hoje.
+        <section class="service-summary" id="service-summary" hidden aria-live="polite">
+          <header class="service-summary-header">
+            <h3 id="service-summary-title">Serviços disponíveis</h3>
+            <p id="service-summary-description">
+              Clique em um serviço para filtrar os irmãos que servem.
+            </p>
+          </header>
+          <div class="service-summary-grid" id="service-summary-grid"></div>
+        </section>
+        <div class="service-manager-grid" id="service-manager-list" aria-live="polite"></div>
+        <p class="empty-message" id="service-manager-empty">
+          Nenhum irmão encontrado para os filtros selecionados.
         </p>
       </section>
-
       <section id="status" class="status"></section>
     </main>
 
@@ -314,7 +265,9 @@
       <div class="assistant-header">
         <div>
           <h2 id="assistant-title">JP assistant</h2>
-          <p id="assistant-subtitle">Posso ajudar com dúvidas sobre a dashboard.</p>
+          <p id="assistant-subtitle">
+            Posso ajudar com dúvidas sobre a dashboard.
+          </p>
         </div>
         <button
           type="button"
@@ -322,35 +275,24 @@
           id="assistant-close"
           aria-label="Fechar assistente"
         >
-          &times;
+          ×
         </button>
       </div>
-      <div class="assistant-body">
-        <div
-          class="assistant-conversation"
-          id="assistant-conversation"
-          aria-live="polite"
-        ></div>
+      <div class="assistant-content">
         <div class="assistant-questions" id="assistant-questions"></div>
+        <div class="assistant-conversation" id="assistant-conversation" aria-live="polite"></div>
         <form class="assistant-form" id="assistant-form" hidden>
-          <label class="sr-only" for="assistant-input" id="assistant-input-label"
-            >Descreva sua dúvida</label
-          >
-          <div class="assistant-input-group">
-            <input
-              type="text"
-              id="assistant-input"
-              name="assistant-input"
-              placeholder="Digite sua dúvida"
-              autocomplete="off"
-            />
-            <button type="submit" id="assistant-submit">Enviar</button>
-          </div>
+          <label for="assistant-input" id="assistant-input-label">Descreva sua dúvida</label>
+          <textarea
+            id="assistant-input"
+            rows="3"
+            placeholder="Digite sua dúvida"
+          ></textarea>
+          <button type="submit" id="assistant-submit">Enviar</button>
         </form>
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js" type="module"></script>
+    <script src="script.js" defer></script>
   </body>
 </html>
