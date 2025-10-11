@@ -1195,10 +1195,10 @@ const RESPONSIBLE_ROLE_CREDENTIALS = {
     "2337252e2f21272f53",
 };
 
-const SERVICES_ROLE_CREDENTIALS = {
+const SERVICES_ROLE_CREDENTIALS = Object.freeze({
   "1dfb4b20fb5e68711da6a808cc60651fd78ff853b24778ec292af422e58cd957":
     "1a22313925ae2132",
-};
+});
 
 const ROLE_CREDENTIALS = {
   [ACCESS_ROLES.RESPONSIBLE]: RESPONSIBLE_ROLE_CREDENTIALS,
@@ -5795,6 +5795,9 @@ function updateServiceAssignment(entry, assignment) {
     if (elements.categoryCards || isCategoryPage) {
       renderCategory(state.activeCategory);
     }
+    if (isServiceManagerPage) {
+      renderServiceManager();
+    }
     return;
   }
 
@@ -5815,6 +5818,9 @@ function updateServiceAssignment(entry, assignment) {
   updateDashboard();
   if (elements.categoryCards || isCategoryPage) {
     renderCategory(state.activeCategory);
+  }
+  if (isServiceManagerPage) {
+    renderServiceManager();
   }
 }
 
