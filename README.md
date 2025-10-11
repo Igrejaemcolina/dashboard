@@ -37,14 +37,14 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - Cada opção exige uma senha pré-configurada que é comparada utilizando hash SHA-256. As versões cifradas ficam no código e as senhas em texto puro não são expostas.
 - Os nomes vinculados a cada credencial também são armazenados cifrados no código-fonte para evitar exposição direta.
 - **Irmão Responsável** tem acesso completo a todas as abas, buscas e gráficos.
-- **Capitães de Tropa** visualizam apenas o cartão e a categoria de adolescentes (11–17 anos); os demais blocos ficam ocultos e indisponíveis para consulta.
-- Ambos os perfis podem acessar a categoria **Pais**, selecionando entre pai ou mãe ao abrir cada registro para consultar os detalhes disponíveis daquele responsável.
+- **Capitães de Tropa** enxergam somente os cartões de **Adolescentes** e **Pais** no painel principal. A navegação superior também libera o acesso ao resumo de **Serviços** junto com os adolescentes, enquanto os demais blocos permanecem ocultos.
+- Ambos os perfis podem acessar a categoria **Pais**, selecionando entre pai ou mãe ao abrir cada registro para consultar os detalhes disponíveis daquele responsável, e o módulo de **Serviços** para acompanhar quem está servindo.
 - A sessão é mantida em `sessionStorage` para não solicitar senha novamente enquanto o navegador permanecer aberto na mesma aba.
 - O perfil autenticado aparece no cabeçalho da dashboard e oferece a opção **"Trocar de usuário"** para voltar ao modal de acesso quando necessário.
 
 ### Navegação por categorias
 
-- Os cartões do painel principal exibem os totais gerais e, ao serem clicados, navegam na mesma aba para a página `category.html` filtrada para a faixa etária correspondente.
+- Os cartões do painel principal exibem os totais gerais e, ao serem clicados, navegam na mesma aba para a página `category.html` filtrada para a faixa correspondente.
 - As faixas utilizadas são:
   - Crianças: 0 a 10 anos
   - Adolescentes: 11 a 17 anos
@@ -54,12 +54,20 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - Cada página de categoria inclui um gráfico de distribuição de idades, a contagem de irmãos daquela faixa e cartões clicáveis com nome, idade calculada a partir da data de nascimento e telefone.
 - A aba de adolescentes oferece um filtro extra chamado **"Idade apta para colportagem"**, que quando ativado exibe somente os jovens com 16 e 17 anos.
 - O cartão **Pais** reúne pais e mães vinculados aos adolescentes. Na categoria correspondente, cada card exibe os nomes dos responsáveis e do filho, e ao clicar é possível escolher visualizar os dados do pai ou da mãe em um modal dedicado.
+- O cartão **Serviços** apresenta o total de irmãos que servem; ao acessá-lo, são exibidos subtotais por frente de trabalho e os cards das pessoas filtrados pelo serviço selecionado.
 
 ### Aniversariantes do dia
 
 - O painel identifica automaticamente quem faz aniversário na data atual utilizando a coluna de data de nascimento.
+- A lista de aniversariantes fica visível apenas na tela inicial para evitar poluição visual dentro das categorias.
 - Irmãos Responsáveis visualizam aniversariantes de todas as faixas; Capitães de Tropa enxergam apenas adolescentes.
 - Cada aniversariante aparece em um cartão clicável com idade e telefone para facilitar o contato imediato.
+
+### Serviços na vida da igreja
+
+- Dentro do modal de detalhes de cada irmão há um campo para marcar se ele serve e selecionar uma das frentes disponíveis (Literatura, Recepção, Projeção, Transmissão, Irmão Responsável, Irmão que fala a mensagem, Casa Kids e Cozinha CDA).
+- As escolhas ficam salvas no navegador por meio do `localStorage`, permitindo ajustes a qualquer momento sem depender da planilha.
+- O resumo de serviços considera tanto os dados principais quanto os complementares e atualiza os totais em tempo real para todos os perfis.
 
 ### JP assistant
 

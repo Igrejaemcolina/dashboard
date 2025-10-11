@@ -103,6 +103,7 @@
           <li><a data-category-link="children" href="category.html?category=children">Crianças (0-10)</a></li>
           <li><a data-category-link="teens" href="category.html?category=teens">Adolescentes (11-17)</a></li>
           <li><a data-category-link="parents" href="category.html?category=parents">Pais</a></li>
+          <li><a data-category-link="services" href="category.html?category=services">Serviços</a></li>
           <li><a data-category-link="captains" href="category.html?category=captains">Capitães de Tropa (18-29)</a></li>
           <li><a data-category-link="braves" href="category.html?category=braves">Valentes de Davi (30-49)</a></li>
           <li><a data-category-link="stewards" href="category.html?category=stewards">Intendentes (50+)</a></li>
@@ -138,26 +139,17 @@
             Não há idades disponíveis para esta categoria.
           </p>
         </div>
+        <section class="service-summary" id="service-summary" hidden aria-live="polite">
+          <header class="service-summary-header">
+            <h3 id="service-summary-title">Serviços disponíveis</h3>
+            <p id="service-summary-description">
+              Clique em um serviço para filtrar os irmãos que servem.
+            </p>
+          </header>
+          <div class="service-summary-grid" id="service-summary-grid"></div>
+        </section>
         <div id="category-cards" class="people-grid" aria-live="polite"></div>
         <p class="empty-message" id="category-empty">Nenhum irmão encontrado nesta categoria.</p>
-      </section>
-
-      <section
-        class="birthdays"
-        id="birthday-section"
-        aria-labelledby="birthday-title"
-        hidden
-      >
-        <div class="section-header">
-          <h2 id="birthday-title">Aniversariantes de hoje</h2>
-          <p class="birthdays-description">
-            Celebre com os irmãos que comemoram aniversário nesta data.
-          </p>
-        </div>
-        <ul class="birthday-list" id="birthday-list" aria-live="polite"></ul>
-        <p class="empty-message" id="birthday-empty">
-          Nenhum aniversariante encontrado para hoje.
-        </p>
       </section>
 
       <section id="status" class="status"></section>
@@ -240,6 +232,19 @@
         </button>
         <h2 id="modal-name">Detalhes</h2>
         <dl id="modal-details"></dl>
+        <div class="service-controls" id="service-controls" hidden>
+          <label class="service-toggle" for="service-toggle">
+            <input type="checkbox" id="service-toggle" />
+            <span id="service-toggle-label">Serve na vida da igreja</span>
+          </label>
+          <label class="service-select-label" for="service-select" id="service-select-label"
+            >Serviço desempenhado</label
+          >
+          <select id="service-select" disabled>
+            <option value="">Selecione um serviço</option>
+          </select>
+          <p class="service-feedback" id="service-feedback"></p>
+        </div>
       </div>
     </div>
 

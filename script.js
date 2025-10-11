@@ -3,6 +3,21 @@ const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
+const SERVICE_STORAGE_KEY = "igcolina-services";
+const SERVICE_FILTER_ALL = "all";
+const SERVICE_OPTIONS = [
+  { id: "literature", nameKey: "services.names.literature" },
+  { id: "reception", nameKey: "services.names.reception" },
+  { id: "projection", nameKey: "services.names.projection" },
+  { id: "broadcast", nameKey: "services.names.broadcast" },
+  { id: "responsible", nameKey: "services.names.responsible" },
+  { id: "speaker", nameKey: "services.names.speaker" },
+  { id: "kids", nameKey: "services.names.kids" },
+  { id: "kitchen", nameKey: "services.names.kitchen" },
+];
+
+const CAPTAIN_ALLOWED_CATEGORIES = ["teens", "parents", "services"];
+const CAPTAIN_CARD_CATEGORIES = ["teens", "parents"];
 
 const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
@@ -70,6 +85,13 @@ const TRANSLATIONS = {
           "Pais e mães relacionados aos adolescentes cadastrados.",
         chartLabel: "Responsáveis pelos adolescentes",
         empty: "Nenhum pai ou mãe encontrado nesta categoria.",
+      },
+      services: {
+        title: "Serviços",
+        description:
+          "Acompanhe os irmãos que servem e em quais frentes atuam.",
+        chartLabel: "Idades dos irmãos que servem",
+        empty: "Nenhum irmão serve neste serviço.",
       },
       captains: {
         title: "Capitães de Tropa (18-29)",
@@ -155,6 +177,7 @@ const TRANSLATIONS = {
     people: {
       ageLabel: ({ value }) => `Idade: ${value}`,
       phoneLabel: ({ value }) => `Telefone: ${value}`,
+      serviceLabel: ({ value }) => `Serviço: ${value}`,
       you: "Você",
     },
     parents: {
@@ -196,6 +219,40 @@ const TRANSLATIONS = {
         mother: ({ child }) => (child ? `Mãe de ${child}` : "Mãe"),
       },
       chartEmpty: "Este painel não possui gráfico dedicado.",
+    },
+    services: {
+      summaryTitle: "Serviços disponíveis",
+      summaryDescription: "Clique em um serviço para filtrar os irmãos que servem.",
+      filters: {
+        all: "Todos os serviços",
+      },
+      countLabel: ({ count }) =>
+        `${count} ${count === 1 ? "irmão servindo" : "irmãos servindo"}`,
+      empty: {
+        all: "Nenhum irmão serve na vida da igreja no momento.",
+        service: ({ service }) => `Nenhum irmão serve em ${service}.`,
+      },
+      meta: {
+        all: "todos os serviços",
+        service: ({ service }) => `serviço: ${service}`,
+      },
+      toggleLabel: "Serve na vida da igreja",
+      selectLabel: "Serviço desempenhado",
+      selectPlaceholder: "Selecione um serviço",
+      feedback: {
+        inactive: "Ainda não serve na vida da igreja.",
+        active: ({ service }) => `Servindo em ${service}.`,
+      },
+      names: {
+        literature: "Literatura",
+        reception: "Recepção",
+        projection: "Projeção",
+        broadcast: "Transmissão",
+        responsible: "Irmão Responsável",
+        speaker: "Irmão que Fala a mensagem",
+        kids: "Casa Kids",
+        kitchen: "Cozinha CDA",
+      },
     },
     access: {
       modalTitle: "Selecione a seguir sua função:",
@@ -339,6 +396,12 @@ const TRANSLATIONS = {
         chartLabel: "Guardians of the teens",
         empty: "No parents were found in this category.",
       },
+      services: {
+        title: "Services",
+        description: "Track who is serving and in which ministry.",
+        chartLabel: "Ages of serving members",
+        empty: "No members are serving in this ministry.",
+      },
       captains: {
         title: "Troop Captains (18-29)",
         description: "Members aged between 18 and 29 years.",
@@ -423,6 +486,7 @@ const TRANSLATIONS = {
     people: {
       ageLabel: ({ value }) => `Age: ${value}`,
       phoneLabel: ({ value }) => `Phone: ${value}`,
+      serviceLabel: ({ value }) => `Service: ${value}`,
       you: "You",
     },
     parents: {
@@ -464,6 +528,40 @@ const TRANSLATIONS = {
         mother: ({ child }) => (child ? `Mother of ${child}` : "Mother"),
       },
       chartEmpty: "This section does not include a dedicated chart.",
+    },
+    services: {
+      summaryTitle: "Available services",
+      summaryDescription: "Click a ministry to filter the serving members.",
+      filters: {
+        all: "All services",
+      },
+      countLabel: ({ count }) =>
+        `${count} ${count === 1 ? "member serving" : "members serving"}`,
+      empty: {
+        all: "No members are currently serving.",
+        service: ({ service }) => `No members are serving in ${service}.`,
+      },
+      meta: {
+        all: "all services",
+        service: ({ service }) => `service: ${service}`,
+      },
+      toggleLabel: "Serves in church life",
+      selectLabel: "Ministry role",
+      selectPlaceholder: "Choose a service",
+      feedback: {
+        inactive: "Not serving in church life yet.",
+        active: ({ service }) => `Serving in ${service}.`,
+      },
+      names: {
+        literature: "Literature",
+        reception: "Reception",
+        projection: "Projection",
+        broadcast: "Broadcast",
+        responsible: "Responsible Brother",
+        speaker: "Message Speaker",
+        kids: "Casa Kids",
+        kitchen: "CDA Kitchen",
+      },
     },
     access: {
       modalTitle: "Select your role below:",
@@ -608,6 +706,12 @@ const TRANSLATIONS = {
         chartLabel: "Responsables de los adolescentes",
         empty: "No se encontraron padres o madres en esta categoría.",
       },
+      services: {
+        title: "Servicios",
+        description: "Revisa quiénes sirven y en qué áreas.",
+        chartLabel: "Edades de los hermanos que sirven",
+        empty: "No hay hermanos sirviendo en este servicio.",
+      },
       captains: {
         title: "Capitanes de Tropa (18-29)",
         description: "Hermanos con edades entre 18 y 29 años.",
@@ -692,6 +796,7 @@ const TRANSLATIONS = {
     people: {
       ageLabel: ({ value }) => `Edad: ${value}`,
       phoneLabel: ({ value }) => `Teléfono: ${value}`,
+      serviceLabel: ({ value }) => `Servicio: ${value}`,
       you: "Tú",
     },
     parents: {
@@ -733,6 +838,41 @@ const TRANSLATIONS = {
         mother: ({ child }) => (child ? `Madre de ${child}` : "Madre"),
       },
       chartEmpty: "Esta sección no cuenta con un gráfico específico.",
+    },
+    services: {
+      summaryTitle: "Servicios disponibles",
+      summaryDescription:
+        "Haz clic en un servicio para filtrar a los hermanos que sirven.",
+      filters: {
+        all: "Todos los servicios",
+      },
+      countLabel: ({ count }) =>
+        `${count} ${count === 1 ? "hermano sirviendo" : "hermanos sirviendo"}`,
+      empty: {
+        all: "No hay hermanos sirviendo en este momento.",
+        service: ({ service }) => `No hay hermanos sirviendo en ${service}.`,
+      },
+      meta: {
+        all: "todos los servicios",
+        service: ({ service }) => `servicio: ${service}`,
+      },
+      toggleLabel: "Sirve en la vida de la iglesia",
+      selectLabel: "Servicio desempeñado",
+      selectPlaceholder: "Elige un servicio",
+      feedback: {
+        inactive: "Aún no sirve en la vida de la iglesia.",
+        active: ({ service }) => `Sirviendo en ${service}.`,
+      },
+      names: {
+        literature: "Literatura",
+        reception: "Recepción",
+        projection: "Proyección",
+        broadcast: "Transmisión",
+        responsible: "Hermano Responsable",
+        speaker: "Hermano que comparte el mensaje",
+        kids: "Casa Kids",
+        kitchen: "Cocina CDA",
+      },
     },
     access: {
       modalTitle: "Selecciona a continuación tu función:",
@@ -884,6 +1024,7 @@ const elements = {
   children: document.getElementById("children-count"),
   teens: document.getElementById("teens-count"),
   parents: document.getElementById("parents-count"),
+  services: document.getElementById("services-count"),
   captains: document.getElementById("captains-count"),
   braves: document.getElementById("braves-count"),
   stewards: document.getElementById("stewards-count"),
@@ -895,6 +1036,12 @@ const elements = {
   closeModal: document.getElementById("close-modal"),
   modalName: document.getElementById("modal-name"),
   modalDetails: document.getElementById("modal-details"),
+  serviceControls: document.getElementById("service-controls"),
+  serviceToggle: document.getElementById("service-toggle"),
+  serviceToggleLabel: document.getElementById("service-toggle-label"),
+  serviceSelectLabel: document.getElementById("service-select-label"),
+  serviceSelect: document.getElementById("service-select"),
+  serviceFeedback: document.getElementById("service-feedback"),
   detailTemplate: document.getElementById("detail-row-template"),
   summaryCards: Array.from(
     document.querySelectorAll(".cards .card[data-category]")
@@ -910,6 +1057,10 @@ const elements = {
   overallEmpty: document.getElementById("overall-empty"),
   overallChart: document.getElementById("overall-age-chart"),
   categoryChart: document.getElementById("category-age-chart"),
+  serviceSummary: document.getElementById("service-summary"),
+  serviceSummaryTitle: document.getElementById("service-summary-title"),
+  serviceSummaryDescription: document.getElementById("service-summary-description"),
+  serviceSummaryGrid: document.getElementById("service-summary-grid"),
   birthdaySection: document.getElementById("birthday-section"),
   birthdayList: document.getElementById("birthday-list"),
   birthdayEmpty: document.getElementById("birthday-empty"),
@@ -999,6 +1150,15 @@ const CATEGORY_CONFIG = [
     isParentCategory: true,
   },
   {
+    id: "services",
+    titleKey: "categories.services.title",
+    descriptionKey: "categories.services.description",
+    chartLabelKey: "categories.services.chartLabel",
+    emptyMessageKey: "categories.services.empty",
+    filter: (entry) => Boolean(entry?.service?.active && entry.service.serviceId),
+    isServiceCategory: true,
+  },
+  {
     id: "captains",
     titleKey: "categories.captains.title",
     descriptionKey: "categories.captains.description",
@@ -1081,6 +1241,11 @@ const state = {
   searchPool: [],
   activeUserName: null,
   activeUserSecret: null,
+  serviceAssignments: new Map(),
+  serviceSummary: { total: 0, perService: {} },
+  accessibleServiceSummary: { total: 0, perService: {} },
+  activeServiceFilter: SERVICE_FILTER_ALL,
+  activeDetailEntry: null,
   assistant: {
     greeted: false,
     customMode: false,
@@ -1565,6 +1730,11 @@ function applyLanguage(options = {}) {
     elements.assistantSubmit.textContent = translate("assistant.submit");
   }
 
+  ensureServiceSelectOptions();
+  if (state.activeDetailEntry) {
+    renderServiceControls(state.activeDetailEntry);
+  }
+
   if (elements.parentChoiceTitle) {
     elements.parentChoiceTitle.textContent = translate("parents.choice.title");
   }
@@ -1879,7 +2049,7 @@ function isCategoryAllowed(categoryId) {
   }
 
   if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
-    return categoryId === "teens" || categoryId === "parents";
+    return CAPTAIN_ALLOWED_CATEGORIES.includes(categoryId);
   }
 
   return false;
@@ -1890,8 +2060,11 @@ function ensureAccessibleCategory(categoryId) {
     return categoryId;
   }
 
-  if (state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens") {
-    return categoryId === "parents" ? "parents" : "teens";
+  if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
+    if (CAPTAIN_ALLOWED_CATEGORIES.includes(categoryId)) {
+      return categoryId;
+    }
+    return CAPTAIN_ALLOWED_CATEGORIES[0];
   }
 
   return categoryId;
@@ -1950,8 +2123,7 @@ function applyAccessRestrictions() {
     if (!categoryId) return;
     const hideCard =
       state.accessRole === ACCESS_ROLES.CAPTAIN &&
-      categoryId !== "teens" &&
-      categoryId !== "parents";
+      !CAPTAIN_CARD_CATEGORIES.includes(categoryId);
     card.hidden = hideCard;
     if (hideCard) {
       card.removeAttribute("aria-disabled");
@@ -1976,8 +2148,7 @@ function applyAccessRestrictions() {
     const listItem = link.closest("li");
     const hideLink =
       state.accessRole === ACCESS_ROLES.CAPTAIN &&
-      categoryId !== "teens" &&
-      categoryId !== "parents";
+      !CAPTAIN_ALLOWED_CATEGORIES.includes(categoryId);
     if (hideLink) {
       if (listItem) listItem.hidden = true;
       else link.hidden = true;
@@ -1995,6 +2166,8 @@ function applyAccessRestrictions() {
       link.removeAttribute("tabindex");
     }
   });
+
+  ensureActiveServiceFilterValid(state.accessibleServiceSummary);
 
   if (elements.overviewTitle && elements.overviewDescription) {
     if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
@@ -2402,6 +2575,7 @@ async function fetchSheetData() {
     }
 
     state.enrichedRecords = buildEnrichedRecords(records);
+    applyServiceAssignmentsToEntries();
     state.parentEntries = buildParentEntries(state.enrichedRecords);
     state.parentSummary = summarizeParentEntries(state.parentEntries);
     buildSuggestions();
@@ -2626,6 +2800,265 @@ function buildSupplementalIndex(entries) {
   });
 
   return index;
+}
+
+function sanitizeServiceId(value) {
+  if (!value) {
+    return "";
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  return SERVICE_OPTIONS.some((option) => option.id === normalized)
+    ? normalized
+    : "";
+}
+
+function translateServiceName(serviceId) {
+  if (!serviceId) {
+    return "";
+  }
+  const translation = translate(`services.names.${serviceId}`);
+  return translation || serviceId;
+}
+
+function normalizeServiceAssignment(rawAssignment) {
+  const serviceId = sanitizeServiceId(rawAssignment?.serviceId);
+  const active = Boolean(rawAssignment?.active) && Boolean(serviceId);
+
+  if (!active) {
+    return { active: false, serviceId: "" };
+  }
+
+  return { active: true, serviceId };
+}
+
+function buildServiceKey(record, supplementalEntry, context = {}) {
+  if (!record) {
+    return null;
+  }
+
+  const names = [];
+  if (context.name) {
+    names.push(context.name);
+  }
+  if (state.nameColumn && record[state.nameColumn]) {
+    names.push(record[state.nameColumn]);
+  }
+  if (supplementalEntry?.record && state.supplementalNameColumn) {
+    const supplementalName =
+      supplementalEntry.record[state.supplementalNameColumn];
+    if (supplementalName) {
+      names.push(supplementalName);
+    }
+  }
+
+  const normalizedName = names
+    .map((value) => normalizeString(value))
+    .find((value) => value);
+
+  if (!normalizedName) {
+    return null;
+  }
+
+  let birthDate = context.birthDate;
+  const hasValidBirth =
+    birthDate instanceof Date && !Number.isNaN(birthDate.getTime());
+  if (!hasValidBirth) {
+    const supplementalBirth = supplementalEntry?.birthDate;
+    if (
+      supplementalBirth instanceof Date &&
+      !Number.isNaN(supplementalBirth.getTime())
+    ) {
+      birthDate = supplementalBirth;
+    }
+  }
+
+  let birthKey = "";
+  if (birthDate instanceof Date && !Number.isNaN(birthDate.getTime())) {
+    const year = birthDate.getFullYear();
+    const month = String(birthDate.getMonth() + 1).padStart(2, "0");
+    const day = String(birthDate.getDate()).padStart(2, "0");
+    birthKey = `${year}-${month}-${day}`;
+  }
+
+  const phoneCandidates = [];
+  if (context.phone) {
+    phoneCandidates.push(context.phone);
+  }
+  if (state.phoneColumn) {
+    phoneCandidates.push(record[state.phoneColumn]);
+    if (record.__raw?.[state.phoneColumn] != null) {
+      phoneCandidates.push(record.__raw[state.phoneColumn]);
+    }
+  }
+  if (supplementalEntry) {
+    phoneCandidates.push(supplementalEntry.phone);
+    phoneCandidates.push(supplementalEntry.normalizedPhone);
+    const supplementalRecord = supplementalEntry.record;
+    if (supplementalRecord && state.supplementalPhoneColumn) {
+      phoneCandidates.push(
+        supplementalRecord[state.supplementalPhoneColumn]
+      );
+      if (supplementalRecord.__raw) {
+        phoneCandidates.push(
+          supplementalRecord.__raw[state.supplementalPhoneColumn]
+        );
+      }
+    }
+  }
+
+  const phoneDigits = phoneCandidates
+    .map((value) => extractPhoneDigits(value))
+    .find((digits) => digits);
+
+  const keySource = [normalizedName, birthKey, phoneDigits]
+    .filter(Boolean)
+    .join("|");
+
+  if (!keySource) {
+    return null;
+  }
+
+  try {
+    return sha256Fallback(keySource);
+  } catch (error) {
+    console.warn("Failed to compute service key:", error);
+    return null;
+  }
+}
+
+function buildServiceSummary(entries) {
+  const summary = { total: 0, perService: {} };
+
+  if (!Array.isArray(entries) || !entries.length) {
+    return summary;
+  }
+
+  entries.forEach((entry) => {
+    const assignment = entry?.service;
+    if (!assignment?.active || !assignment.serviceId) {
+      return;
+    }
+
+    summary.total += 1;
+    summary.perService[assignment.serviceId] =
+      (summary.perService[assignment.serviceId] ?? 0) + 1;
+  });
+
+  return summary;
+}
+
+function loadServiceAssignments() {
+  if (typeof localStorage === "undefined") {
+    state.serviceAssignments = new Map();
+    return;
+  }
+
+  try {
+    const stored = localStorage.getItem(SERVICE_STORAGE_KEY);
+    if (!stored) {
+      state.serviceAssignments = new Map();
+      return;
+    }
+
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") {
+      state.serviceAssignments = new Map();
+      return;
+    }
+
+    const map = new Map();
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (typeof key !== "string" || !key) {
+        return;
+      }
+      const normalized = normalizeServiceAssignment(value);
+      if (!normalized.active || !normalized.serviceId) {
+        return;
+      }
+      map.set(key, normalized);
+    });
+    state.serviceAssignments = map;
+  } catch (error) {
+    console.warn("Failed to load service assignments:", error);
+    state.serviceAssignments = new Map();
+  }
+}
+
+function persistServiceAssignments() {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const payload = {};
+    state.serviceAssignments.forEach((assignment, key) => {
+      if (!key) return;
+      payload[key] = {
+        active: Boolean(assignment?.active),
+        serviceId: assignment?.serviceId ?? "",
+      };
+    });
+    localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Failed to persist service assignments:", error);
+  }
+}
+
+function applyServiceAssignmentsToEntries() {
+  if (!Array.isArray(state.enrichedRecords)) {
+    return;
+  }
+
+  state.enrichedRecords.forEach((entry) => {
+    const serviceKey = buildServiceKey(entry.record, entry.supplemental, {
+      name: entry.name,
+      birthDate: entry.birthDate,
+      phone: entry.phone,
+    });
+    entry.serviceKey = serviceKey;
+    const assignment = serviceKey
+      ? state.serviceAssignments.get(serviceKey)
+      : null;
+    entry.service = normalizeServiceAssignment(assignment);
+  });
+}
+
+function ensureActiveServiceFilterValid(summary) {
+  const validIds = new Set([
+    SERVICE_FILTER_ALL,
+    ...SERVICE_OPTIONS.map((option) => option.id),
+  ]);
+
+  if (!validIds.has(state.activeServiceFilter)) {
+    state.activeServiceFilter = SERVICE_FILTER_ALL;
+    return;
+  }
+
+  if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
+    return;
+  }
+
+  const count = summary?.perService?.[state.activeServiceFilter] ?? 0;
+  if (count <= 0) {
+    state.activeServiceFilter = SERVICE_FILTER_ALL;
+  }
+}
+
+function recalculateServiceSummaries() {
+  state.serviceSummary = buildServiceSummary(state.enrichedRecords);
+  const accessibleEntries = getAccessibleEntries();
+  state.accessibleServiceSummary = buildServiceSummary(accessibleEntries);
+  ensureActiveServiceFilterValid(state.accessibleServiceSummary);
+
+  if (elements.services) {
+    const total = state.accessibleServiceSummary?.total ?? 0;
+    elements.services.textContent = total;
+  }
+}
+
+function initializeServiceAssignments() {
+  loadServiceAssignments();
 }
 
 function matchSupplementalRecord(record, birthDate) {
@@ -3015,6 +3448,11 @@ function summarizeParentEntries(entries) {
 function updateDashboard() {
   const { records, birthColumn, enrichedRecords } = state;
 
+  recalculateServiceSummaries();
+  const accessibleServiceSummary = state.accessibleServiceSummary ?? {
+    total: 0,
+  };
+
   if (elements.total) {
     elements.total.textContent = records.length;
   }
@@ -3044,6 +3482,8 @@ function updateDashboard() {
   if (elements.teens) elements.teens.textContent = counters.teens;
   if (elements.parents)
     elements.parents.textContent = state.parentSummary?.parents ?? 0;
+  if (elements.services)
+    elements.services.textContent = accessibleServiceSummary.total;
   if (elements.captains) elements.captains.textContent = counters.captains;
   if (elements.braves) elements.braves.textContent = counters.braves;
   if (elements.stewards) elements.stewards.textContent = counters.stewards;
@@ -3645,7 +4085,7 @@ function updateOverallChart(entries) {
   }
 }
 
-function updateCategoryChart(entries, category) {
+function updateCategoryChart(entries, category, options = {}) {
   if (!elements.categoryChart || !elements.categoryChartEmpty) return;
 
   const validEntries = entries.filter((entry) => Number.isFinite(entry.age));
@@ -3660,6 +4100,9 @@ function updateCategoryChart(entries, category) {
       state.charts.category.destroy();
       state.charts.category = null;
     }
+    const emptyMessage =
+      options.emptyMessage ?? translate("category.chartEmpty");
+    elements.categoryChartEmpty.textContent = emptyMessage;
     return;
   }
 
@@ -3668,8 +4111,10 @@ function updateCategoryChart(entries, category) {
     return;
   }
 
+  const datasetLabel =
+    options.datasetLabel ?? translateCategoryField(category, "chartLabel");
   const dataset = {
-    label: translateCategoryField(category, "chartLabel"),
+    label: datasetLabel,
     backgroundColor: "rgba(56, 189, 248, 0.35)",
     borderColor: "#38bdf8",
     borderWidth: 2,
@@ -3689,16 +4134,190 @@ function updateCategoryChart(entries, category) {
   } else {
     const chart = state.charts.category;
     chart.data.labels = distribution.labels;
-    chart.data.datasets[0].label = translateCategoryField(
-      category,
-      "chartLabel"
-    );
+    chart.data.datasets[0].label = datasetLabel;
     chart.data.datasets[0].data = distribution.data;
     chart.update();
   }
 }
 
-function updateCategoryCards(entries, category) {
+function ensureServiceSelectOptions() {
+  if (!elements.serviceSelect) {
+    return;
+  }
+
+  const select = elements.serviceSelect;
+  const previousValue = select.value;
+  const fragment = document.createDocumentFragment();
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = translate("services.selectPlaceholder");
+  fragment.appendChild(placeholder);
+
+  SERVICE_OPTIONS.forEach((option) => {
+    const item = document.createElement("option");
+    item.value = option.id;
+    item.textContent = translate(option.nameKey);
+    fragment.appendChild(item);
+  });
+
+  select.innerHTML = "";
+  select.appendChild(fragment);
+
+  if (previousValue && select.querySelector(`option[value="${previousValue}"]`)) {
+    select.value = previousValue;
+  } else {
+    select.value = "";
+  }
+}
+
+function updateServiceFeedback(entry) {
+  if (!elements.serviceFeedback) {
+    return;
+  }
+
+  if (!entry) {
+    elements.serviceFeedback.textContent = "";
+    return;
+  }
+
+  const assignment = entry.service ?? { active: false, serviceId: "" };
+  if (assignment.active && assignment.serviceId) {
+    const serviceName = translateServiceName(assignment.serviceId);
+    elements.serviceFeedback.textContent = translate(
+      "services.feedback.active",
+      { service: serviceName }
+    );
+  } else {
+    elements.serviceFeedback.textContent = translate(
+      "services.feedback.inactive"
+    );
+  }
+}
+
+function hideServiceControls() {
+  if (!elements.serviceControls) {
+    return;
+  }
+  elements.serviceControls.hidden = true;
+  if (elements.serviceToggle) {
+    elements.serviceToggle.checked = false;
+  }
+  if (elements.serviceSelect) {
+    elements.serviceSelect.value = "";
+    elements.serviceSelect.disabled = true;
+  }
+  updateServiceFeedback(null);
+}
+
+function renderServiceControls(entry) {
+  if (
+    !elements.serviceControls ||
+    !elements.serviceToggle ||
+    !elements.serviceSelect ||
+    !elements.serviceToggleLabel ||
+    !elements.serviceSelectLabel
+  ) {
+    return;
+  }
+
+  if (!entry) {
+    hideServiceControls();
+    return;
+  }
+
+  elements.serviceControls.hidden = false;
+  elements.serviceToggleLabel.textContent = translate("services.toggleLabel");
+  elements.serviceSelectLabel.textContent = translate("services.selectLabel");
+
+  ensureServiceSelectOptions();
+
+  const assignment = entry.service ?? { active: false, serviceId: "" };
+  const hasService = Boolean(assignment.active && assignment.serviceId);
+
+  elements.serviceToggle.checked = hasService;
+  elements.serviceSelect.disabled = !hasService;
+
+  if (hasService) {
+    elements.serviceSelect.value = assignment.serviceId;
+  } else if (!elements.serviceSelect.disabled) {
+    elements.serviceSelect.value = assignment.serviceId || "";
+  } else {
+    elements.serviceSelect.value = "";
+  }
+
+  const placeholder = elements.serviceSelect.querySelector('option[value=""]');
+  if (placeholder) {
+    placeholder.textContent = translate("services.selectPlaceholder");
+  }
+
+  updateServiceFeedback(entry);
+}
+
+function hideServiceSummary() {
+  if (elements.serviceSummary) {
+    elements.serviceSummary.hidden = true;
+  }
+  if (elements.serviceSummaryGrid) {
+    elements.serviceSummaryGrid.innerHTML = "";
+  }
+}
+
+function renderServiceSummaryCards(summary) {
+  if (!elements.serviceSummary || !elements.serviceSummaryGrid) {
+    return;
+  }
+
+  elements.serviceSummary.hidden = false;
+  if (elements.serviceSummaryTitle) {
+    elements.serviceSummaryTitle.textContent = translate(
+      "services.summaryTitle"
+    );
+  }
+  if (elements.serviceSummaryDescription) {
+    elements.serviceSummaryDescription.textContent = translate(
+      "services.summaryDescription"
+    );
+  }
+
+  const cards = [
+    {
+      id: SERVICE_FILTER_ALL,
+      label: translate("services.filters.all"),
+      count: summary?.total ?? 0,
+    },
+    ...SERVICE_OPTIONS.map((option) => ({
+      id: option.id,
+      label: translate(option.nameKey),
+      count: summary?.perService?.[option.id] ?? 0,
+    })),
+  ];
+
+  elements.serviceSummaryGrid.innerHTML = "";
+
+  cards.forEach(({ id, label, count }) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "service-summary-card";
+    button.dataset.serviceId = id;
+    if (state.activeServiceFilter === id) {
+      button.classList.add("active");
+      button.setAttribute("aria-current", "true");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+
+    const title = document.createElement("strong");
+    title.textContent = label;
+    const meta = document.createElement("span");
+    meta.textContent = translate("services.countLabel", { count });
+
+    button.append(title, meta);
+    elements.serviceSummaryGrid.appendChild(button);
+  });
+}
+
+function updateCategoryCards(entries, category, options = {}) {
   const container = elements.categoryCards;
   if (!container || !elements.categoryEmpty) {
     return;
@@ -3706,10 +4325,9 @@ function updateCategoryCards(entries, category) {
   container.innerHTML = "";
 
   if (!entries.length) {
-    elements.categoryEmpty.textContent = translateCategoryField(
-      category,
-      "emptyMessage"
-    );
+    const emptyMessage =
+      options.emptyMessage ?? translateCategoryField(category, "emptyMessage");
+    elements.categoryEmpty.textContent = emptyMessage;
     elements.categoryEmpty.classList.add("visible");
     return;
   }
@@ -3739,6 +4357,16 @@ function updateCategoryCards(entries, category) {
     });
 
     card.append(nameElement, ageElement, phoneElement);
+
+    if (entry.service?.active && entry.service.serviceId) {
+      const serviceElement = document.createElement("span");
+      serviceElement.className = "service-tag";
+      const serviceName = translateServiceName(entry.service.serviceId);
+      serviceElement.textContent = translate("people.serviceLabel", {
+        value: serviceName,
+      });
+      card.appendChild(serviceElement);
+    }
 
     card.addEventListener("click", () => openRecord(entry.record));
     card.addEventListener("keydown", (event) => {
@@ -3854,6 +4482,8 @@ function renderParentsCategory(category) {
     elements.teensFilter.hidden = true;
   }
 
+  hideServiceSummary();
+
   const entries = getAccessibleParentEntries();
   state.parentSummary = summarizeParentEntries(entries);
 
@@ -3880,6 +4510,65 @@ function renderParentsCategory(category) {
   }
 
   renderParentCards(entries, category);
+}
+
+function renderServicesCategory(category) {
+  if (elements.teensFilter) {
+    elements.teensFilter.hidden = true;
+  }
+
+  const summary = state.accessibleServiceSummary ?? { total: 0, perService: {} };
+  ensureActiveServiceFilterValid(summary);
+  renderServiceSummaryCards(summary);
+
+  const servingEntries = getAccessibleEntries().filter((entry) =>
+    category.filter(entry)
+  );
+
+  let filteredEntries = servingEntries;
+  if (state.activeServiceFilter !== SERVICE_FILTER_ALL) {
+    filteredEntries = servingEntries.filter(
+      (entry) => entry.service?.serviceId === state.activeServiceFilter
+    );
+  }
+
+  if (elements.categoryMeta) {
+    const noun =
+      filteredEntries.length === 1
+        ? translate("category.nounSingular")
+        : translate("category.nounPlural");
+    const filterLabel =
+      state.activeServiceFilter === SERVICE_FILTER_ALL
+        ? translate("services.meta.all")
+        : translate("services.meta.service", {
+            service: translateServiceName(state.activeServiceFilter),
+          });
+    elements.categoryMeta.textContent = translate("category.meta", {
+      count: filteredEntries.length,
+      noun,
+      filter: filterLabel,
+    });
+  }
+
+  const emptyMessage =
+    state.activeServiceFilter === SERVICE_FILTER_ALL
+      ? translate("services.empty.all")
+      : translate("services.empty.service", {
+          service: translateServiceName(state.activeServiceFilter),
+        });
+
+  const chartLabel =
+    state.activeServiceFilter === SERVICE_FILTER_ALL
+      ? translateCategoryField(category, "chartLabel")
+      : `${translateCategoryField(category, "chartLabel")} · ${translateServiceName(
+          state.activeServiceFilter
+        )}`;
+
+  updateCategoryCards(filteredEntries, category, { emptyMessage });
+  updateCategoryChart(filteredEntries, category, {
+    datasetLabel: chartLabel,
+    emptyMessage,
+  });
 }
 
 function formatAge(age) {
@@ -3954,6 +4643,13 @@ function renderCategory(categoryId = "total") {
     renderParentsCategory(category);
     return;
   }
+
+  if (category.isServiceCategory) {
+    renderServicesCategory(category);
+    return;
+  }
+
+  hideServiceSummary();
 
   if (elements.categoryChart) {
     elements.categoryChart.style.display = "";
@@ -4252,6 +4948,110 @@ function handleSearchKeydown(event) {
   }
 }
 
+function updateServiceAssignment(entry, assignment) {
+  if (!entry) {
+    return;
+  }
+
+  if (!entry.serviceKey) {
+    entry.serviceKey = buildServiceKey(entry.record, entry.supplemental, {
+      name: entry.name,
+      birthDate: entry.birthDate,
+      phone: entry.phone,
+    });
+  }
+
+  entry.service = normalizeServiceAssignment(assignment);
+
+  if (!entry.serviceKey) {
+    return;
+  }
+
+  if (entry.service.active && entry.service.serviceId) {
+    state.serviceAssignments.set(entry.serviceKey, entry.service);
+  } else {
+    state.serviceAssignments.delete(entry.serviceKey);
+  }
+
+  persistServiceAssignments();
+  applyServiceAssignmentsToEntries();
+  updateDashboard();
+  if (elements.categoryCards || isCategoryPage) {
+    renderCategory(state.activeCategory);
+  }
+}
+
+function handleServiceToggleChange() {
+  const entry = state.activeDetailEntry;
+  if (!entry || !elements.serviceToggle || !elements.serviceSelect) {
+    return;
+  }
+
+  const isChecked = elements.serviceToggle.checked;
+  if (!isChecked) {
+    elements.serviceSelect.disabled = true;
+    elements.serviceSelect.value = "";
+    updateServiceAssignment(entry, { active: false, serviceId: "" });
+    renderServiceControls(entry);
+    return;
+  }
+
+  elements.serviceSelect.disabled = false;
+  let serviceId = sanitizeServiceId(elements.serviceSelect.value);
+  if (!serviceId) {
+    serviceId = SERVICE_OPTIONS[0]?.id ?? "";
+    if (serviceId) {
+      elements.serviceSelect.value = serviceId;
+    }
+  }
+
+  if (serviceId) {
+    updateServiceAssignment(entry, { active: true, serviceId });
+  } else {
+    updateServiceAssignment(entry, { active: false, serviceId: "" });
+  }
+
+  renderServiceControls(entry);
+}
+
+function handleServiceSelectChange(event) {
+  const entry = state.activeDetailEntry;
+  if (!entry || !elements.serviceSelect || !elements.serviceToggle) {
+    return;
+  }
+
+  const serviceId = sanitizeServiceId(event.target.value);
+  if (!serviceId) {
+    elements.serviceToggle.checked = false;
+    elements.serviceSelect.disabled = true;
+    updateServiceAssignment(entry, { active: false, serviceId: "" });
+    renderServiceControls(entry);
+    return;
+  }
+
+  if (!elements.serviceToggle.checked) {
+    elements.serviceToggle.checked = true;
+  }
+
+  updateServiceAssignment(entry, { active: true, serviceId });
+  renderServiceControls(entry);
+}
+
+function handleServiceSummaryClick(event) {
+  const card = event.target.closest(".service-summary-card");
+  if (!card) {
+    return;
+  }
+
+  const serviceId = card.dataset.serviceId || SERVICE_FILTER_ALL;
+  const sanitized = sanitizeServiceId(serviceId);
+  state.activeServiceFilter =
+    serviceId === SERVICE_FILTER_ALL || !sanitized
+      ? SERVICE_FILTER_ALL
+      : sanitized;
+  renderCategory("services");
+}
+
 function openDetailModal(title, detailItems, { searchValue } = {}) {
   if (
     !elements.modal ||
@@ -4299,6 +5099,8 @@ function openRecord(record) {
   }
   if (!canAccessRecord(record)) {
     showAccessRestrictionMessage();
+    state.activeDetailEntry = null;
+    hideServiceControls();
     return;
   }
   const { nameColumn } = state;
@@ -4315,13 +5117,18 @@ function openRecord(record) {
   const searchValue =
     nameColumn ? record[nameColumn] ?? "" : undefined;
 
+  state.activeDetailEntry = entry;
   openDetailModal(displayName, details, { searchValue });
+  renderServiceControls(entry);
 }
 
 function openParentDetail(entry, role) {
   if (!entry) {
     return;
   }
+
+  state.activeDetailEntry = null;
+  hideServiceControls();
 
   const parent = role === "father" ? entry.father : entry.mother;
   if (!parent) {
@@ -4502,6 +5309,8 @@ function closeModal() {
   if (!elements.modal) return;
   elements.modal.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
+  state.activeDetailEntry = null;
+  hideServiceControls();
 }
 
 function configureAutoRefresh() {
@@ -4551,6 +5360,18 @@ function setupEventListeners() {
   if (elements.search) {
     elements.search.addEventListener("input", handleSearchInput);
     elements.search.addEventListener("keydown", handleSearchKeydown);
+  }
+
+  if (elements.serviceToggle) {
+    elements.serviceToggle.addEventListener("change", handleServiceToggleChange);
+  }
+
+  if (elements.serviceSelect) {
+    elements.serviceSelect.addEventListener("change", handleServiceSelectChange);
+  }
+
+  if (elements.serviceSummaryGrid) {
+    elements.serviceSummaryGrid.addEventListener("click", handleServiceSummaryClick);
   }
 
   if (elements.closeModal) {
@@ -4622,6 +5443,7 @@ initializeLanguage();
 setupAccessControlEvents();
 setupUserProfileEvents();
 setupAssistant();
+initializeServiceAssignments();
 
 async function bootstrap() {
   await initializeAccessControl();

@@ -115,6 +115,13 @@
           </div>
           <p class="card-hint">Clique para acessar as informações correspondentes.</p>
         </article>
+        <article class="card" data-category="services" role="button" tabindex="0">
+          <div class="card-header">
+            <h2>Serviços</h2>
+            <span class="value" id="services-count">0</span>
+          </div>
+          <p class="card-hint">Clique para acessar as informações correspondentes.</p>
+        </article>
         <article class="card" data-category="captains" role="button" tabindex="0">
           <div class="card-header">
             <h2>Capitães de Tropa (18-29)</h2>
@@ -249,6 +256,19 @@
         </button>
         <h2 id="modal-name">Detalhes</h2>
         <dl id="modal-details"></dl>
+        <div class="service-controls" id="service-controls" hidden>
+          <label class="service-toggle" for="service-toggle">
+            <input type="checkbox" id="service-toggle" />
+            <span id="service-toggle-label">Serve na vida da igreja</span>
+          </label>
+          <label class="service-select-label" for="service-select" id="service-select-label"
+            >Serviço desempenhado</label
+          >
+          <select id="service-select" disabled>
+            <option value="">Selecione um serviço</option>
+          </select>
+          <p class="service-feedback" id="service-feedback"></p>
+        </div>
       </div>
     </div>
 
