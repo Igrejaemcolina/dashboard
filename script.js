@@ -64,6 +64,13 @@ const TRANSLATIONS = {
         chartLabel: "Idades dos adolescentes",
         empty: "Nenhum adolescente cadastrado até o momento.",
       },
+      parents: {
+        title: "Pais",
+        description:
+          "Pais e mães relacionados aos adolescentes cadastrados.",
+        chartLabel: "Responsáveis pelos adolescentes",
+        empty: "Nenhum pai ou mãe encontrado nesta categoria.",
+      },
       captains: {
         title: "Capitães de Tropa (18-29)",
         description: "Irmãos com idades entre 18 e 29 anos.",
@@ -150,6 +157,46 @@ const TRANSLATIONS = {
       phoneLabel: ({ value }) => `Telefone: ${value}`,
       you: "Você",
     },
+    parents: {
+      meta: ({ parents, families }) => {
+        const responsavel = parents === 1 ? "responsável" : "responsáveis";
+        const familia = families === 1 ? "família" : "famílias";
+        return `${parents} ${responsavel} relacionados a ${families} ${familia}.`;
+      },
+      card: {
+        father: ({ name }) => `Pai: ${name}`,
+        mother: ({ name }) => `Mãe: ${name}`,
+        child: ({ name }) => `Filho(a): ${name}`,
+      },
+      labels: {
+        father: "Pai",
+        mother: "Mãe",
+        child: "Filho(a)",
+        unknown: "Não informado",
+      },
+      choice: {
+        title: "Selecione o responsável",
+        question: ({ child }) =>
+          child
+            ? `Quem você deseja visualizar para ${child}?`
+            : "Quem você deseja visualizar?",
+        father: "Pai",
+        mother: "Mãe",
+        cancel: "Cancelar",
+      },
+      noDetails: "Não encontramos informações para esse responsável.",
+      details: {
+        childLabel: "Filho(a)",
+        ageLabel: "Idade do filho(a)",
+        phoneLabel: "Telefone do filho(a)",
+        missing: "Nenhuma informação adicional disponível.",
+      },
+      modalFallback: {
+        father: ({ child }) => (child ? `Pai de ${child}` : "Pai"),
+        mother: ({ child }) => (child ? `Mãe de ${child}` : "Mãe"),
+      },
+      chartEmpty: "Este painel não possui gráfico dedicado.",
+    },
     access: {
       modalTitle: "Selecione a seguir sua função:",
       modalDescription: "Escolha uma opção para continuar:",
@@ -160,7 +207,7 @@ const TRANSLATIONS = {
       errorInvalid: "Senha incorreta. Tente novamente.",
       errorRequired: "Informe a senha para continuar.",
       restrictionCaptain:
-        "Perfil de Capitães de Tropa: acesso disponível apenas para adolescentes (11-17 anos).",
+        "Perfil de Capitães de Tropa: acesso disponível apenas para adolescentes (11-17 anos) e seus responsáveis.",
       requireSelection: "Selecione uma função para continuar.",
       selectedRolePrefix: "Função selecionada:",
       roles: {
@@ -171,7 +218,7 @@ const TRANSLATIONS = {
         capitao: {
           label: "Capitães de Tropa",
           description:
-            "Acesso restrito às informações e buscas dos adolescentes (11-17 anos).",
+            "Acesso restrito às informações dos adolescentes (11-17 anos) e seus responsáveis.",
         },
       },
     },
@@ -220,7 +267,7 @@ const TRANSLATIONS = {
           responsavel:
             "Use os cartões da página inicial ou o menu de categorias para navegar. Cada aba mostra os irmãos daquele grupo com gráfico e cards detalhados.",
           capitao:
-            "Como Capitão de Tropa, você visualiza apenas o cartão de adolescentes. Clique nele para abrir a lista com cards e gráfico específicos.",
+            "Como Capitão de Tropa, você visualiza os cartões de adolescentes e de pais. Clique em um deles para acessar a lista com os detalhes correspondentes.",
         },
         fallback: "Estou aqui para ajudar com as principais dúvidas do painel.",
       },
@@ -285,6 +332,12 @@ const TRANSLATIONS = {
           "Members aged 11 to 17 years. Enable the \"Age fit for colporteur work\" filter to highlight only 16 and 17 years.",
         chartLabel: "Ages of teens",
         empty: "No teens registered so far.",
+      },
+      parents: {
+        title: "Parents",
+        description: "Parents linked to the registered teens.",
+        chartLabel: "Guardians of the teens",
+        empty: "No parents were found in this category.",
       },
       captains: {
         title: "Troop Captains (18-29)",
@@ -372,6 +425,46 @@ const TRANSLATIONS = {
       phoneLabel: ({ value }) => `Phone: ${value}`,
       you: "You",
     },
+    parents: {
+      meta: ({ parents, families }) => {
+        const guardian = parents === 1 ? "guardian" : "guardians";
+        const family = families === 1 ? "family" : "families";
+        return `${parents} ${guardian} linked to ${families} ${family}.`;
+      },
+      card: {
+        father: ({ name }) => `Father: ${name}`,
+        mother: ({ name }) => `Mother: ${name}`,
+        child: ({ name }) => `Child: ${name}`,
+      },
+      labels: {
+        father: "Father",
+        mother: "Mother",
+        child: "Child",
+        unknown: "Not provided",
+      },
+      choice: {
+        title: "Select a guardian",
+        question: ({ child }) =>
+          child
+            ? `Who would you like to view for ${child}?`
+            : "Who would you like to view?",
+        father: "Father",
+        mother: "Mother",
+        cancel: "Cancel",
+      },
+      noDetails: "No information was found for this guardian.",
+      details: {
+        childLabel: "Child",
+        ageLabel: "Child's age",
+        phoneLabel: "Child's phone",
+        missing: "No additional information available.",
+      },
+      modalFallback: {
+        father: ({ child }) => (child ? `Father of ${child}` : "Father"),
+        mother: ({ child }) => (child ? `Mother of ${child}` : "Mother"),
+      },
+      chartEmpty: "This section does not include a dedicated chart.",
+    },
     access: {
       modalTitle: "Select your role below:",
       modalDescription: "Choose an option to continue:",
@@ -382,7 +475,7 @@ const TRANSLATIONS = {
       errorInvalid: "Incorrect password. Try again.",
       errorRequired: "Enter the password to continue.",
       restrictionCaptain:
-        "Troop Captain profile: access is limited to teens (11-17 years old).",
+        "Troop Captain profile: access is limited to teens (11-17 years old) and their guardians.",
       requireSelection: "Select a role to continue.",
       selectedRolePrefix: "Selected role:",
       roles: {
@@ -393,7 +486,7 @@ const TRANSLATIONS = {
         capitao: {
           label: "Troop Captains",
           description:
-            "Restricted access to teen information and searches (ages 11-17).",
+            "Restricted access to teen information (ages 11-17) and their guardians.",
         },
       },
     },
@@ -442,7 +535,7 @@ const TRANSLATIONS = {
           responsavel:
             "Use the cards on the home page or the categories menu to navigate. Each tab shows that group's members with charts and detailed cards.",
           capitao:
-            "As a Troop Captain, you only see the teen card. Click it to open the list with dedicated cards and chart.",
+            "As a Troop Captain, you see the teen and parents cards. Click either card to open the matching list with detailed records.",
         },
         fallback: "I'm here to help with the main questions about the dashboard.",
       },
@@ -454,7 +547,7 @@ const TRANSLATIONS = {
         responsavel:
           "As a Responsible Brother, you have full access to every dashboard category.",
         capitao:
-          "As a Troop Captain, remember that your access focuses on teens aged 11 to 17.",
+          "As a Troop Captain, remember that your access focuses on teens aged 11 to 17 and their guardians.",
       },
       customFollowUp:
         "Make sure the data is up to date in the spreadsheet and use the cards or search to quickly locate the information you need. If the question persists, contact the IGColina leadership.",
@@ -507,6 +600,13 @@ const TRANSLATIONS = {
           "Hermanos con edades entre 11 y 17 años. Active el filtro \"Edad apta para colportaje\" para destacar solo 16 y 17 años.",
         chartLabel: "Edades de los adolescentes",
         empty: "No hay adolescentes registrados por el momento.",
+      },
+      parents: {
+        title: "Padres",
+        description:
+          "Padres y madres vinculados a los adolescentes registrados.",
+        chartLabel: "Responsables de los adolescentes",
+        empty: "No se encontraron padres o madres en esta categoría.",
       },
       captains: {
         title: "Capitanes de Tropa (18-29)",
@@ -594,6 +694,46 @@ const TRANSLATIONS = {
       phoneLabel: ({ value }) => `Teléfono: ${value}`,
       you: "Tú",
     },
+    parents: {
+      meta: ({ parents, families }) => {
+        const responsable = parents === 1 ? "responsable" : "responsables";
+        const familia = families === 1 ? "familia" : "familias";
+        return `${parents} ${responsable} vinculados a ${families} ${familia}.`;
+      },
+      card: {
+        father: ({ name }) => `Padre: ${name}`,
+        mother: ({ name }) => `Madre: ${name}`,
+        child: ({ name }) => `Hijo(a): ${name}`,
+      },
+      labels: {
+        father: "Padre",
+        mother: "Madre",
+        child: "Hijo(a)",
+        unknown: "No informado",
+      },
+      choice: {
+        title: "Seleccione el responsable",
+        question: ({ child }) =>
+          child
+            ? `¿A quién desea ver para ${child}?`
+            : "¿A quién desea ver?",
+        father: "Padre",
+        mother: "Madre",
+        cancel: "Cancelar",
+      },
+      noDetails: "No encontramos información para ese responsable.",
+      details: {
+        childLabel: "Hijo(a)",
+        ageLabel: "Edad del hijo(a)",
+        phoneLabel: "Teléfono del hijo(a)",
+        missing: "No hay información adicional disponible.",
+      },
+      modalFallback: {
+        father: ({ child }) => (child ? `Padre de ${child}` : "Padre"),
+        mother: ({ child }) => (child ? `Madre de ${child}` : "Madre"),
+      },
+      chartEmpty: "Esta sección no cuenta con un gráfico específico.",
+    },
     access: {
       modalTitle: "Selecciona a continuación tu función:",
       modalDescription: "Elige una opción para continuar:",
@@ -604,7 +744,7 @@ const TRANSLATIONS = {
       errorInvalid: "Contraseña incorrecta. Inténtalo nuevamente.",
       errorRequired: "Ingresa la contraseña para continuar.",
       restrictionCaptain:
-        "Perfil de Capitanes de Tropa: el acceso está disponible solo para adolescentes (11-17 años).",
+        "Perfil de Capitanes de Tropa: el acceso está disponible solo para adolescentes (11-17 años) y sus responsables.",
       requireSelection: "Selecciona una función para continuar.",
       selectedRolePrefix: "Función seleccionada:",
       roles: {
@@ -615,7 +755,7 @@ const TRANSLATIONS = {
         capitao: {
           label: "Capitanes de Tropa",
           description:
-            "Acceso restringido a la información y búsquedas de adolescentes (11-17 años).",
+            "Acceso restringido a la información de los adolescentes (11-17 años) y sus responsables.",
         },
       },
     },
@@ -664,7 +804,7 @@ const TRANSLATIONS = {
           responsavel:
             "Usa las tarjetas de la página inicial o el menú de categorías para navegar. Cada pestaña muestra a los hermanos de ese grupo con gráficos y tarjetas detalladas.",
           capitao:
-            "Como Capitán de Tropa, solo ves la tarjeta de adolescentes. Haz clic para abrir la lista con tarjetas y gráfico específicos.",
+            "Como Capitán de Tropa, ves las tarjetas de adolescentes y de padres. Haz clic en cualquiera para abrir la lista con los detalles correspondientes.",
         },
         fallback: "Estoy aquí para ayudarte con las principales dudas del panel.",
       },
@@ -676,7 +816,7 @@ const TRANSLATIONS = {
         responsavel:
           "Como Hermano Responsable, tienes acceso completo a todas las categorías del panel.",
         capitao:
-          "Como Capitán de Tropa, recuerda que tu acceso se enfoca en los adolescentes de 11 a 17 años.",
+          "Como Capitán de Tropa, recuerda que tu acceso se enfoca en los adolescentes de 11 a 17 años y sus responsables.",
       },
       customFollowUp:
         "Verifica que los datos estén actualizados en la planilla y utiliza las tarjetas o la búsqueda para localizar rápidamente la información deseada. Si la duda persiste, ponte en contacto con la lideranza de IGColina.",
@@ -743,6 +883,7 @@ const elements = {
   total: document.getElementById("total-count"),
   children: document.getElementById("children-count"),
   teens: document.getElementById("teens-count"),
+  parents: document.getElementById("parents-count"),
   captains: document.getElementById("captains-count"),
   braves: document.getElementById("braves-count"),
   stewards: document.getElementById("stewards-count"),
@@ -813,6 +954,14 @@ const elements = {
   assistantSubtitle: document.getElementById("assistant-subtitle"),
   assistantInputLabel: document.getElementById("assistant-input-label"),
   assistantSubmit: document.getElementById("assistant-submit"),
+  parentChoice: document.getElementById("parent-choice"),
+  parentChoiceContent: document.querySelector("#parent-choice .parent-choice-content"),
+  parentChoiceTitle: document.getElementById("parent-choice-title"),
+  parentChoiceQuestion: document.getElementById("parent-choice-question"),
+  parentChoiceFather: document.getElementById("parent-choice-father"),
+  parentChoiceMother: document.getElementById("parent-choice-mother"),
+  parentChoiceCancel: document.getElementById("parent-choice-cancel"),
+  parentChoiceClose: document.getElementById("parent-choice-close"),
 };
 
 const CATEGORY_CONFIG = [
@@ -839,6 +988,15 @@ const CATEGORY_CONFIG = [
     chartLabelKey: "categories.teens.chartLabel",
     emptyMessageKey: "categories.teens.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
+  },
+  {
+    id: "parents",
+    titleKey: "categories.parents.title",
+    descriptionKey: "categories.parents.description",
+    chartLabelKey: "categories.parents.chartLabel",
+    emptyMessageKey: "categories.parents.empty",
+    filter: () => true,
+    isParentCategory: true,
   },
   {
     id: "captains",
@@ -907,6 +1065,9 @@ const state = {
   supplementalEntries: [],
   supplementalIndex: new Map(),
   enrichedRecords: [],
+  parentEntries: [],
+  parentSummary: { parents: 0, families: 0 },
+  parentChoice: null,
   refreshTimer: null,
   activeCategory: getInitialCategory(),
   charts: {
@@ -1404,6 +1565,33 @@ function applyLanguage(options = {}) {
     elements.assistantSubmit.textContent = translate("assistant.submit");
   }
 
+  if (elements.parentChoiceTitle) {
+    elements.parentChoiceTitle.textContent = translate("parents.choice.title");
+  }
+  if (elements.parentChoiceQuestion) {
+    elements.parentChoiceQuestion.textContent = translate(
+      "parents.choice.question",
+      { child: "" }
+    );
+  }
+  if (elements.parentChoiceFather) {
+    elements.parentChoiceFather.textContent = translate("parents.choice.father");
+  }
+  if (elements.parentChoiceMother) {
+    elements.parentChoiceMother.textContent = translate("parents.choice.mother");
+  }
+  if (elements.parentChoiceCancel) {
+    elements.parentChoiceCancel.textContent = translate(
+      "parents.choice.cancel"
+    );
+  }
+  if (elements.parentChoiceClose) {
+    elements.parentChoiceClose.setAttribute(
+      "aria-label",
+      translate("modal.close")
+    );
+  }
+
   if (elements.languageToggle) {
     elements.languageToggle.setAttribute(
       "aria-label",
@@ -1691,7 +1879,7 @@ function isCategoryAllowed(categoryId) {
   }
 
   if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
-    return categoryId === "teens";
+    return categoryId === "teens" || categoryId === "parents";
   }
 
   return false;
@@ -1703,7 +1891,7 @@ function ensureAccessibleCategory(categoryId) {
   }
 
   if (state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens") {
-    return "teens";
+    return categoryId === "parents" ? "parents" : "teens";
   }
 
   return categoryId;
@@ -1761,7 +1949,9 @@ function applyAccessRestrictions() {
     const categoryId = card.dataset.category;
     if (!categoryId) return;
     const hideCard =
-      state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens";
+      state.accessRole === ACCESS_ROLES.CAPTAIN &&
+      categoryId !== "teens" &&
+      categoryId !== "parents";
     card.hidden = hideCard;
     if (hideCard) {
       card.removeAttribute("aria-disabled");
@@ -1785,7 +1975,9 @@ function applyAccessRestrictions() {
     if (!categoryId) return;
     const listItem = link.closest("li");
     const hideLink =
-      state.accessRole === ACCESS_ROLES.CAPTAIN && categoryId !== "teens";
+      state.accessRole === ACCESS_ROLES.CAPTAIN &&
+      categoryId !== "teens" &&
+      categoryId !== "parents";
     if (hideLink) {
       if (listItem) listItem.hidden = true;
       else link.hidden = true;
@@ -2210,6 +2402,8 @@ async function fetchSheetData() {
     }
 
     state.enrichedRecords = buildEnrichedRecords(records);
+    state.parentEntries = buildParentEntries(state.enrichedRecords);
+    state.parentSummary = summarizeParentEntries(state.parentEntries);
     buildSuggestions();
 
     if (!CATEGORY_BY_ID[state.activeCategory]) {
@@ -2683,6 +2877,141 @@ function buildEnrichedRecords(records) {
   });
 }
 
+function filterParentDetails(detailList, role) {
+  if (!Array.isArray(detailList)) {
+    return [];
+  }
+
+  const target = role === "father" ? "pai" : "mae";
+  const englishTarget = role === "father" ? "father" : "mother";
+  const seen = new Set();
+  const results = [];
+
+  detailList.forEach(({ key, value }) => {
+    const normalizedKey = normalizeColumnLabel(key);
+    if (!normalizedKey) {
+      return;
+    }
+
+    const tokens = normalizedKey.split(" ");
+    const matchesTarget =
+      tokens.includes(target) || tokens.includes(englishTarget);
+
+    if (!matchesTarget) {
+      return;
+    }
+
+    const stringValue = value == null ? "" : String(value).trim();
+    if (!stringValue) {
+      return;
+    }
+
+    const uniqueKey = `${role}:${normalizedKey}`;
+    if (seen.has(uniqueKey)) {
+      return;
+    }
+
+    seen.add(uniqueKey);
+    results.push({ key, value: stringValue });
+  });
+
+  return results;
+}
+
+function extractParentName(details, role) {
+  if (!Array.isArray(details)) {
+    return "";
+  }
+
+  let fallback = "";
+
+  for (const { key, value } of details) {
+    if (!value) continue;
+    const normalizedKey = normalizeColumnLabel(key);
+    if (!normalizedKey) continue;
+    const tokens = normalizedKey.split(" ");
+    if (tokens.includes("nome") || tokens.includes("name")) {
+      return value;
+    }
+    if (!fallback && tokens.includes("responsavel")) {
+      fallback = value;
+    }
+  }
+
+  if (fallback) {
+    return fallback;
+  }
+
+  const first = details.find((item) => item.value);
+  return first ? first.value : "";
+}
+
+function createParentProfile(details, role) {
+  if (!Array.isArray(details) || !details.length) {
+    return null;
+  }
+
+  const name = extractParentName(details, role);
+
+  return {
+    name,
+    details: details.map(({ key, value }) => ({ key, value })),
+  };
+}
+
+function buildParentEntries(enrichedRecords) {
+  if (!Array.isArray(enrichedRecords) || !enrichedRecords.length) {
+    return [];
+  }
+
+  const entries = [];
+
+  enrichedRecords.forEach((entry) => {
+    if (!Number.isFinite(entry.age) || entry.age < 11 || entry.age > 17) {
+      return;
+    }
+
+    const supplementalRecord = entry.supplemental?.record ?? null;
+    const mergedDetails = mergeRecordDetails(entry.record, supplementalRecord, entry);
+    const fatherDetails = filterParentDetails(mergedDetails, "father");
+    const motherDetails = filterParentDetails(mergedDetails, "mother");
+    const father = createParentProfile(fatherDetails, "father");
+    const mother = createParentProfile(motherDetails, "mother");
+
+    if (!father && !mother) {
+      return;
+    }
+
+    entries.push({
+      entry,
+      record: entry.record,
+      childName: entry.name,
+      childAge: entry.age,
+      childPhone: entry.phone,
+      father,
+      mother,
+    });
+  });
+
+  return entries;
+}
+
+function summarizeParentEntries(entries) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return { parents: 0, families: 0 };
+  }
+
+  const families = entries.length;
+  const parents = entries.reduce((total, item) => {
+    let count = total;
+    if (item.father) count += 1;
+    if (item.mother) count += 1;
+    return count;
+  }, 0);
+
+  return { parents, families };
+}
+
 function updateDashboard() {
   const { records, birthColumn, enrichedRecords } = state;
 
@@ -2713,6 +3042,8 @@ function updateDashboard() {
 
   if (elements.children) elements.children.textContent = counters.children;
   if (elements.teens) elements.teens.textContent = counters.teens;
+  if (elements.parents)
+    elements.parents.textContent = state.parentSummary?.parents ?? 0;
   if (elements.captains) elements.captains.textContent = counters.captains;
   if (elements.braves) elements.braves.textContent = counters.braves;
   if (elements.stewards) elements.stewards.textContent = counters.stewards;
@@ -3421,6 +3752,136 @@ function updateCategoryCards(entries, category) {
   });
 }
 
+function getAccessibleParentEntries() {
+  if (!state.accessRole) {
+    return [];
+  }
+
+  if (
+    state.accessRole === ACCESS_ROLES.RESPONSIBLE ||
+    state.accessRole === ACCESS_ROLES.CAPTAIN
+  ) {
+    return state.parentEntries ?? [];
+  }
+
+  return [];
+}
+
+async function handleParentCardSelection(entry) {
+  if (!entry) {
+    return;
+  }
+
+  const availableRoles = [];
+  if (entry.father) availableRoles.push("father");
+  if (entry.mother) availableRoles.push("mother");
+
+  if (!availableRoles.length) {
+    setStatus(translate("parents.noDetails"));
+    return;
+  }
+
+  const selectedRole = await openParentChoice(entry, availableRoles);
+  if (!selectedRole) {
+    return;
+  }
+
+  openParentDetail(entry, selectedRole);
+}
+
+function renderParentCards(entries, category) {
+  const container = elements.categoryCards;
+  if (!container || !elements.categoryEmpty) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  if (!entries.length) {
+    elements.categoryEmpty.textContent = translateCategoryField(
+      category,
+      "emptyMessage"
+    );
+    elements.categoryEmpty.classList.add("visible");
+    return;
+  }
+
+  elements.categoryEmpty.classList.remove("visible");
+
+  const sortedEntries = [...entries].sort((a, b) =>
+    collator.compare(a.childName || "", b.childName || "")
+  );
+
+  sortedEntries.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "parent-card";
+    card.tabIndex = 0;
+
+    const fatherName = item.father?.name?.trim() || translate("parents.labels.unknown");
+    const motherName = item.mother?.name?.trim() || translate("parents.labels.unknown");
+    const childName = item.childName?.trim() || translate("modal.noName");
+
+    const fatherLine = document.createElement("strong");
+    fatherLine.className = "parent-line parent-line-father";
+    fatherLine.textContent = translate("parents.card.father", { name: fatherName });
+
+    const motherLine = document.createElement("strong");
+    motherLine.className = "parent-line parent-line-mother";
+    motherLine.textContent = translate("parents.card.mother", { name: motherName });
+
+    const childLine = document.createElement("span");
+    childLine.className = "parent-line parent-line-child";
+    childLine.textContent = translate("parents.card.child", { name: childName });
+
+    card.append(fatherLine, motherLine, childLine);
+
+    card.addEventListener("click", () => {
+      handleParentCardSelection(item);
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleParentCardSelection(item);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function renderParentsCategory(category) {
+  if (elements.teensFilter) {
+    elements.teensFilter.hidden = true;
+  }
+
+  const entries = getAccessibleParentEntries();
+  state.parentSummary = summarizeParentEntries(entries);
+
+  if (elements.categoryMeta) {
+    const { parents, families } = state.parentSummary;
+    elements.categoryMeta.textContent = translate("parents.meta", {
+      parents,
+      families,
+    });
+  }
+
+  if (state.charts.category) {
+    state.charts.category.destroy();
+    state.charts.category = null;
+  }
+
+  if (elements.categoryChart) {
+    elements.categoryChart.style.display = "none";
+  }
+
+  if (elements.categoryChartEmpty) {
+    elements.categoryChartEmpty.textContent = translate("parents.chartEmpty");
+    elements.categoryChartEmpty.classList.add("visible");
+  }
+
+  renderParentCards(entries, category);
+}
+
 function formatAge(age) {
   if (!Number.isFinite(age)) {
     return translate("format.ageMissing");
@@ -3488,6 +3949,19 @@ function renderCategory(categoryId = "total") {
   }
 
   setActiveSummaryCard(category.id);
+
+  if (category.isParentCategory) {
+    renderParentsCategory(category);
+    return;
+  }
+
+  if (elements.categoryChart) {
+    elements.categoryChart.style.display = "";
+  }
+  if (elements.categoryChartEmpty) {
+    elements.categoryChartEmpty.textContent = translate("category.chartEmpty");
+    elements.categoryChartEmpty.classList.remove("visible");
+  }
 
   let filteredEntries = getAccessibleEntries().filter((entry) =>
     category.filter(entry)
@@ -3778,6 +4252,41 @@ function handleSearchKeydown(event) {
   }
 }
 
+function openDetailModal(title, detailItems, { searchValue } = {}) {
+  if (
+    !elements.modal ||
+    !elements.modalDetails ||
+    !elements.modalName ||
+    !elements.detailTemplate
+  ) {
+    return;
+  }
+
+  const displayTitle = title || translate("modal.title");
+  elements.modalName.textContent = displayTitle;
+
+  if (searchValue !== undefined && elements.search) {
+    elements.search.value = searchValue ?? "";
+  }
+
+  elements.modalDetails.innerHTML = "";
+
+  const items = Array.isArray(detailItems) ? detailItems : [];
+
+  items.forEach(({ key, value }) => {
+    const template = elements.detailTemplate.content.cloneNode(true);
+    template.querySelector("dt").textContent = key || "";
+    const displayValue =
+      value == null || value === "" ? "-" : String(value);
+    template.querySelector("dd").textContent = displayValue;
+    elements.modalDetails.appendChild(template);
+  });
+
+  elements.modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  elements.suggestions?.classList.remove("visible");
+}
+
 function openRecord(record) {
   if (
     !record ||
@@ -3801,26 +4310,192 @@ function openRecord(record) {
       : "";
   const displayName =
     (nameColumn && record[nameColumn]) || supplementalName || translate("modal.title");
-
-  elements.modalName.textContent = displayName;
-  if (elements.search && nameColumn) {
-    elements.search.value = record[nameColumn] || "";
-  }
-  elements.modalDetails.innerHTML = "";
-
   const details = mergeRecordDetails(record, supplementalRecord, entry);
 
-  details.forEach(({ key, value }) => {
-    const template = elements.detailTemplate.content.cloneNode(true);
-    template.querySelector("dt").textContent = key;
-    const displayValue = value ? value : "-";
-    template.querySelector("dd").textContent = displayValue;
-    elements.modalDetails.appendChild(template);
-  });
+  const searchValue =
+    nameColumn ? record[nameColumn] ?? "" : undefined;
 
-  elements.modal.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
-  elements.suggestions?.classList.remove("visible");
+  openDetailModal(displayName, details, { searchValue });
+}
+
+function openParentDetail(entry, role) {
+  if (!entry) {
+    return;
+  }
+
+  const parent = role === "father" ? entry.father : entry.mother;
+  if (!parent) {
+    setStatus(translate("parents.noDetails"));
+    return;
+  }
+
+  const childName = entry.childName?.trim() || translate("modal.noName");
+  const details = [
+    {
+      key: translate("parents.details.childLabel"),
+      value: childName,
+    },
+    {
+      key: translate("parents.details.ageLabel"),
+      value: Number.isFinite(entry.childAge)
+        ? formatAge(entry.childAge)
+        : translate("format.ageMissing"),
+    },
+    {
+      key: translate("parents.details.phoneLabel"),
+      value: entry.childPhone
+        ? formatPhone(entry.childPhone)
+        : translate("format.phoneMissing"),
+    },
+  ];
+
+  if (Array.isArray(parent.details) && parent.details.length) {
+    parent.details.forEach(({ key, value }) => {
+      details.push({ key, value });
+    });
+  } else {
+    setStatus(translate("parents.noDetails"));
+  }
+
+  const fallbackTitle = translate(`parents.modalFallback.${role}`, {
+    child: childName,
+  });
+  const title = parent.name?.trim() || fallbackTitle;
+
+  openDetailModal(title, details);
+}
+
+function openParentChoice(entry, availableRoles = []) {
+  if (!elements.parentChoice) {
+    return Promise.resolve(null);
+  }
+
+  closeParentChoice();
+
+  const roles = Array.isArray(availableRoles) ? availableRoles : [];
+
+  return new Promise((resolve) => {
+    const overlay = elements.parentChoice;
+    const fatherButton = elements.parentChoiceFather;
+    const motherButton = elements.parentChoiceMother;
+    const cancelButton = elements.parentChoiceCancel;
+    const closeButton = elements.parentChoiceClose;
+    const previousFocus = document.activeElement;
+
+    const cleanup = () => {
+      overlay.setAttribute("aria-hidden", "true");
+      overlay.hidden = true;
+      overlay.removeEventListener("click", onOverlayClick);
+      document.removeEventListener("keydown", onKeydown);
+      if (fatherButton) fatherButton.removeEventListener("click", onFather);
+      if (motherButton) motherButton.removeEventListener("click", onMother);
+      if (cancelButton) cancelButton.removeEventListener("click", onCancel);
+      if (closeButton) closeButton.removeEventListener("click", onCancel);
+      document.body.style.overflow = "";
+      if (previousFocus && typeof previousFocus.focus === "function") {
+        try {
+          previousFocus.focus();
+        } catch (error) {
+          // ignore focus errors
+        }
+      }
+      state.parentChoice = null;
+    };
+
+    const finalize = (value) => {
+      if (!state.parentChoice || state.parentChoice.finished) {
+        return;
+      }
+      state.parentChoice.finished = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const onFather = () => finalize("father");
+    const onMother = () => finalize("mother");
+    const onCancel = () => finalize(null);
+    const onOverlayClick = (event) => {
+      if (event.target === overlay) {
+        finalize(null);
+      }
+    };
+    const onKeydown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finalize(null);
+      }
+    };
+
+    if (elements.parentChoiceTitle) {
+      elements.parentChoiceTitle.textContent = translate("parents.choice.title");
+    }
+    if (elements.parentChoiceQuestion) {
+      const childName = entry?.childName?.trim() || translate("modal.noName");
+      elements.parentChoiceQuestion.textContent = translate(
+        "parents.choice.question",
+        { child: childName }
+      );
+    }
+
+    const showFather = roles.includes("father");
+    const showMother = roles.includes("mother");
+
+    if (fatherButton) {
+      fatherButton.hidden = !showFather;
+      fatherButton.disabled = !showFather;
+      fatherButton.removeEventListener("click", onFather);
+      if (showFather) {
+        fatherButton.addEventListener("click", onFather);
+      }
+    }
+
+    if (motherButton) {
+      motherButton.hidden = !showMother;
+      motherButton.disabled = !showMother;
+      motherButton.removeEventListener("click", onMother);
+      if (showMother) {
+        motherButton.addEventListener("click", onMother);
+      }
+    }
+
+    if (cancelButton) {
+      cancelButton.addEventListener("click", onCancel);
+    }
+    if (closeButton) {
+      closeButton.addEventListener("click", onCancel);
+    }
+
+    overlay.hidden = false;
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+
+    overlay.addEventListener("click", onOverlayClick);
+    document.addEventListener("keydown", onKeydown);
+
+    state.parentChoice = {
+      finished: false,
+      finalize,
+    };
+
+    const focusTarget =
+      (showFather && fatherButton) ||
+      (showMother && motherButton) ||
+      cancelButton ||
+      closeButton;
+    if (focusTarget && typeof focusTarget.focus === "function") {
+      try {
+        focusTarget.focus();
+      } catch (error) {
+        // ignore focus errors
+      }
+    }
+  });
+}
+
+function closeParentChoice(value = null) {
+  if (state.parentChoice && typeof state.parentChoice.finalize === "function") {
+    state.parentChoice.finalize(value);
+  }
 }
 
 function closeModal() {
@@ -3851,6 +4526,14 @@ function handleDocumentClick(event) {
   ) {
     closeAssistant();
   }
+
+  if (
+    elements.parentChoice &&
+    !elements.parentChoice.hidden &&
+    !elements.parentChoice.contains(event.target)
+  ) {
+    closeParentChoice();
+  }
 }
 
 function openCategoryView(categoryId) {
@@ -3879,6 +4562,7 @@ function setupEventListeners() {
       closeModal();
       closeUserMenu();
       closeAssistant();
+      closeParentChoice();
     }
   });
   document.addEventListener("click", handleDocumentClick);

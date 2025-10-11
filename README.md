@@ -38,6 +38,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 - Os nomes vinculados a cada credencial também são armazenados cifrados no código-fonte para evitar exposição direta.
 - **Irmão Responsável** tem acesso completo a todas as abas, buscas e gráficos.
 - **Capitães de Tropa** visualizam apenas o cartão e a categoria de adolescentes (11–17 anos); os demais blocos ficam ocultos e indisponíveis para consulta.
+- Ambos os perfis podem acessar a categoria **Pais**, selecionando entre pai ou mãe ao abrir cada registro para consultar os detalhes disponíveis daquele responsável.
 - A sessão é mantida em `sessionStorage` para não solicitar senha novamente enquanto o navegador permanecer aberto na mesma aba.
 - O perfil autenticado aparece no cabeçalho da dashboard e oferece a opção **"Trocar de usuário"** para voltar ao modal de acesso quando necessário.
 
@@ -52,6 +53,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
   - Intendentes: 50 anos ou mais
 - Cada página de categoria inclui um gráfico de distribuição de idades, a contagem de irmãos daquela faixa e cartões clicáveis com nome, idade calculada a partir da data de nascimento e telefone.
 - A aba de adolescentes oferece um filtro extra chamado **"Idade apta para colportagem"**, que quando ativado exibe somente os jovens com 16 e 17 anos.
+- O cartão **Pais** reúne pais e mães vinculados aos adolescentes. Na categoria correspondente, cada card exibe os nomes dos responsáveis e do filho, e ao clicar é possível escolher visualizar os dados do pai ou da mãe em um modal dedicado.
 
 ### Aniversariantes do dia
 
