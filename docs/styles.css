@@ -1555,6 +1555,130 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   position: relative;
 }
 
+.credential-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1100;
+}
+
+.credential-modal[hidden] {
+  display: none !important;
+}
+
+.credential-modal-dialog {
+  position: relative;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 1.2rem;
+  padding: 1.75rem;
+  width: min(420px, 92vw);
+  box-shadow: 0 24px 48px rgba(8, 47, 73, 0.35);
+  display: grid;
+  gap: 1.25rem;
+}
+
+.credential-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.9rem;
+  border: none;
+  background: transparent;
+  font-size: 1.6rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.credential-modal-close:hover,
+.credential-modal-close:focus-visible {
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.credential-modal-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.credential-modal-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.credential-modal-form input,
+.credential-modal-form select {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--text-primary);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.credential-modal-form select {
+  appearance: none;
+}
+
+.credential-modal-feedback {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-height: 1.1rem;
+}
+
+.credential-modal-feedback.error {
+  color: #f87171;
+}
+
+.credential-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.credential-modal-button {
+  border-radius: 999px;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.credential-modal-button.secondary {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-secondary);
+}
+
+.credential-modal-button.primary {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #0f172a;
+}
+
+.credential-modal-button:hover,
+.credential-modal-button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.credential-modal-button.primary:hover,
+.credential-modal-button.primary:focus-visible {
+  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.25);
+}
+
+.credential-modal-button.secondary:hover,
+.credential-modal-button.secondary:focus-visible {
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+}
+
 .close-button {
   position: absolute;
   top: 1rem;
@@ -1867,6 +1991,165 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 
 .service-manager-add-hint[hidden] {
   display: none !important;
+}
+
+.service-manager-add-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.service-manager-add-cancel {
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border-radius: 999px;
+  padding: 0.4rem 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.service-manager-add-cancel:hover,
+.service-manager-add-cancel:focus-visible {
+  background: rgba(248, 113, 113, 0.2);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.service-manager-add-cancel[hidden] {
+  display: none !important;
+}
+
+.service-manager-custom {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  background: rgba(94, 234, 212, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.15);
+  display: grid;
+  gap: 1rem;
+}
+
+.service-manager-custom[hidden] {
+  display: none !important;
+}
+
+.service-manager-custom-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.service-manager-custom-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.service-manager-custom-header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.service-manager-custom-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.service-manager-custom-empty[hidden] {
+  display: none !important;
+}
+
+.service-manager-custom-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.service-manager-custom-item {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(94, 234, 212, 0.25);
+}
+
+.service-manager-custom-info {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.service-manager-custom-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.service-manager-custom-translations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.service-manager-custom-translations li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.service-manager-custom-translations span {
+  font-weight: 600;
+}
+
+.service-manager-custom-translations strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.service-manager-custom-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.service-manager-custom-action {
+  border: 1px solid rgba(14, 165, 233, 0.5);
+  background: rgba(14, 165, 233, 0.12);
+  color: #0ea5e9;
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.service-manager-custom-action:hover,
+.service-manager-custom-action:focus-visible {
+  background: rgba(14, 165, 233, 0.18);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.service-manager-custom-action.danger {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}
+
+.service-manager-custom-action.danger:hover,
+.service-manager-custom-action.danger:focus-visible {
+  background: rgba(248, 113, 113, 0.2);
 }
 
 .service-manager-grid {
@@ -2214,6 +2497,19 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 
   .chart-container canvas {
     height: 260px !important;
+  }
+
+  .service-manager-custom {
+    padding: 1rem;
+  }
+
+  .service-manager-custom-item {
+    padding: 0.85rem;
+  }
+
+  .credential-modal-dialog {
+    width: min(360px, 94vw);
+    padding: 1.5rem;
   }
 
   .people-grid {
