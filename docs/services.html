@@ -167,6 +167,76 @@
     </main>
 
     <div
+      class="service-assignment-modal"
+      id="service-assignment-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="service-assignment-title"
+      hidden
+    >
+      <div
+        class="service-assignment-dialog"
+        id="service-assignment-dialog"
+        role="document"
+      >
+        <button
+          type="button"
+          class="service-assignment-close"
+          id="service-assignment-close"
+          aria-label="Fechar painel de serviços"
+        >
+          ×
+        </button>
+        <header class="service-assignment-header">
+          <h2 id="service-assignment-title">Gerenciar serviços</h2>
+          <p id="service-assignment-subtitle">
+            Selecione as frentes de atuação, ajuste o status e confirme para salvar.
+          </p>
+        </header>
+        <div class="service-assignment-meta" id="service-assignment-meta"></div>
+        <div class="service-assignment-status-block">
+          <span
+            class="service-assignment-status-label"
+            id="service-assignment-status-label"
+          >
+            Situação atual
+          </span>
+          <p class="service-assignment-status" id="service-assignment-status">
+            N.Serviço
+          </p>
+        </div>
+        <form class="service-assignment-form" id="service-assignment-form">
+          <div
+            class="service-assignment-options"
+            id="service-assignment-options"
+            role="group"
+            aria-labelledby="service-assignment-title"
+          ></div>
+          <p class="service-assignment-empty" id="service-assignment-empty" hidden>
+            Cadastre novos serviços para atribuir.
+          </p>
+          <div class="service-assignment-actions">
+            <button
+              type="button"
+              class="service-assignment-button secondary"
+              id="service-assignment-cancel"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="service-assignment-button primary"
+              id="service-assignment-save"
+            >
+              Salvar alterações
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
       class="parent-choice"
       id="parent-choice"
       role="dialog"

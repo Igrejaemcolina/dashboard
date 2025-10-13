@@ -258,8 +258,8 @@ const TRANSLATIONS = {
       tagsLabel: "Serviços desempenhados",
       selectLabel: "Selecione os serviços",
       feedback: {
-        inactive: "Nenhum serviço atribuído no momento.",
-        active: ({ service }) => `Servindo em: ${service}.`,
+        inactive: "N.Serviço",
+        active: ({ service }) => `Servindo: ${service}`,
       },
       names: {
         literature: "Literatura",
@@ -366,7 +366,7 @@ const TRANSLATIONS = {
           capitao:
             "Somente o perfil Serviços pode atribuir ministérios. Avise o responsável para que registre o serviço correto dos adolescentes.",
         servicos:
-            "No gerenciador de serviços, abra o card do irmão e marque as caixas de todos os ministérios em que ele atua. Você pode selecionar quantas frentes forem necessárias ao mesmo tempo.",
+            "No gerenciador de serviços, toque no card do irmão para abrir o painel de atribuição. Escolha as frentes em que ele serve e confirme em \"Salvar alterações\".",
       },
       removeService: {
         responsavel:
@@ -374,7 +374,7 @@ const TRANSLATIONS = {
         capitao:
             "Somente o perfil Serviços pode remover um serviço. Avise a equipe responsável para que a alteração seja feita.",
         servicos:
-            "Dentro do gerenciador, desmarque as caixas dos ministérios que não se aplicam ou deixe todas vazias para remover completamente a participação do irmão.",
+            "Abra o card do irmão, utilize o painel de atribuição para retirar os serviços que não se aplicam e salve para confirmar a alteração.",
       },
         filterServices: {
           responsavel:
@@ -404,7 +404,7 @@ const TRANSLATIONS = {
     serviceManager: {
       title: "Gerenciar serviços",
       description:
-        "Marque as frentes de atuação de cada irmão diretamente no card.",
+        "Toque no card para abrir o painel de serviços do irmão e salvar as alterações.",
       back: "← Voltar ao painel principal",
       filterLabel: "Filtrar",
       filters: {
@@ -427,6 +427,18 @@ const TRANSLATIONS = {
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
         "Atribuição de serviços disponível apenas para o perfil Serviços.",
+    },
+    serviceAssignment: {
+      title: ({ name }) => `Gerenciar serviços de ${name}`,
+      subtitle:
+        "Selecione as frentes de atuação, ajuste o status e confirme para salvar.",
+      statusLabel: "Situação atual",
+      empty: "Cadastre novos serviços para atribuir.",
+      cancel: "Cancelar",
+      save: "Salvar alterações",
+      close: "Fechar painel de serviços",
+      success: ({ name }) => `Serviços atualizados para ${name}.`,
+      open: ({ name }) => `Gerenciar serviços de ${name}`,
     },
   },
   en: {
@@ -637,8 +649,8 @@ const TRANSLATIONS = {
       tagsLabel: "Serving in",
       selectLabel: "Choose the services",
       feedback: {
-        inactive: "No services assigned yet.",
-        active: ({ service }) => `Serving in: ${service}.`,
+        inactive: "No service",
+        active: ({ service }) => `Serving: ${service}`,
       },
       names: {
         literature: "Literature",
@@ -745,7 +757,7 @@ const TRANSLATIONS = {
           capitao:
             "Only the Services profile can assign ministries. Let the responsible team know so they can record the teens' assignments.",
         servicos:
-            "In the services manager, open the member's card and check every box that matches the ministries they serve. You can select more than one ministry at the same time.",
+            "In the services manager, select the member's card to open the assignment panel. Choose every ministry that applies and confirm with \"Save changes\".",
       },
       removeService: {
         responsavel:
@@ -753,7 +765,7 @@ const TRANSLATIONS = {
         capitao:
             "Only the Services profile can remove an assignment. Notify the team so they can apply the change.",
         servicos:
-            "Inside the manager, uncheck the ministry boxes that don't apply or clear them all to remove the assignment completely.",
+            "Open the member's card, use the assignment panel to uncheck the ministries that no longer apply, and save to confirm the update.",
       },
         filterServices: {
           responsavel:
@@ -783,7 +795,7 @@ const TRANSLATIONS = {
     serviceManager: {
       title: "Manage services",
       description:
-        "Check which ministries each member serves in directly from their card.",
+        "Select a card to open the member's service panel and save the desired changes.",
       back: "← Back to main dashboard",
       filterLabel: "Filter",
       filters: {
@@ -806,6 +818,18 @@ const TRANSLATIONS = {
       empty: "No members found for the selected filters.",
       restricted:
         "Service assignments are available only for the Services profile.",
+    },
+    serviceAssignment: {
+      title: ({ name }) => `Manage services for ${name}`,
+      subtitle:
+        "Choose the ministries that apply, adjust the status, and save your changes.",
+      statusLabel: "Current status",
+      empty: "Add new services to make assignments available.",
+      cancel: "Cancel",
+      save: "Save changes",
+      close: "Close service panel",
+      success: ({ name }) => `Services updated for ${name}.`,
+      open: ({ name }) => `Manage services for ${name}`,
     },
   },
   es: {
@@ -1018,8 +1042,8 @@ const TRANSLATIONS = {
       tagsLabel: "Servicios en los que participa",
       selectLabel: "Elige los servicios",
       feedback: {
-        inactive: "No tiene servicios asignados actualmente.",
-        active: ({ service }) => `Sirviendo en: ${service}.`,
+        inactive: "Sin servicio",
+        active: ({ service }) => `Sirviendo: ${service}`,
       },
       names: {
         literature: "Literatura",
@@ -1126,7 +1150,7 @@ const TRANSLATIONS = {
           capitao:
             "Solo el perfil Servicios puede asignar ministerios. Informa al equipo responsable para que registre el servicio de los adolescentes.",
         servicos:
-            "En el gestor de servicios, abre la tarjeta del hermano y marca todas las casillas que correspondan a los ministerios en los que participa. Puedes elegir más de uno a la vez.",
+            "En el gestor de servicios, toca la tarjeta del hermano para abrir el panel de asignación. Selecciona los ministerios correspondientes y confirma con \"Guardar cambios\".",
       },
       removeService: {
         responsavel:
@@ -1134,7 +1158,7 @@ const TRANSLATIONS = {
         capitao:
             "Solo el perfil Servicios puede eliminar un servicio. Avisa al equipo responsable para que realice el cambio.",
         servicos:
-            "Dentro del gestor, desmarca las casillas de los ministerios que no correspondan o déjalas todas vacías para eliminar completamente la asignación.",
+            "Abre la tarjeta del hermano, utiliza el panel de asignación para quitar los ministerios que ya no correspondan y guarda para confirmar la actualización.",
       },
         filterServices: {
           responsavel:
@@ -1164,7 +1188,7 @@ const TRANSLATIONS = {
     serviceManager: {
       title: "Gestionar servicios",
       description:
-        "Marca en qué ministerios sirve cada hermano directamente desde su tarjeta.",
+        "Toca la tarjeta para abrir el panel de servicios del hermano y guardar los cambios necesarios.",
       back: "← Volver al panel principal",
       filterLabel: "Filtrar",
       filters: {
@@ -1187,6 +1211,18 @@ const TRANSLATIONS = {
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
         "La asignación de servicios está disponible solo para el perfil Servicios.",
+    },
+    serviceAssignment: {
+      title: ({ name }) => `Gestionar servicios de ${name}`,
+      subtitle:
+        "Selecciona los ministerios correspondientes, ajusta el estado y guarda los cambios.",
+      statusLabel: "Estado actual",
+      empty: "Agrega nuevos servicios para poder asignarlos.",
+      cancel: "Cancelar",
+      save: "Guardar cambios",
+      close: "Cerrar panel de servicios",
+      success: ({ name }) => `Servicios actualizados para ${name}.`,
+      open: ({ name }) => `Gestionar servicios de ${name}`,
     },
   },
 };
@@ -1377,6 +1413,21 @@ const elements = {
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
   serviceManagerNotice: document.getElementById("service-manager-notice"),
+  serviceAssignmentModal: document.getElementById("service-assignment-modal"),
+  serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
+  serviceAssignmentTitle: document.getElementById("service-assignment-title"),
+  serviceAssignmentSubtitle: document.getElementById("service-assignment-subtitle"),
+  serviceAssignmentMeta: document.getElementById("service-assignment-meta"),
+  serviceAssignmentStatusLabel: document.getElementById(
+    "service-assignment-status-label"
+  ),
+  serviceAssignmentStatus: document.getElementById("service-assignment-status"),
+  serviceAssignmentOptions: document.getElementById("service-assignment-options"),
+  serviceAssignmentEmpty: document.getElementById("service-assignment-empty"),
+  serviceAssignmentForm: document.getElementById("service-assignment-form"),
+  serviceAssignmentCancel: document.getElementById("service-assignment-cancel"),
+  serviceAssignmentSave: document.getElementById("service-assignment-save"),
+  serviceAssignmentClose: document.getElementById("service-assignment-close"),
 };
 
 const CATEGORY_CONFIG = [
@@ -1511,6 +1562,8 @@ const state = {
   accessibleServiceSummary: { total: 0, perService: {} },
   activeServiceFilter: SERVICE_FILTER_ALL,
   activeDetailEntry: null,
+  activeServiceModalEntry: null,
+  activeServiceModalTrigger: null,
   assistant: {
     greeted: false,
     customMode: false,
@@ -2102,6 +2155,48 @@ function applyLanguage(options = {}) {
     elements.serviceManagerAddHint.textContent = translate(
       "serviceManager.add.helper"
     );
+  }
+
+  if (elements.serviceAssignmentSubtitle) {
+    elements.serviceAssignmentSubtitle.textContent = translate(
+      "serviceAssignment.subtitle"
+    );
+  }
+  if (elements.serviceAssignmentStatusLabel) {
+    elements.serviceAssignmentStatusLabel.textContent = translate(
+      "serviceAssignment.statusLabel"
+    );
+  }
+  if (elements.serviceAssignmentCancel) {
+    elements.serviceAssignmentCancel.textContent = translate(
+      "serviceAssignment.cancel"
+    );
+  }
+  if (elements.serviceAssignmentSave) {
+    elements.serviceAssignmentSave.textContent = translate(
+      "serviceAssignment.save"
+    );
+  }
+  if (elements.serviceAssignmentEmpty) {
+    elements.serviceAssignmentEmpty.textContent = translate(
+      "serviceAssignment.empty"
+    );
+  }
+  if (elements.serviceAssignmentClose) {
+    elements.serviceAssignmentClose.setAttribute(
+      "aria-label",
+      translate("serviceAssignment.close")
+    );
+  }
+
+  if (
+    elements.serviceAssignmentModal &&
+    !elements.serviceAssignmentModal.hidden &&
+    state.activeServiceModalEntry
+  ) {
+    populateServiceAssignmentModal(state.activeServiceModalEntry, {
+      preserveSelection: true,
+    });
   }
 
   ensureServiceManagerFilterOptions();
@@ -5424,19 +5519,294 @@ function formatServiceStatusText(entry) {
   return translate("services.feedback.inactive");
 }
 
+function getServiceAssignmentModalSelectedServices() {
+  if (!elements.serviceAssignmentOptions) {
+    return [];
+  }
+  return Array.from(
+    elements.serviceAssignmentOptions.querySelectorAll(
+      'input[type="checkbox"]:checked'
+    )
+  )
+    .map((input) => sanitizeServiceId(input.value))
+    .filter(Boolean);
+}
+
+function updateServiceAssignmentModalStatus() {
+  if (!elements.serviceAssignmentStatus) {
+    return;
+  }
+
+  const services = getServiceAssignmentModalSelectedServices();
+  let statusText = translate("services.feedback.inactive");
+  if (services.length) {
+    const names = services
+      .map((serviceId) => translateServiceName(serviceId))
+      .filter(Boolean);
+    if (names.length) {
+      statusText = translate("services.feedback.active", {
+        service: names.join(", "),
+      });
+    }
+  }
+
+  elements.serviceAssignmentStatus.textContent = statusText;
+  elements.serviceAssignmentStatus.classList.toggle(
+    "service-assignment-status-active",
+    services.length > 0
+  );
+}
+
+function populateServiceAssignmentModal(entry, options = {}) {
+  const {
+    preserveSelection = false,
+  } = options;
+
+  if (!entry || !elements.serviceAssignmentModal) {
+    return;
+  }
+
+  const targetEntry =
+    findEntryByRecord(entry.record) ??
+    findEntryByServiceKey(entry.serviceKey) ??
+    entry;
+
+  state.activeServiceModalEntry = targetEntry;
+
+  if (elements.serviceAssignmentTitle) {
+    elements.serviceAssignmentTitle.textContent = translate(
+      "serviceAssignment.title",
+      {
+        name: targetEntry.name || translate("modal.noName"),
+      }
+    );
+  }
+
+  if (elements.serviceAssignmentMeta) {
+    elements.serviceAssignmentMeta.innerHTML = "";
+
+    const ageSpan = document.createElement("span");
+    ageSpan.textContent = translate("people.ageLabel", {
+      value: formatAge(targetEntry.age),
+    });
+    elements.serviceAssignmentMeta.appendChild(ageSpan);
+
+    const phoneSpan = document.createElement("span");
+    const phoneValue = targetEntry.phone
+      ? formatPhone(targetEntry.phone)
+      : translate("format.phoneMissing");
+    phoneSpan.textContent = translate("people.phoneLabel", {
+      value: phoneValue,
+    });
+    elements.serviceAssignmentMeta.appendChild(phoneSpan);
+  }
+
+  if (elements.serviceAssignmentOptions) {
+    const assignment = targetEntry.service ?? EMPTY_SERVICE_ASSIGNMENT;
+    let selectedServices;
+    if (preserveSelection) {
+      selectedServices = getServiceAssignmentModalSelectedServices();
+    } else if (assignment.active && Array.isArray(assignment.services)) {
+      selectedServices = assignment.services
+        .map((serviceId) => sanitizeServiceId(serviceId))
+        .filter(Boolean);
+    } else {
+      selectedServices = [];
+    }
+
+    renderServiceOptions(elements.serviceAssignmentOptions, selectedServices, {
+      disabled: false,
+      optionClass: "service-assignment-option",
+    });
+
+    const hasOptions = elements.serviceAssignmentOptions.childElementCount > 0;
+    if (elements.serviceAssignmentEmpty) {
+      elements.serviceAssignmentEmpty.hidden = hasOptions;
+    }
+    if (elements.serviceAssignmentSave) {
+      elements.serviceAssignmentSave.disabled = !hasOptions;
+    }
+  }
+
+  updateServiceAssignmentModalStatus();
+}
+
+function openServiceAssignmentModal(entry, trigger = null) {
+  if (!canManageServices()) {
+    return;
+  }
+
+  if (!elements.serviceAssignmentModal) {
+    return;
+  }
+
+  const targetEntry =
+    findEntryByRecord(entry?.record) ??
+    findEntryByServiceKey(entry?.serviceKey) ??
+    entry;
+
+  if (!targetEntry) {
+    return;
+  }
+
+  closeModal();
+
+  if (trigger) {
+    state.activeServiceModalTrigger = trigger;
+  } else {
+    state.activeServiceModalTrigger = document.activeElement;
+  }
+
+  populateServiceAssignmentModal(targetEntry, { preserveSelection: false });
+
+  elements.serviceAssignmentModal.hidden = false;
+  elements.serviceAssignmentModal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+
+  setTimeout(() => {
+    const firstOption = elements.serviceAssignmentOptions?.querySelector(
+      'input[type="checkbox"]'
+    );
+    const focusTarget = firstOption || elements.serviceAssignmentSave;
+    if (focusTarget && typeof focusTarget.focus === "function") {
+      try {
+        focusTarget.focus();
+      } catch (error) {
+        // Ignore focus errors
+      }
+    }
+  }, 0);
+}
+
+function closeServiceAssignmentModal() {
+  if (!elements.serviceAssignmentModal) {
+    return;
+  }
+  if (elements.serviceAssignmentModal.hidden) {
+    state.activeServiceModalEntry = null;
+    state.activeServiceModalTrigger = null;
+    return;
+  }
+
+  elements.serviceAssignmentModal.hidden = true;
+  elements.serviceAssignmentModal.setAttribute("aria-hidden", "true");
+
+  if (
+    elements.modal &&
+    elements.modal.getAttribute("aria-hidden") === "false"
+  ) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+
+  const trigger = state.activeServiceModalTrigger;
+  state.activeServiceModalEntry = null;
+  state.activeServiceModalTrigger = null;
+
+  if (trigger && document.contains(trigger)) {
+    try {
+      trigger.focus();
+    } catch (error) {
+      // Ignore focus errors
+    }
+  } else if (elements.serviceManagerFilter) {
+    try {
+      elements.serviceManagerFilter.focus();
+    } catch (error) {
+      // Ignore focus errors
+    }
+  }
+}
+
+function handleServiceAssignmentOptionsChange(event) {
+  if (!event || !event.target) {
+    return;
+  }
+  if (!event.target.matches('input[type="checkbox"]')) {
+    return;
+  }
+  updateServiceAssignmentModalStatus();
+}
+
+function handleServiceAssignmentSubmit(event) {
+  event.preventDefault();
+
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    closeServiceAssignmentModal();
+    return;
+  }
+
+  const entry = state.activeServiceModalEntry;
+  if (!entry) {
+    closeServiceAssignmentModal();
+    return;
+  }
+
+  const services = getServiceAssignmentModalSelectedServices();
+  updateServiceAssignment(entry, {
+    active: services.length > 0,
+    services,
+  });
+  setStatusFromKey("serviceAssignment.success", {
+    name: entry.name || translate("modal.noName"),
+  });
+  closeServiceAssignmentModal();
+}
+
 function createServiceManagerCard(entry) {
   const card = document.createElement("article");
   card.className = "service-manager-card";
 
+  const interactive = canManageServices();
+  if (interactive) {
+    card.classList.add("service-manager-card-interactive");
+    card.tabIndex = 0;
+    card.setAttribute(
+      "role",
+      "button"
+    );
+    card.setAttribute(
+      "aria-label",
+      translate("serviceAssignment.open", {
+        name: entry.name || translate("modal.noName"),
+      })
+    );
+
+    const handleOpen = (event) => {
+      if (!canManageServices()) {
+        return;
+      }
+      if (event) {
+        event.preventDefault();
+      }
+      openServiceAssignmentModal(entry, card);
+    };
+
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button, a")) {
+        return;
+      }
+      handleOpen(event);
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleOpen();
+      }
+    });
+  } else {
+    card.setAttribute("role", "group");
+  }
+
   const header = document.createElement("div");
   header.className = "service-manager-card-header";
 
-  const nameButton = document.createElement("button");
-  nameButton.type = "button";
-  nameButton.className = "service-manager-name";
-  nameButton.textContent = entry.name || translate("modal.noName");
-  nameButton.addEventListener("click", () => openRecord(entry.record));
-  header.appendChild(nameButton);
+  const nameHeading = document.createElement("h3");
+  nameHeading.className = "service-manager-name";
+  nameHeading.textContent = entry.name || translate("modal.noName");
+  header.appendChild(nameHeading);
 
   const status = document.createElement("span");
   status.className = "service-manager-status";
@@ -5463,29 +5833,26 @@ function createServiceManagerCard(entry) {
 
   card.appendChild(meta);
 
-  const controls = document.createElement("div");
-  controls.className = "service-manager-actions";
-
   const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
-  const checklist = document.createElement("div");
-  checklist.className = "service-manager-checklist";
-  controls.appendChild(checklist);
+  const services = Array.isArray(assignment.services)
+    ? assignment.services
+        .map((serviceId) => sanitizeServiceId(serviceId))
+        .filter(Boolean)
+    : [];
 
-  renderServiceOptions(checklist, assignment.services, {
-    disabled: false,
-    optionClass: "service-manager-option",
-    onChange: (services) => {
-      if (!canManageServices()) {
-        return;
-      }
-      updateServiceAssignment(entry, {
-        active: services.length > 0,
-        services,
-      });
-    },
-  });
+  if (assignment.active && services.length) {
+    const tags = document.createElement("div");
+    tags.className = "service-manager-tags";
 
-  card.appendChild(controls);
+    services.forEach((serviceId) => {
+      const tag = document.createElement("span");
+      tag.className = "service-manager-tag";
+      tag.textContent = translateServiceName(serviceId);
+      tags.appendChild(tag);
+    });
+
+    card.appendChild(tags);
+  }
 
   return card;
 }
@@ -5530,6 +5897,7 @@ function renderServiceManager() {
     if (elements.serviceManagerNotice) {
       elements.serviceManagerNotice.hidden = false;
     }
+    closeServiceAssignmentModal();
     return;
   }
 
@@ -5544,6 +5912,7 @@ function renderServiceManager() {
     if (state.accessRole) {
       setStatusFromKey("serviceManager.restricted", {}, true);
     }
+    closeServiceAssignmentModal();
     return;
   }
 
@@ -6395,6 +6764,14 @@ function handleDocumentClick(event) {
   }
 
   if (
+    elements.serviceAssignmentModal &&
+    !elements.serviceAssignmentModal.hidden &&
+    event.target === elements.serviceAssignmentModal
+  ) {
+    closeServiceAssignmentModal();
+  }
+
+  if (
     elements.assistantPanel &&
     !elements.assistantPanel.hidden &&
     !elements.assistantPanel.contains(event.target) &&
@@ -6455,6 +6832,31 @@ function setupEventListeners() {
     );
   }
 
+  if (elements.serviceAssignmentForm) {
+    elements.serviceAssignmentForm.addEventListener(
+      "submit",
+      handleServiceAssignmentSubmit
+    );
+  }
+  if (elements.serviceAssignmentOptions) {
+    elements.serviceAssignmentOptions.addEventListener(
+      "change",
+      handleServiceAssignmentOptionsChange
+    );
+  }
+  if (elements.serviceAssignmentCancel) {
+    elements.serviceAssignmentCancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeServiceAssignmentModal();
+    });
+  }
+  if (elements.serviceAssignmentClose) {
+    elements.serviceAssignmentClose.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeServiceAssignmentModal();
+    });
+  }
+
   if (elements.closeModal) {
     elements.closeModal.addEventListener("click", closeModal);
   }
@@ -6462,6 +6864,7 @@ function setupEventListeners() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeModal();
+      closeServiceAssignmentModal();
       closeUserMenu();
       closeAssistant();
       closeParentChoice();
