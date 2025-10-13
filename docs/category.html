@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Categoria · Dados da IGColina</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body data-page="category">
+    <header class="app-header">
+      <div class="branding">
+        <a
+          class="logo-link"
+          href="index.html"
+          aria-label="Início · Dados da IGColina"
+        >
+          <img
+            class="logo-image"
+            src="https://simp6.selti-delivery.ru/images3/Fulltv-1714e57181860ce81.png"
+            alt="Logo da IGColina"
+          />
+        </a>
+        <div class="header-content">
+          <h1>
+            <a class="home-link" id="app-title-link" href="index.html"
+              >Dados da IGColina</a
+            >
+          </h1>
+          <p id="last-updated">Carregando dados...</p>
+        </div>
+        <div class="language-switcher" id="language-switcher" hidden>
+          <button
+            type="button"
+            class="language-toggle"
+            id="language-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Selecionar idioma"
+          >
+            <span id="language-toggle-label">PT</span>
+          </button>
+          <ul class="language-menu" id="language-menu" role="menu" hidden></ul>
+        </div>
+        <div class="user-profile" id="user-profile" hidden>
+          <button
+            type="button"
+            class="user-profile-toggle"
+            id="user-menu-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            <span class="user-profile-label" id="user-profile-label"
+              >Perfil</span
+            >
+          </button>
+          <div class="user-profile-menu" id="user-menu" role="menu" hidden>
+            <p class="user-profile-title" id="user-profile-title">Perfil atual</p>
+            <p class="user-profile-role" id="user-menu-role">—</p>
+            <p class="user-profile-description" id="user-menu-detail"></p>
+            <button
+              type="button"
+              class="user-profile-action"
+              id="manage-services"
+              role="menuitem"
+            >
+              Gerenciar serviços
+            </button>
+            <button
+              type="button"
+              class="user-profile-action"
+              id="switch-user"
+              role="menuitem"
+            >
+              Trocar de usuário
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="search-wrapper">
+        <label for="search" id="search-label">Pesquisar Irmão</label>
+        <div class="search-input">
+          <input
+            type="search"
+            id="search"
+            placeholder="Digite o nome"
+            autocomplete="off"
+            aria-autocomplete="list"
+          />
+          <ul id="suggestions" role="listbox" aria-label="Sugestões"></ul>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <nav
+        class="category-nav"
+        id="category-nav"
+        aria-label="Categorias disponíveis"
+      >
+        <a class="back-link" id="back-link" href="index.html"
+          >← Voltar ao painel principal</a
+        >
+        <ul class="category-nav-list">
+          <li><a data-category-link="total" href="category.html?category=total">Total de Irmãos</a></li>
+          <li><a data-category-link="children" href="category.html?category=children">Crianças (0-10)</a></li>
+          <li><a data-category-link="teens" href="category.html?category=teens">Adolescentes (11-17)</a></li>
+          <li><a data-category-link="parents" href="category.html?category=parents">Pais</a></li>
+          <li><a data-category-link="services" href="category.html?category=services">Serviços</a></li>
+          <li><a data-category-link="captains" href="category.html?category=captains">Capitães de Tropa (18-29)</a></li>
+          <li><a data-category-link="braves" href="category.html?category=braves">Valentes de Davi (30-49)</a></li>
+          <li><a data-category-link="stewards" href="category.html?category=stewards">Intendentes (50+)</a></li>
+        </ul>
+      </nav>
+
+      <section class="category-panel" aria-live="polite">
+        <header class="section-header">
+          <h2 id="category-title">Carregando categoria...</h2>
+          <p id="category-description">Estamos preparando os dados.</p>
+          <p id="category-meta" class="category-meta">0 irmãos nesta categoria</p>
+        </header>
+        <div class="category-controls" id="teens-filter" hidden>
+          <label class="category-filter" for="teens-filter-toggle">
+            <input
+              type="checkbox"
+              id="teens-filter-toggle"
+              name="teens-filter-toggle"
+            />
+            <span>
+              Idade apta para colportagem
+              <small>(mostra apenas 16 e 17 anos)</small>
+            </span>
+          </label>
+        </div>
+        <div class="chart-container">
+          <canvas
+            id="category-age-chart"
+            aria-label="Gráfico de idades por categoria"
+            role="img"
+          ></canvas>
+          <p class="empty-message" id="category-chart-empty">
+            Não há idades disponíveis para esta categoria.
+          </p>
+        </div>
+        <section class="service-summary" id="service-summary" hidden aria-live="polite">
+          <header class="service-summary-header">
+            <h3 id="service-summary-title">Serviços disponíveis</h3>
+            <p id="service-summary-description">
+              Clique em um serviço para filtrar os irmãos que servem.
+            </p>
+          </header>
+          <div class="service-summary-grid" id="service-summary-grid"></div>
+        </section>
+        <div id="category-cards" class="people-grid" aria-live="polite"></div>
+        <p class="empty-message" id="category-empty">Nenhum irmão encontrado nesta categoria.</p>
+      </section>
+
+      <section id="status" class="status"></section>
+    </main>
+
+    <div
+      class="parent-choice"
+      id="parent-choice"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="parent-choice-content" role="document">
+        <button
+          type="button"
+          class="parent-choice-close"
+          id="parent-choice-close"
+          aria-label="Fechar"
+        >
+          ×
+        </button>
+        <h2 id="parent-choice-title">Selecione o responsável</h2>
+        <p id="parent-choice-question">Pai ou mãe?</p>
+        <div class="parent-choice-actions">
+          <button type="button" id="parent-choice-father">Pai</button>
+          <button type="button" id="parent-choice-mother">Mãe</button>
+          <button type="button" id="parent-choice-cancel" class="secondary">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="access-modal"
+      id="access-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="access-modal-content">
+        <h2 id="access-title">Selecione a seguir sua função:</h2>
+        <p id="access-description">Escolha uma opção para continuar:</p>
+        <div class="access-options" id="access-options">
+          <button type="button" data-access-role="responsavel">
+            Irmão Responsável
+          </button>
+          <button type="button" data-access-role="capitao">
+            Capitães de Tropa
+          </button>
+          <button type="button" data-access-role="servicos">
+            Serviços
+          </button>
+        </div>
+        <form class="access-form" id="access-form" hidden>
+          <p class="access-selected-role" id="access-selected-text">
+            Função selecionada: <span id="selected-role-label"></span>
+          </p>
+          <label for="access-password" id="access-password-label"
+            >Digite a senha</label
+          >
+          <input
+            type="password"
+            id="access-password"
+            name="access-password"
+            autocomplete="off"
+            required
+          />
+          <p class="access-error" id="access-error" role="alert"></p>
+          <div class="access-actions">
+            <button type="button" id="access-back">Voltar</button>
+            <button type="submit" id="access-confirm">Confirmar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="details-modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-button" id="close-modal" aria-label="Fechar">
+          &times;
+        </button>
+        <h2 id="modal-name">Detalhes</h2>
+        <dl id="modal-details"></dl>
+        <div class="service-controls" id="service-controls" hidden>
+          <div class="service-tags-wrapper">
+            <h3 id="service-tags-label">Serviços desempenhados</h3>
+            <div
+              class="service-tags"
+              id="service-tags"
+              aria-live="polite"
+              aria-labelledby="service-tags-label"
+            ></div>
+          </div>
+          <fieldset class="service-checklist" id="service-checklist" disabled>
+            <legend id="service-select-label">Serviços disponíveis</legend>
+            <div class="service-checklist-options" id="service-checklist-options"></div>
+          </fieldset>
+          <p class="service-feedback" id="service-feedback"></p>
+        </div>
+      </div>
+    </div>
+
+    <template id="detail-row-template">
+      <div class="detail-row">
+        <dt></dt>
+        <dd></dd>
+      </div>
+    </template>
+
+    <button
+      type="button"
+      class="assistant-toggle"
+      id="assistant-toggle"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="assistant-panel"
+    >
+      <img
+        src="https://simp6.selti-delivery.ru/images3/3d-friendly-cute-robot-assistente-virtual-inteligente-bot-chatbot-mascote-ai-inteligencia-artificial_95505-3959f41aca59707a80b.jpg"
+        alt="Abrir assistente virtual"
+      />
+    </button>
+    <div
+      class="assistant-panel"
+      id="assistant-panel"
+      role="dialog"
+      aria-modal="false"
+      tabindex="-1"
+      hidden
+    >
+      <div class="assistant-header">
+        <div>
+          <h2 id="assistant-title">JP assistant</h2>
+          <p id="assistant-subtitle">Posso ajudar com dúvidas sobre a dashboard.</p>
+        </div>
+        <button
+          type="button"
+          class="assistant-close"
+          id="assistant-close"
+          aria-label="Fechar assistente"
+        >
+          &times;
+        </button>
+      </div>
+      <div class="assistant-body">
+        <div
+          class="assistant-conversation"
+          id="assistant-conversation"
+          aria-live="polite"
+        ></div>
+        <div class="assistant-questions" id="assistant-questions"></div>
+        <form class="assistant-form" id="assistant-form" hidden>
+          <label class="sr-only" for="assistant-input" id="assistant-input-label"
+            >Descreva sua dúvida</label
+          >
+          <div class="assistant-input-group">
+            <input
+              type="text"
+              id="assistant-input"
+              name="assistant-input"
+              placeholder="Digite sua dúvida"
+              autocomplete="off"
+            />
+            <button type="submit" id="assistant-submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
