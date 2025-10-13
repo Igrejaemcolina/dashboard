@@ -6,16 +6,7 @@ const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEME
 const SERVICE_STORAGE_KEY = "igcolina-services";
 const SERVICE_FILTER_ALL = "all";
 const SERVICE_FILTER_UNASSIGNED = "unassigned";
-const DEFAULT_SERVICE_OPTIONS = [
-  { id: "literature", nameKey: "services.names.literature" },
-  { id: "reception", nameKey: "services.names.reception" },
-  { id: "projection", nameKey: "services.names.projection" },
-  { id: "broadcast", nameKey: "services.names.broadcast" },
-  { id: "responsible", nameKey: "services.names.responsible" },
-  { id: "speaker", nameKey: "services.names.speaker" },
-  { id: "kids", nameKey: "services.names.kids" },
-  { id: "kitchen", nameKey: "services.names.kitchen" },
-];
+const DEFAULT_SERVICE_OPTIONS = [];
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
 const RESERVED_SERVICE_IDS = new Set([
@@ -272,16 +263,6 @@ const TRANSLATIONS = {
         active: "Servindo",
       },
       chartLabelUnassigned: "Idades dos irmãos sem serviço",
-      names: {
-        literature: "Literatura",
-        reception: "Recepção",
-        projection: "Projeção",
-        broadcast: "Transmissão",
-        responsible: "Irmão Responsável",
-        speaker: "Irmão que Fala a mensagem",
-        kids: "Casa Kids",
-        kitchen: "Cozinha CDA",
-      },
     },
     access: {
       modalTitle: "Selecione a seguir sua função:",
@@ -741,16 +722,6 @@ const TRANSLATIONS = {
         active: "Serving",
       },
       chartLabelUnassigned: "Ages of members without a service",
-      names: {
-        literature: "Literature",
-        reception: "Reception",
-        projection: "Projection",
-        broadcast: "Broadcast",
-        responsible: "Responsible Brother",
-        speaker: "Message Speaker",
-        kids: "Casa Kids",
-        kitchen: "CDA Kitchen",
-      },
     },
     access: {
       modalTitle: "Select your role below:",
@@ -1210,16 +1181,6 @@ const TRANSLATIONS = {
         active: "Sirviendo",
       },
       chartLabelUnassigned: "Edades de los hermanos sin servicio",
-      names: {
-        literature: "Literatura",
-        reception: "Recepción",
-        projection: "Proyección",
-        broadcast: "Transmisión",
-        responsible: "Hermano Responsable",
-        speaker: "Hermano que comparte el mensaje",
-        kids: "Casa Kids",
-        kitchen: "Cocina CDA",
-      },
     },
     access: {
       modalTitle: "Selecciona a continuación tu función:",
@@ -6181,6 +6142,23 @@ function renderServiceControls(entry) {
   });
 }
 
+function refreshActiveServiceInterfaces({ preserveSelection = true } = {}) {
+  const modalVisible =
+    elements.serviceAssignmentModal &&
+    !elements.serviceAssignmentModal.hidden &&
+    state.activeServiceModalEntry;
+
+  if (modalVisible) {
+    populateServiceAssignmentModal(state.activeServiceModalEntry, {
+      preserveSelection,
+    });
+  }
+
+  if (state.activeDetailEntry) {
+    renderServiceControls(state.activeDetailEntry);
+  }
+}
+
 function hideServiceSummary() {
   if (elements.serviceSummary) {
     elements.serviceSummary.hidden = true;
@@ -7084,6 +7062,7 @@ function handleCustomServiceListClick(event) {
       if (isServiceManagerPage) {
         renderServiceManager();
       }
+      refreshActiveServiceInterfaces({ preserveSelection: true });
       setStatusFromKey("serviceManager.custom.deleteSuccess", { name: label });
     } else {
       setStatusFromKey("serviceManager.custom.deleteError", {}, true);
@@ -7266,6 +7245,7 @@ function handleServiceAddSubmit(event) {
     if (isServiceManagerPage) {
       renderServiceManager();
     }
+    refreshActiveServiceInterfaces({ preserveSelection: true });
     setStatusFromKey("serviceManager.edit.success", {
       name: result.option.label,
     });
@@ -7302,6 +7282,7 @@ function handleServiceAddSubmit(event) {
   if (isServiceManagerPage) {
     renderServiceManager();
   }
+  refreshActiveServiceInterfaces({ preserveSelection: true });
   setStatusFromKey("serviceManager.add.success", { name: option.label });
 }
 

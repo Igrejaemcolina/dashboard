@@ -68,7 +68,7 @@ Os dados são carregados automaticamente a partir da planilha configurada em `sc
 
 ### Serviços na vida da igreja
 
-- Ao acessar o modal de detalhes com o perfil **Serviços**, a lista de checkboxes fica disponível para marcar todas as frentes em que o irmão atua (Literatura, Recepção, Projeção, Transmissão, Irmão Responsável, Irmão que Fala a Mensagem, Casa Kids e Cozinha CDA). É possível selecionar quantos ministérios forem necessários simultaneamente.
+- Ao acessar o modal de detalhes com o perfil **Serviços**, a lista de checkboxes exibe automaticamente os ministérios cadastrados pelo gerenciador para registrar onde cada irmão atua. É possível selecionar quantos forem necessários simultaneamente.
 - Nos demais perfis, apenas as tags de serviço aparecem nos cards e no modal, indicando em quais ministérios cada pessoa atua sem oferecer controles de edição.
 - As escolhas ficam salvas no navegador por meio do `localStorage`, permitindo ajustes a qualquer momento sem depender da planilha.
 - O resumo de serviços considera tanto os dados principais quanto os complementares e atualiza os totais em tempo real para todos os perfis. Perfis de Irmão Responsável e Capitães de Tropa acompanham os números em modo somente leitura, enquanto o perfil **Serviços** pode alterar e revisar diretamente pelo modal ou pelo gerenciador dedicado (`services.html`).
