@@ -118,35 +118,73 @@
           <select id="service-manager-filter">
             <option value="all">Todos os registros</option>
             <option value="active">Servindo</option>
-            <option value="inactive">Sem serviço</option>
+            <option value="unassigned">N.Serviço</option>
           </select>
         </div>
         <form class="service-manager-add" id="service-manager-add-form" hidden>
           <h3 class="service-manager-add-title" id="service-manager-add-title">
             Cadastrar novo serviço
           </h3>
-          <label
-            class="service-manager-add-label"
-            for="service-manager-add-input"
-            id="service-manager-add-label"
-          >
-            Nome do serviço
-          </label>
-          <div class="service-manager-add-input">
-            <input
-              type="text"
-              id="service-manager-add-input"
-              name="service-manager-add-input"
-              placeholder="Digite o nome do serviço"
-              autocomplete="off"
-            />
-            <button type="submit" id="service-manager-add-button">
-              Adicionar serviço
-            </button>
+          <div class="service-manager-add-field">
+            <label
+              class="service-manager-add-label"
+              for="service-manager-add-input"
+              id="service-manager-add-label"
+            >
+              Nome do serviço (Português)
+            </label>
+            <div class="service-manager-add-input">
+              <input
+                type="text"
+                id="service-manager-add-input"
+                name="service-manager-add-input"
+                placeholder="Digite o nome do serviço em Português"
+                autocomplete="off"
+              />
+              <button type="submit" id="service-manager-add-button">
+                Adicionar serviço
+              </button>
+            </div>
+          </div>
+          <div class="service-manager-add-languages">
+            <div class="service-manager-add-field">
+              <label
+                class="service-manager-add-label"
+                for="service-manager-add-input-en"
+                id="service-manager-add-label-en"
+              >
+                Nome do serviço (Inglês)
+              </label>
+              <input
+                type="text"
+                id="service-manager-add-input-en"
+                name="service-manager-add-input-en"
+                class="service-manager-add-text"
+                placeholder="Digite o nome em Inglês"
+                autocomplete="off"
+              />
+            </div>
+            <div class="service-manager-add-field">
+              <label
+                class="service-manager-add-label"
+                for="service-manager-add-input-es"
+                id="service-manager-add-label-es"
+              >
+                Nome do serviço (Espanhol)
+              </label>
+              <input
+                type="text"
+                id="service-manager-add-input-es"
+                name="service-manager-add-input-es"
+                class="service-manager-add-text"
+                placeholder="Digite o nome em Espanhol"
+                autocomplete="off"
+              />
+            </div>
           </div>
           <p class="service-manager-add-hint" id="service-manager-add-hint" hidden>
-            Os novos serviços ficam disponíveis imediatamente para seleção nos
-            cards.
+            Informe o nome nas três línguas para disponibilizar o serviço em
+            todo o painel.
           </p>
         </form>
         <section class="service-summary" id="service-summary" hidden aria-live="polite">

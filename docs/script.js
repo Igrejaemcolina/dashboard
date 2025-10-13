@@ -5,6 +5,7 @@ const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
 const SERVICE_STORAGE_KEY = "igcolina-services";
 const SERVICE_FILTER_ALL = "all";
+const SERVICE_FILTER_UNASSIGNED = "unassigned";
 const DEFAULT_SERVICE_OPTIONS = [
   { id: "literature", nameKey: "services.names.literature" },
   { id: "reception", nameKey: "services.names.reception" },
@@ -17,7 +18,11 @@ const DEFAULT_SERVICE_OPTIONS = [
 ];
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
-const RESERVED_SERVICE_IDS = new Set([SERVICE_FILTER_ALL, "active", "inactive"]);
+const RESERVED_SERVICE_IDS = new Set([
+  SERVICE_FILTER_ALL,
+  SERVICE_FILTER_UNASSIGNED,
+  "active",
+]);
 const DEFAULT_SERVICE_OPTION_IDS = new Set(
   DEFAULT_SERVICE_OPTIONS.map((option) => option.id)
 );
@@ -244,23 +249,29 @@ const TRANSLATIONS = {
       summaryDescription: "Clique em um serviço para filtrar os irmãos que servem.",
       filters: {
         all: "Todos os serviços",
+        unassigned: "N.Serviço",
       },
       countLabel: ({ count }) =>
         `${count} ${count === 1 ? "irmão servindo" : "irmãos servindo"}`,
+      countLabelUnassigned: ({ count }) =>
+        `${count} ${count === 1 ? "irmão sem serviço" : "irmãos sem serviço"}`,
       empty: {
         all: "Nenhum irmão serve na vida da igreja no momento.",
         service: ({ service }) => `Nenhum irmão serve em ${service}.`,
+        unassigned: "Todos os irmãos estão servindo no momento.",
       },
       meta: {
         all: "todos os serviços",
+        unassigned: "irmãos sem serviço",
         service: ({ service }) => `serviço: ${service}`,
       },
       tagsLabel: "Serviços desempenhados",
       selectLabel: "Selecione os serviços",
       feedback: {
         inactive: "N.Serviço",
-        active: ({ service }) => `Servindo: ${service}`,
+        active: "Servindo",
       },
+      chartLabelUnassigned: "Idades dos irmãos sem serviço",
       names: {
         literature: "Literatura",
         reception: "Recepção",
@@ -382,7 +393,7 @@ const TRANSLATIONS = {
           capitao:
             "Como Capitão de Tropa, você apenas visualiza as tags dos adolescentes e de seus pais; filtros detalhados estão disponíveis para o perfil Serviços.",
           servicos:
-            "Use os cartões de resumo ou o filtro do gerenciador para listar apenas quem serve em uma frente específica. Selecione 'Serviços' para alternar entre ativos, inativos ou um ministério determinado.",
+            "Use os cartões de resumo ou o filtro do gerenciador para listar apenas quem serve em uma frente específica. Selecione 'Serviços' para alternar entre ativos, N.Serviço ou um ministério determinado.",
         },
         fallback: "Estou aqui para ajudar com as principais dúvidas do painel.",
       },
@@ -410,14 +421,18 @@ const TRANSLATIONS = {
       filters: {
         all: "Todos os registros",
         active: "Servindo",
-        inactive: "Sem serviço",
+        unassigned: "N.Serviço",
       },
       add: {
         title: "Cadastrar novo serviço",
-        label: "Nome do serviço",
-        placeholder: "Digite o nome do serviço",
+        label: "Nome do serviço (Português)",
+        placeholder: "Digite o nome do serviço em Português",
+        labelEn: "Nome do serviço (Inglês)",
+        placeholderEn: "Digite o nome em Inglês",
+        labelEs: "Nome do serviço (Espanhol)",
+        placeholderEs: "Digite o nome em Espanhol",
         helper:
-          "Os novos serviços ficam disponíveis imediatamente para seleção nos cards.",
+          "Informe o nome nas três línguas para que os serviços apareçam traduzidos em todo o painel.",
         button: "Adicionar serviço",
         success: ({ name }) => `Serviço "${name}" adicionado.`,
         exists: "Esse serviço já está disponível.",
@@ -635,23 +650,29 @@ const TRANSLATIONS = {
       summaryDescription: "Click a ministry to filter the serving members.",
       filters: {
         all: "All services",
+        unassigned: "No service",
       },
       countLabel: ({ count }) =>
         `${count} ${count === 1 ? "member serving" : "members serving"}`,
+      countLabelUnassigned: ({ count }) =>
+        `${count} ${count === 1 ? "member without service" : "members without service"}`,
       empty: {
         all: "No members are currently serving.",
         service: ({ service }) => `No members are serving in ${service}.`,
+        unassigned: "Everyone currently has at least one service.",
       },
       meta: {
         all: "all services",
+        unassigned: "members without a service",
         service: ({ service }) => `service: ${service}`,
       },
       tagsLabel: "Serving in",
       selectLabel: "Choose the services",
       feedback: {
         inactive: "No service",
-        active: ({ service }) => `Serving: ${service}`,
+        active: "Serving",
       },
+      chartLabelUnassigned: "Ages of members without a service",
       names: {
         literature: "Literature",
         reception: "Reception",
@@ -773,7 +794,7 @@ const TRANSLATIONS = {
           capitao:
             "As a Troop Captain you only view the teen and parent tags; advanced filters live with the Services profile.",
           servicos:
-            "Use the summary cards or the manager filter to list only those serving in a specific ministry. The \"Services\" selector lets you switch between active, inactive, or a chosen ministry.",
+            "Use the summary cards or the manager filter to list only those serving in a specific ministry. The \"Services\" selector lets you switch between active, no service, or a chosen ministry.",
         },
         fallback: "I'm here to help with the main questions about the dashboard.",
       },
@@ -801,14 +822,18 @@ const TRANSLATIONS = {
       filters: {
         all: "All records",
         active: "Serving",
-        inactive: "No service",
+        unassigned: "No service",
       },
       add: {
         title: "Add new service",
-        label: "Service name",
-        placeholder: "Type the service name",
+        label: "Service name (Portuguese)",
+        placeholder: "Type the Portuguese name",
+        labelEn: "Service name (English)",
+        placeholderEn: "Type the English name",
+        labelEs: "Service name (Spanish)",
+        placeholderEs: "Type the Spanish name",
         helper:
-          "New services become available immediately for selection on the cards.",
+          "Provide the name in every language so the service appears translated across the dashboard.",
         button: "Add service",
         success: ({ name }) => `Service "${name}" added.`,
         exists: "That service is already available.",
@@ -1028,23 +1053,29 @@ const TRANSLATIONS = {
         "Haz clic en un servicio para filtrar a los hermanos que sirven.",
       filters: {
         all: "Todos los servicios",
+        unassigned: "Sin servicio",
       },
       countLabel: ({ count }) =>
         `${count} ${count === 1 ? "hermano sirviendo" : "hermanos sirviendo"}`,
+      countLabelUnassigned: ({ count }) =>
+        `${count} ${count === 1 ? "hermano sin servicio" : "hermanos sin servicio"}`,
       empty: {
         all: "No hay hermanos sirviendo en este momento.",
         service: ({ service }) => `No hay hermanos sirviendo en ${service}.`,
+        unassigned: "Todos los hermanos están sirviendo por ahora.",
       },
       meta: {
         all: "todos los servicios",
+        unassigned: "hermanos sin servicio",
         service: ({ service }) => `servicio: ${service}`,
       },
       tagsLabel: "Servicios en los que participa",
       selectLabel: "Elige los servicios",
       feedback: {
         inactive: "Sin servicio",
-        active: ({ service }) => `Sirviendo: ${service}`,
+        active: "Sirviendo",
       },
+      chartLabelUnassigned: "Edades de los hermanos sin servicio",
       names: {
         literature: "Literatura",
         reception: "Recepción",
@@ -1166,7 +1197,7 @@ const TRANSLATIONS = {
           capitao:
             "Como Capitán de Tropa solo visualizas las etiquetas de los adolescentes y sus padres; los filtros avanzados están disponibles para el perfil Servicios.",
           servicos:
-            "Utiliza las tarjetas de resumen o el filtro del gestor para listar solo a quienes sirven en un ministerio específico. El selector \"Servicios\" permite alternar entre activos, inactivos o un ministerio elegido.",
+            "Utiliza las tarjetas de resumen o el filtro del gestor para listar solo a quienes sirven en un ministerio específico. El selector \"Servicios\" permite alternar entre activos, sin servicio o un ministerio elegido.",
         },
         fallback: "Estoy aquí para ayudarte con las principales dudas del panel.",
       },
@@ -1194,14 +1225,18 @@ const TRANSLATIONS = {
       filters: {
         all: "Todos los registros",
         active: "Sirviendo",
-        inactive: "Sin servicio",
+        unassigned: "Sin servicio",
       },
       add: {
         title: "Agregar nuevo servicio",
-        label: "Nombre del servicio",
-        placeholder: "Escribe el nombre del servicio",
+        label: "Nombre del servicio (Portugués)",
+        placeholder: "Escribe el nombre en Portugués",
+        labelEn: "Nombre del servicio (Inglés)",
+        placeholderEn: "Escribe el nombre en Inglés",
+        labelEs: "Nombre del servicio (Español)",
+        placeholderEs: "Escribe el nombre en Español",
         helper:
-          "Los nuevos servicios quedan disponibles de inmediato para seleccionarse en las tarjetas.",
+          "Completa el nombre en los tres idiomas para que el servicio aparezca traducido en todo el panel.",
         button: "Agregar servicio",
         success: ({ name }) => `Servicio "${name}" agregado.`,
         exists: "Ese servicio ya está disponible.",
@@ -1407,6 +1442,10 @@ const elements = {
   serviceManagerAddTitle: document.getElementById("service-manager-add-title"),
   serviceManagerAddLabel: document.getElementById("service-manager-add-label"),
   serviceManagerAddInput: document.getElementById("service-manager-add-input"),
+  serviceManagerAddLabelEn: document.getElementById("service-manager-add-label-en"),
+  serviceManagerAddInputEn: document.getElementById("service-manager-add-input-en"),
+  serviceManagerAddLabelEs: document.getElementById("service-manager-add-label-es"),
+  serviceManagerAddInputEs: document.getElementById("service-manager-add-input-es"),
   serviceManagerAddButton: document.getElementById("service-manager-add-button"),
   serviceManagerAddHint: document.getElementById("service-manager-add-hint"),
   serviceManagerList: document.getElementById("service-manager-list"),
@@ -1558,8 +1597,8 @@ const state = {
   activeUserSecret: null,
   serviceAssignments: new Map(),
   customServiceOptions,
-  serviceSummary: { total: 0, perService: {} },
-  accessibleServiceSummary: { total: 0, perService: {} },
+  serviceSummary: { total: 0, unassigned: 0, perService: {} },
+  accessibleServiceSummary: { total: 0, unassigned: 0, perService: {} },
   activeServiceFilter: SERVICE_FILTER_ALL,
   activeDetailEntry: null,
   activeServiceModalEntry: null,
@@ -2144,6 +2183,26 @@ function applyLanguage(options = {}) {
   if (elements.serviceManagerAddInput) {
     elements.serviceManagerAddInput.placeholder = translate(
       "serviceManager.add.placeholder"
+    );
+  }
+  if (elements.serviceManagerAddLabelEn) {
+    elements.serviceManagerAddLabelEn.textContent = translate(
+      "serviceManager.add.labelEn"
+    );
+  }
+  if (elements.serviceManagerAddInputEn) {
+    elements.serviceManagerAddInputEn.placeholder = translate(
+      "serviceManager.add.placeholderEn"
+    );
+  }
+  if (elements.serviceManagerAddLabelEs) {
+    elements.serviceManagerAddLabelEs.textContent = translate(
+      "serviceManager.add.labelEs"
+    );
+  }
+  if (elements.serviceManagerAddInputEs) {
+    elements.serviceManagerAddInputEs.placeholder = translate(
+      "serviceManager.add.placeholderEs"
     );
   }
   if (elements.serviceManagerAddButton) {
@@ -3380,8 +3439,20 @@ function translateServiceName(serviceId) {
   }
 
   const customOption = customServiceOptions.get(normalized);
-  if (customOption?.label) {
-    return customOption.label;
+  if (customOption) {
+    if (customOption.labels && typeof customOption.labels === "object") {
+      const language = state.language ?? getDefaultLanguage();
+      const label =
+        customOption.labels[language] ??
+        customOption.labels.pt ??
+        customOption.label;
+      if (label) {
+        return label;
+      }
+    }
+    if (customOption.label) {
+      return customOption.label;
+    }
   }
 
   return normalized;
@@ -3583,34 +3654,33 @@ function resolveServiceKeys(record, supplementalEntry, context = {}) {
 }
 
 function buildServiceSummary(entries) {
-  const summary = { total: 0, perService: {} };
+  const summary = { total: 0, unassigned: 0, perService: {} };
 
   if (!Array.isArray(entries) || !entries.length) {
     return summary;
   }
 
   entries.forEach((entry) => {
-    const assignment = entry?.service;
-    if (!assignment?.active) {
-      return;
-    }
-
+    const assignment = entry?.service ?? EMPTY_SERVICE_ASSIGNMENT;
     const services = Array.isArray(assignment.services)
       ? assignment.services
       : [];
 
-    if (!services.length) {
+    const normalizedServices = services
+      .map((serviceId) => sanitizeServiceId(serviceId))
+      .filter(Boolean);
+
+    const isActive = Boolean(assignment.active && normalizedServices.length);
+
+    if (!isActive) {
+      summary.unassigned += 1;
       return;
     }
 
     summary.total += 1;
-    services.forEach((serviceId) => {
-      const normalized = sanitizeServiceId(serviceId);
-      if (!normalized) {
-        return;
-      }
-      summary.perService[normalized] =
-        (summary.perService[normalized] ?? 0) + 1;
+    normalizedServices.forEach((serviceId) => {
+      summary.perService[serviceId] =
+        (summary.perService[serviceId] ?? 0) + 1;
     });
   });
 
@@ -3619,7 +3689,7 @@ function buildServiceSummary(entries) {
 
 function getCustomServiceOptions() {
   return Array.from(customServiceOptions.values()).sort((a, b) =>
-    collator.compare(a.label || "", b.label || "")
+    collator.compare(getServiceOptionLabel(a), getServiceOptionLabel(b))
   );
 }
 
@@ -3633,6 +3703,11 @@ function getServiceOptionLabel(option) {
   }
   if (option.nameKey) {
     return translate(option.nameKey);
+  }
+  if (option.labels && typeof option.labels === "object") {
+    const language = state.language ?? getDefaultLanguage();
+    const label = option.labels[language] ?? option.labels.pt ?? option.label;
+    return label ?? "";
   }
   return option.label ?? "";
 }
@@ -3662,8 +3737,8 @@ function loadCustomServices() {
           : typeof value?.label === "string"
           ? value.label
           : "";
-      const label = rawLabel.trim();
-      if (!normalizedId || !label) {
+      const baseLabel = rawLabel.trim();
+      if (!normalizedId || !baseLabel) {
         return;
       }
       if (RESERVED_SERVICE_IDS.has(normalizedId)) {
@@ -3675,7 +3750,21 @@ function loadCustomServices() {
       if (customServiceOptions.has(normalizedId)) {
         return;
       }
-      customServiceOptions.set(normalizedId, { id: normalizedId, label });
+      const labels = {};
+      if (value && typeof value === "object" && value.labels) {
+        labels.pt = String(value.labels.pt ?? baseLabel).trim() || baseLabel;
+        labels.en = String(value.labels.en ?? labels.pt).trim() || labels.pt;
+        labels.es = String(value.labels.es ?? labels.pt).trim() || labels.pt;
+      } else {
+        labels.pt = baseLabel;
+        labels.en = baseLabel;
+        labels.es = baseLabel;
+      }
+      customServiceOptions.set(normalizedId, {
+        id: normalizedId,
+        label: labels.pt,
+        labels,
+      });
     });
   } catch (error) {
     console.warn("Failed to load custom services:", error);
@@ -3694,7 +3783,14 @@ function persistCustomServices() {
       if (!id || !label) {
         return;
       }
-      payload[id] = { label };
+      const labels = option?.labels && typeof option.labels === "object"
+        ? {
+            pt: String(option.labels.pt ?? label).trim() || label,
+            en: String(option.labels.en ?? option.labels.pt ?? label).trim() || label,
+            es: String(option.labels.es ?? option.labels.pt ?? label).trim() || label,
+          }
+        : { pt: label, en: label, es: label };
+      payload[id] = { label, labels };
     });
     localStorage.setItem(CUSTOM_SERVICE_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
@@ -3702,13 +3798,52 @@ function persistCustomServices() {
   }
 }
 
-function registerCustomService(rawLabel) {
-  const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
-  if (!label) {
+function normalizeCustomServiceLabels(rawInput) {
+  if (!rawInput) {
+    return null;
+  }
+
+  if (typeof rawInput === "string") {
+    const label = rawInput.trim();
+    if (!label) {
+      return null;
+    }
+    return { pt: label, en: label, es: label };
+  }
+
+  if (typeof rawInput === "object") {
+    const base =
+      typeof rawInput.pt === "string"
+        ? rawInput.pt.trim()
+        : typeof rawInput.label === "string"
+        ? rawInput.label.trim()
+        : "";
+    if (!base) {
+      return null;
+    }
+
+    const english =
+      typeof rawInput.en === "string" ? rawInput.en.trim() : "";
+    const spanish =
+      typeof rawInput.es === "string" ? rawInput.es.trim() : "";
+
+    return {
+      pt: base,
+      en: english || base,
+      es: spanish || base,
+    };
+  }
+
+  return null;
+}
+
+function registerCustomService(rawInput) {
+  const labels = normalizeCustomServiceLabels(rawInput);
+  if (!labels) {
     return { success: false, reason: "invalid" };
   }
 
-  const normalizedId = normalizeServiceId(label);
+  const normalizedId = normalizeServiceId(labels.pt);
   if (!normalizedId) {
     return { success: false, reason: "invalid" };
   }
@@ -3725,7 +3860,7 @@ function registerCustomService(rawLabel) {
     return { success: false, reason: "exists", id: normalizedId };
   }
 
-  const option = { id: normalizedId, label };
+  const option = { id: normalizedId, label: labels.pt, labels };
   customServiceOptions.set(normalizedId, option);
   persistCustomServices();
   return { success: true, option };
@@ -3841,6 +3976,7 @@ function applyServiceAssignmentsToEntries() {
 function ensureActiveServiceFilterValid(summary) {
   const validIds = new Set([
     SERVICE_FILTER_ALL,
+    SERVICE_FILTER_UNASSIGNED,
     ...getAllServiceOptions().map((option) => option.id),
   ]);
 
@@ -3850,6 +3986,14 @@ function ensureActiveServiceFilterValid(summary) {
   }
 
   if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
+    return;
+  }
+
+  if (state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED) {
+    const inactiveCount = summary?.unassigned ?? 0;
+    if (inactiveCount <= 0) {
+      state.activeServiceFilter = SERVICE_FILTER_ALL;
+    }
     return;
   }
 
@@ -4991,7 +5135,10 @@ function ensureServiceManagerFilterOptions() {
   const options = [
     { value: "all", label: translate("serviceManager.filters.all") },
     { value: "active", label: translate("serviceManager.filters.active") },
-    { value: "inactive", label: translate("serviceManager.filters.inactive") },
+    {
+      value: SERVICE_FILTER_UNASSIGNED,
+      label: translate("serviceManager.filters.unassigned"),
+    },
     ...getAllServiceOptions().map((option) => ({
       value: option.id,
       label: getServiceOptionLabel(option),
@@ -5212,17 +5359,25 @@ function renderServiceSummaryCards(summary) {
       id: SERVICE_FILTER_ALL,
       label: translate("services.filters.all"),
       count: summary?.total ?? 0,
+      type: "all",
+    },
+    {
+      id: SERVICE_FILTER_UNASSIGNED,
+      label: translate("services.filters.unassigned"),
+      count: summary?.unassigned ?? 0,
+      type: "unassigned",
     },
     ...getAllServiceOptions().map((option) => ({
       id: option.id,
       label: getServiceOptionLabel(option),
       count: summary?.perService?.[option.id] ?? 0,
+      type: "service",
     })),
   ];
 
   elements.serviceSummaryGrid.innerHTML = "";
 
-  cards.forEach(({ id, label, count }) => {
+  cards.forEach(({ id, label, count, type }) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "service-summary-card";
@@ -5237,7 +5392,11 @@ function renderServiceSummaryCards(summary) {
     const title = document.createElement("strong");
     title.textContent = label;
     const meta = document.createElement("span");
-    meta.textContent = translate("services.countLabel", { count });
+    const metaKey =
+      type === "unassigned"
+        ? "services.countLabelUnassigned"
+        : "services.countLabel";
+    meta.textContent = translate(metaKey, { count });
 
     button.append(title, meta);
     elements.serviceSummaryGrid.appendChild(button);
@@ -5446,21 +5605,26 @@ function renderServicesCategory(category) {
     elements.teensFilter.hidden = true;
   }
 
-  const summary = state.accessibleServiceSummary ?? { total: 0, perService: {} };
+  const summary =
+    state.accessibleServiceSummary ?? { total: 0, unassigned: 0, perService: {} };
   ensureActiveServiceFilterValid(summary);
   renderServiceSummaryCards(summary);
 
-  const servingEntries = getAccessibleEntries().filter((entry) =>
+  const accessibleEntries = getAccessibleEntries();
+  const servingEntries = accessibleEntries.filter((entry) =>
     category.filter(entry)
   );
 
-  let filteredEntries = servingEntries;
-  if (state.activeServiceFilter !== SERVICE_FILTER_ALL) {
+  let filteredEntries;
+  if (state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED) {
+    filteredEntries = accessibleEntries.filter((entry) => !hasActiveServices(entry));
+  } else if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
+    filteredEntries = servingEntries;
+  } else {
     filteredEntries = servingEntries.filter((entry) => {
-      const services = entry.service?.services;
-      if (!Array.isArray(services)) {
-        return false;
-      }
+      const services = Array.isArray(entry.service?.services)
+        ? entry.service.services.map((serviceId) => sanitizeServiceId(serviceId)).filter(Boolean)
+        : [];
       return services.includes(state.activeServiceFilter);
     });
   }
@@ -5473,6 +5637,8 @@ function renderServicesCategory(category) {
     const filterLabel =
       state.activeServiceFilter === SERVICE_FILTER_ALL
         ? translate("services.meta.all")
+        : state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED
+        ? translate("services.meta.unassigned")
         : translate("services.meta.service", {
             service: translateServiceName(state.activeServiceFilter),
           });
@@ -5486,16 +5652,19 @@ function renderServicesCategory(category) {
   const emptyMessage =
     state.activeServiceFilter === SERVICE_FILTER_ALL
       ? translate("services.empty.all")
+      : state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED
+      ? translate("services.empty.unassigned")
       : translate("services.empty.service", {
           service: translateServiceName(state.activeServiceFilter),
         });
 
+  const baseChartLabel = translateCategoryField(category, "chartLabel");
   const chartLabel =
     state.activeServiceFilter === SERVICE_FILTER_ALL
-      ? translateCategoryField(category, "chartLabel")
-      : `${translateCategoryField(category, "chartLabel")} · ${translateServiceName(
-          state.activeServiceFilter
-        )}`;
+      ? baseChartLabel
+      : state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED
+      ? translate("services.chartLabelUnassigned")
+      : `${baseChartLabel} · ${translateServiceName(state.activeServiceFilter)}`;
 
   updateCategoryCards(filteredEntries, category, { emptyMessage });
   updateCategoryChart(filteredEntries, category, {
@@ -5875,6 +6044,12 @@ function renderServiceManager() {
   if (elements.serviceManagerAddInput) {
     elements.serviceManagerAddInput.disabled = !canAddServices;
   }
+  if (elements.serviceManagerAddInputEn) {
+    elements.serviceManagerAddInputEn.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddInputEs) {
+    elements.serviceManagerAddInputEs.disabled = !canAddServices;
+  }
   if (elements.serviceManagerAddButton) {
     elements.serviceManagerAddButton.disabled = !canAddServices;
   }
@@ -5922,14 +6097,17 @@ function renderServiceManager() {
 
   ensureServiceManagerFilterOptions();
 
-  const summary = state.serviceSummary ?? { total: 0, perService: {} };
+  const summary =
+    state.serviceSummary ?? { total: 0, unassigned: 0, perService: {} };
   renderServiceSummaryCards(summary);
 
   const filterValue = elements.serviceManagerFilter?.value ?? "all";
   const normalizedFilter = sanitizeServiceId(filterValue);
 
-  if (filterValue === "all" || filterValue === "active" || filterValue === "inactive") {
+  if (filterValue === "all" || filterValue === "active") {
     state.activeServiceFilter = SERVICE_FILTER_ALL;
+  } else if (filterValue === SERVICE_FILTER_UNASSIGNED) {
+    state.activeServiceFilter = SERVICE_FILTER_UNASSIGNED;
   } else if (normalizedFilter) {
     state.activeServiceFilter = normalizedFilter;
   } else {
@@ -5940,25 +6118,18 @@ function renderServiceManager() {
 
   entries = entries.filter((entry) => {
     const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
-    const active = Boolean(
-      assignment.active &&
-        Array.isArray(assignment.services) &&
-        assignment.services.length
-    );
-    if (filterValue === "active") {
-      return active;
-    }
-    if (filterValue === "inactive") {
+    const services = Array.isArray(assignment.services)
+      ? assignment.services.map((serviceId) => sanitizeServiceId(serviceId)).filter(Boolean)
+      : [];
+    const active = Boolean(assignment.active && services.length);
+
+    if (filterValue === SERVICE_FILTER_UNASSIGNED) {
       return !active;
     }
-    if (filterValue !== "all" && normalizedFilter) {
-      return (
-        active &&
-        assignment.services &&
-        assignment.services.includes(normalizedFilter)
-      );
+    if (filterValue !== "all" && filterValue !== "active" && normalizedFilter) {
+      return active && services.includes(normalizedFilter);
     }
-    return true;
+    return active;
   });
 
   entries.sort((a, b) => collator.compare(a.name || "", b.name || ""));
@@ -5985,11 +6156,17 @@ function handleServiceAddSubmit(event) {
   }
 
   const input = elements.serviceManagerAddInput;
+  const inputEn = elements.serviceManagerAddInputEn;
+  const inputEs = elements.serviceManagerAddInputEs;
   if (!input) {
     return;
   }
 
-  const result = registerCustomService(input.value);
+  const result = registerCustomService({
+    pt: input.value,
+    en: inputEn?.value,
+    es: inputEs?.value,
+  });
   if (!result.success) {
     const key =
       result.reason === "exists"
@@ -5999,6 +6176,12 @@ function handleServiceAddSubmit(event) {
         : "serviceManager.add.invalid";
     const trimmed = typeof input.value === "string" ? input.value.trim() : "";
     input.value = trimmed;
+    if (inputEn && typeof inputEn.value === "string") {
+      inputEn.value = inputEn.value.trim();
+    }
+    if (inputEs && typeof inputEs.value === "string") {
+      inputEs.value = inputEs.value.trim();
+    }
     setStatusFromKey(key, {}, true);
     input.focus();
     return;
@@ -6006,6 +6189,12 @@ function handleServiceAddSubmit(event) {
 
   const { option } = result;
   input.value = "";
+  if (inputEn) {
+    inputEn.value = "";
+  }
+  if (inputEs) {
+    inputEs.value = "";
+  }
   input.focus();
   setStatusFromKey("serviceManager.add.success", { name: option.label });
   ensureServiceManagerFilterOptions();
@@ -6469,15 +6658,23 @@ function handleServiceSummaryClick(event) {
   }
 
   const serviceId = card.dataset.serviceId || SERVICE_FILTER_ALL;
-  const sanitized = sanitizeServiceId(serviceId);
-  state.activeServiceFilter =
-    serviceId === SERVICE_FILTER_ALL || !sanitized
-      ? SERVICE_FILTER_ALL
-      : sanitized;
+  let targetFilter = SERVICE_FILTER_ALL;
+  if (serviceId === SERVICE_FILTER_UNASSIGNED) {
+    targetFilter = SERVICE_FILTER_UNASSIGNED;
+  } else if (serviceId === SERVICE_FILTER_ALL) {
+    targetFilter = SERVICE_FILTER_ALL;
+  } else {
+    const sanitized = sanitizeServiceId(serviceId);
+    targetFilter = sanitized || SERVICE_FILTER_ALL;
+  }
+
+  state.activeServiceFilter = targetFilter;
   if (isServiceManagerPage) {
     if (elements.serviceManagerFilter) {
       if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
         elements.serviceManagerFilter.value = "all";
+      } else if (state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED) {
+        elements.serviceManagerFilter.value = SERVICE_FILTER_UNASSIGNED;
       } else {
         elements.serviceManagerFilter.value = state.activeServiceFilter;
       }
