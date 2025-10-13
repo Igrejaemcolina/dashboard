@@ -597,6 +597,21 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   flex-shrink: 0;
 }
 
+.card--services .card-header {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.card--services h2 {
+  flex: initial;
+}
+
+.card--services .value {
+  display: none;
+}
+
 .card-hint {
   margin: 0;
   font-size: 0.8rem;
