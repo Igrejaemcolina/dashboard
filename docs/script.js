@@ -27,7 +27,6 @@ function hasActiveServices(entry) {
 }
 
 const CAPTAIN_ALLOWED_CATEGORIES = ["teens", "parents", "services"];
-const CAPTAIN_CARD_CATEGORIES = ["teens", "parents"];
 
 const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
@@ -69,7 +68,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Clique para acessar as informações correspondentes.",
-      restrictedHint: "Esta função não está liberada para este perfil.",
+      restrictedHint: "Não está liberado essa função para esse perfil.",
     },
     categories: {
       total: {
@@ -438,7 +437,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Click to access the corresponding information.",
-      restrictedHint: "This feature is not available for this profile.",
+      restrictedHint: "This function isn't available for this profile.",
     },
     categories: {
       total: {
@@ -805,7 +804,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Haz clic para acceder a la información correspondiente.",
-      restrictedHint: "Esta función no está habilitada para este perfil.",
+      restrictedHint: "Esta función no está liberada para este perfil.",
     },
     categories: {
       total: {
@@ -2432,27 +2431,21 @@ function applyAccessRestrictions() {
   elements.summaryCards.forEach((card) => {
     const categoryId = card.dataset.category;
     if (!categoryId) return;
-    const hideCard =
-      state.accessRole === ACCESS_ROLES.CAPTAIN &&
-      !CAPTAIN_CARD_CATEGORIES.includes(categoryId);
-    card.hidden = hideCard;
-    if (hideCard) {
-      card.removeAttribute("aria-disabled");
-      card.tabIndex = -1;
-      return;
-    }
 
     const allowed = isCategoryAllowed(categoryId);
+    const restricted = !allowed;
+
+    card.hidden = false;
     card.classList.toggle("restricted", !allowed);
     const hintElement = card.querySelector(".card-hint");
     if (hintElement) {
-      if (!allowed && state.accessRole === ACCESS_ROLES.CAPTAIN) {
+      if (restricted && state.accessRole === ACCESS_ROLES.CAPTAIN) {
         hintElement.textContent = translate("cards.restrictedHint");
       } else {
         hintElement.textContent = translate("cards.hint");
       }
     }
-    if (!allowed) {
+    if (restricted) {
       card.setAttribute("aria-disabled", "true");
       card.tabIndex = -1;
     } else {
