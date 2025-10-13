@@ -69,6 +69,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Clique para acessar as informações correspondentes.",
+      restrictedHint: "Esta função não está liberada para este perfil.",
     },
     categories: {
       total: {
@@ -189,6 +190,7 @@ const TRANSLATIONS = {
       ageLabel: ({ value }) => `Idade: ${value}`,
       phoneLabel: ({ value }) => `Telefone: ${value}`,
       serviceLabel: ({ value }) => `Serviço: ${value}`,
+      servingTag: "Servindo",
       you: "Você",
     },
     parents: {
@@ -436,6 +438,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Click to access the corresponding information.",
+      restrictedHint: "This feature is not available for this profile.",
     },
     categories: {
       total: {
@@ -554,6 +557,7 @@ const TRANSLATIONS = {
       ageLabel: ({ value }) => `Age: ${value}`,
       phoneLabel: ({ value }) => `Phone: ${value}`,
       serviceLabel: ({ value }) => `Service: ${value}`,
+      servingTag: "Serving",
       you: "You",
     },
     parents: {
@@ -801,6 +805,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Haz clic para acceder a la información correspondiente.",
+      restrictedHint: "Esta función no está habilitada para este perfil.",
     },
     categories: {
       total: {
@@ -920,6 +925,7 @@ const TRANSLATIONS = {
       ageLabel: ({ value }) => `Edad: ${value}`,
       phoneLabel: ({ value }) => `Teléfono: ${value}`,
       serviceLabel: ({ value }) => `Servicio: ${value}`,
+      servingTag: "Sirviendo",
       you: "Tú",
     },
     parents: {
@@ -2097,6 +2103,7 @@ function setLanguage(language, { persist = true } = {}) {
   if (elements.categoryCards || elements.categoryTitle) {
     renderCategory(state.activeCategory);
   }
+  applyAccessRestrictions();
   updateBirthdays();
   updateLastUpdated();
 }
@@ -2437,6 +2444,14 @@ function applyAccessRestrictions() {
 
     const allowed = isCategoryAllowed(categoryId);
     card.classList.toggle("restricted", !allowed);
+    const hintElement = card.querySelector(".card-hint");
+    if (hintElement) {
+      if (!allowed && state.accessRole === ACCESS_ROLES.CAPTAIN) {
+        hintElement.textContent = translate("cards.restrictedHint");
+      } else {
+        hintElement.textContent = translate("cards.hint");
+      }
+    }
     if (!allowed) {
       card.setAttribute("aria-disabled", "true");
       card.tabIndex = -1;
@@ -4939,24 +4954,16 @@ function updateCategoryCards(entries, category, options = {}) {
 
     card.append(nameElement, ageElement, phoneElement);
 
-    if (entry.service?.active && Array.isArray(entry.service.services)) {
+    if (hasActiveServices(entry)) {
       const tagList = document.createElement("div");
       tagList.className = "service-tags";
 
-      entry.service.services.forEach((serviceId) => {
-        const normalized = sanitizeServiceId(serviceId);
-        if (!normalized) {
-          return;
-        }
-        const tag = document.createElement("span");
-        tag.className = "service-tag";
-        tag.textContent = translateServiceName(normalized);
-        tagList.appendChild(tag);
-      });
+      const tag = document.createElement("span");
+      tag.className = "service-tag service-tag--status";
+      tag.textContent = translate("people.servingTag");
+      tagList.appendChild(tag);
 
-      if (tagList.children.length) {
-        card.appendChild(tagList);
-      }
+      card.appendChild(tagList);
     }
 
     card.addEventListener("click", () => openRecord(entry.record));
