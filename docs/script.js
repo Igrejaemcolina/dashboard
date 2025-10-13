@@ -5,7 +5,7 @@ const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
 const SERVICE_STORAGE_KEY = "igcolina-services";
 const SERVICE_FILTER_ALL = "all";
-const SERVICE_OPTIONS = [
+const DEFAULT_SERVICE_OPTIONS = [
   { id: "literature", nameKey: "services.names.literature" },
   { id: "reception", nameKey: "services.names.reception" },
   { id: "projection", nameKey: "services.names.projection" },
@@ -15,6 +15,13 @@ const SERVICE_OPTIONS = [
   { id: "kids", nameKey: "services.names.kids" },
   { id: "kitchen", nameKey: "services.names.kitchen" },
 ];
+
+const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
+const RESERVED_SERVICE_IDS = new Set([SERVICE_FILTER_ALL, "active", "inactive"]);
+const DEFAULT_SERVICE_OPTION_IDS = new Set(
+  DEFAULT_SERVICE_OPTIONS.map((option) => option.id)
+);
+const customServiceOptions = new Map();
 
 const EMPTY_SERVICE_ASSIGNMENT = { active: false, services: [] };
 
@@ -405,6 +412,18 @@ const TRANSLATIONS = {
         active: "Servindo",
         inactive: "Sem serviço",
       },
+      add: {
+        title: "Cadastrar novo serviço",
+        label: "Nome do serviço",
+        placeholder: "Digite o nome do serviço",
+        helper:
+          "Os novos serviços ficam disponíveis imediatamente para seleção nos cards.",
+        button: "Adicionar serviço",
+        success: ({ name }) => `Serviço "${name}" adicionado.`,
+        exists: "Esse serviço já está disponível.",
+        invalid: "Informe um nome válido para adicionar o serviço.",
+        reserved: "Esse nome não pode ser usado como serviço.",
+      },
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
         "Atribuição de serviços disponível apenas para o perfil Serviços.",
@@ -771,6 +790,18 @@ const TRANSLATIONS = {
         all: "All records",
         active: "Serving",
         inactive: "No service",
+      },
+      add: {
+        title: "Add new service",
+        label: "Service name",
+        placeholder: "Type the service name",
+        helper:
+          "New services become available immediately for selection on the cards.",
+        button: "Add service",
+        success: ({ name }) => `Service "${name}" added.`,
+        exists: "That service is already available.",
+        invalid: "Enter a valid name to add the service.",
+        reserved: "That name cannot be used as a service.",
       },
       empty: "No members found for the selected filters.",
       restricted:
@@ -1141,6 +1172,18 @@ const TRANSLATIONS = {
         active: "Sirviendo",
         inactive: "Sin servicio",
       },
+      add: {
+        title: "Agregar nuevo servicio",
+        label: "Nombre del servicio",
+        placeholder: "Escribe el nombre del servicio",
+        helper:
+          "Los nuevos servicios quedan disponibles de inmediato para seleccionarse en las tarjetas.",
+        button: "Agregar servicio",
+        success: ({ name }) => `Servicio "${name}" agregado.`,
+        exists: "Ese servicio ya está disponible.",
+        invalid: "Ingresa un nombre válido para agregar el servicio.",
+        reserved: "Ese nombre no puede utilizarse como servicio.",
+      },
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
         "La asignación de servicios está disponible solo para el perfil Servicios.",
@@ -1324,6 +1367,12 @@ const elements = {
   serviceManagerDescription: document.getElementById("service-manager-description"),
   serviceManagerFilterLabel: document.getElementById("service-manager-filter-label"),
   serviceManagerFilter: document.getElementById("service-manager-filter"),
+  serviceManagerAddForm: document.getElementById("service-manager-add-form"),
+  serviceManagerAddTitle: document.getElementById("service-manager-add-title"),
+  serviceManagerAddLabel: document.getElementById("service-manager-add-label"),
+  serviceManagerAddInput: document.getElementById("service-manager-add-input"),
+  serviceManagerAddButton: document.getElementById("service-manager-add-button"),
+  serviceManagerAddHint: document.getElementById("service-manager-add-hint"),
   serviceManagerList: document.getElementById("service-manager-list"),
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
@@ -1457,6 +1506,7 @@ const state = {
   activeUserName: null,
   activeUserSecret: null,
   serviceAssignments: new Map(),
+  customServiceOptions,
   serviceSummary: { total: 0, perService: {} },
   accessibleServiceSummary: { total: 0, perService: {} },
   activeServiceFilter: SERVICE_FILTER_ALL,
@@ -2028,6 +2078,31 @@ function applyLanguage(options = {}) {
       "serviceManager.restricted"
     );
   }
+  if (elements.serviceManagerAddTitle) {
+    elements.serviceManagerAddTitle.textContent = translate(
+      "serviceManager.add.title"
+    );
+  }
+  if (elements.serviceManagerAddLabel) {
+    elements.serviceManagerAddLabel.textContent = translate(
+      "serviceManager.add.label"
+    );
+  }
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.placeholder = translate(
+      "serviceManager.add.placeholder"
+    );
+  }
+  if (elements.serviceManagerAddButton) {
+    elements.serviceManagerAddButton.textContent = translate(
+      "serviceManager.add.button"
+    );
+  }
+  if (elements.serviceManagerAddHint) {
+    elements.serviceManagerAddHint.textContent = translate(
+      "serviceManager.add.helper"
+    );
+  }
 
   ensureServiceManagerFilterOptions();
   if (state.activeDetailEntry) {
@@ -2501,6 +2576,22 @@ function applyAccessRestrictions() {
 
   updateUserProfileUI();
   updateBirthdays();
+  redirectToServiceManagerIfNeeded();
+}
+
+function redirectToServiceManagerIfNeeded() {
+  if (state.accessRole !== ACCESS_ROLES.SERVICES) {
+    return;
+  }
+  if (!isDashboardPage) {
+    return;
+  }
+
+  try {
+    window.location.replace("services.html");
+  } catch (error) {
+    window.location.assign("services.html");
+  }
 }
 
 function isUserMenuOpen() {
@@ -2606,8 +2697,9 @@ function handleManageServicesNavigation() {
     return;
   }
 
-  const target = isServiceManagerPage ? "index.html" : "services.html";
-  window.location.assign(target);
+  if (!isServiceManagerPage) {
+    window.location.assign("services.html");
+  }
 }
 
 function handleUserProfileOutsideClick(event) {
@@ -2766,9 +2858,9 @@ async function handleAccessSubmit(event) {
   state.activeUserName = userName;
   state.activeUserSecret = userSecret;
   storeAccess(role, userSecret);
+  hideAccessModal();
   applyAccessRestrictions();
   buildSuggestions();
-  hideAccessModal();
   if (typeof state.accessResolver === "function") {
     const resolver = state.accessResolver;
     state.accessResolver = null;
@@ -3148,23 +3240,56 @@ function buildSupplementalIndex(entries) {
   return index;
 }
 
-function sanitizeServiceId(value) {
-  if (!value) {
+function normalizeServiceId(value) {
+  if (value == null) {
     return "";
   }
 
-  const normalized = String(value).trim().toLowerCase();
-  return SERVICE_OPTIONS.some((option) => option.id === normalized)
-    ? normalized
-    : "";
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized.replace(/\s+/g, "-");
+}
+
+function sanitizeServiceId(value) {
+  const normalized = normalizeServiceId(value);
+  if (!normalized) {
+    return "";
+  }
+
+  if (DEFAULT_SERVICE_OPTION_IDS.has(normalized)) {
+    return normalized;
+  }
+
+  if (customServiceOptions.has(normalized)) {
+    return normalized;
+  }
+
+  return "";
 }
 
 function translateServiceName(serviceId) {
-  if (!serviceId) {
+  const normalized = sanitizeServiceId(serviceId);
+  if (!normalized) {
     return "";
   }
-  const translation = translate(`services.names.${serviceId}`);
-  return translation || serviceId;
+
+  const defaultOption = DEFAULT_SERVICE_OPTIONS.find(
+    (option) => option.id === normalized
+  );
+  if (defaultOption?.nameKey) {
+    const translation = translate(defaultOption.nameKey);
+    return translation || normalized;
+  }
+
+  const customOption = customServiceOptions.get(normalized);
+  if (customOption?.label) {
+    return customOption.label;
+  }
+
+  return normalized;
 }
 
 function normalizeServiceAssignment(rawAssignment) {
@@ -3397,6 +3522,120 @@ function buildServiceSummary(entries) {
   return summary;
 }
 
+function getCustomServiceOptions() {
+  return Array.from(customServiceOptions.values()).sort((a, b) =>
+    collator.compare(a.label || "", b.label || "")
+  );
+}
+
+function getAllServiceOptions() {
+  return [...DEFAULT_SERVICE_OPTIONS, ...getCustomServiceOptions()];
+}
+
+function getServiceOptionLabel(option) {
+  if (!option) {
+    return "";
+  }
+  if (option.nameKey) {
+    return translate(option.nameKey);
+  }
+  return option.label ?? "";
+}
+
+function loadCustomServices() {
+  customServiceOptions.clear();
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const stored = localStorage.getItem(CUSTOM_SERVICE_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") {
+      return;
+    }
+
+    Object.entries(parsed).forEach(([id, value]) => {
+      const normalizedId = normalizeServiceId(id);
+      const rawLabel =
+        typeof value === "string"
+          ? value
+          : typeof value?.label === "string"
+          ? value.label
+          : "";
+      const label = rawLabel.trim();
+      if (!normalizedId || !label) {
+        return;
+      }
+      if (RESERVED_SERVICE_IDS.has(normalizedId)) {
+        return;
+      }
+      if (DEFAULT_SERVICE_OPTION_IDS.has(normalizedId)) {
+        return;
+      }
+      if (customServiceOptions.has(normalizedId)) {
+        return;
+      }
+      customServiceOptions.set(normalizedId, { id: normalizedId, label });
+    });
+  } catch (error) {
+    console.warn("Failed to load custom services:", error);
+  }
+}
+
+function persistCustomServices() {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const payload = {};
+    customServiceOptions.forEach((option, id) => {
+      const label = typeof option?.label === "string" ? option.label.trim() : "";
+      if (!id || !label) {
+        return;
+      }
+      payload[id] = { label };
+    });
+    localStorage.setItem(CUSTOM_SERVICE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Failed to persist custom services:", error);
+  }
+}
+
+function registerCustomService(rawLabel) {
+  const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
+  if (!label) {
+    return { success: false, reason: "invalid" };
+  }
+
+  const normalizedId = normalizeServiceId(label);
+  if (!normalizedId) {
+    return { success: false, reason: "invalid" };
+  }
+
+  if (RESERVED_SERVICE_IDS.has(normalizedId)) {
+    return { success: false, reason: "reserved" };
+  }
+
+  if (DEFAULT_SERVICE_OPTION_IDS.has(normalizedId)) {
+    return { success: false, reason: "exists", id: normalizedId };
+  }
+
+  if (customServiceOptions.has(normalizedId)) {
+    return { success: false, reason: "exists", id: normalizedId };
+  }
+
+  const option = { id: normalizedId, label };
+  customServiceOptions.set(normalizedId, option);
+  persistCustomServices();
+  return { success: true, option };
+}
+
 function loadServiceAssignments() {
   if (typeof localStorage === "undefined") {
     state.serviceAssignments = new Map();
@@ -3507,7 +3746,7 @@ function applyServiceAssignmentsToEntries() {
 function ensureActiveServiceFilterValid(summary) {
   const validIds = new Set([
     SERVICE_FILTER_ALL,
-    ...SERVICE_OPTIONS.map((option) => option.id),
+    ...getAllServiceOptions().map((option) => option.id),
   ]);
 
   if (!validIds.has(state.activeServiceFilter)) {
@@ -3539,6 +3778,10 @@ function recalculateServiceSummaries() {
 
 function initializeServiceAssignments() {
   loadServiceAssignments();
+}
+
+function initializeCustomServices() {
+  loadCustomServices();
 }
 
 function matchSupplementalRecord(record, birthDate) {
@@ -4654,9 +4897,9 @@ function ensureServiceManagerFilterOptions() {
     { value: "all", label: translate("serviceManager.filters.all") },
     { value: "active", label: translate("serviceManager.filters.active") },
     { value: "inactive", label: translate("serviceManager.filters.inactive") },
-    ...SERVICE_OPTIONS.map((option) => ({
+    ...getAllServiceOptions().map((option) => ({
       value: option.id,
-      label: translate(option.nameKey),
+      label: getServiceOptionLabel(option),
     })),
   ];
 
@@ -4748,7 +4991,7 @@ function renderServiceOptions(container, selectedServices, options = {}) {
 
   container.innerHTML = "";
 
-  SERVICE_OPTIONS.forEach((option) => {
+  getAllServiceOptions().forEach((option) => {
     const label = document.createElement("label");
     label.className = optionClass;
 
@@ -4770,7 +5013,7 @@ function renderServiceOptions(container, selectedServices, options = {}) {
     });
 
     const span = document.createElement("span");
-    span.textContent = translate(option.nameKey);
+    span.textContent = getServiceOptionLabel(option);
 
     label.append(input, span);
     container.appendChild(label);
@@ -4875,9 +5118,9 @@ function renderServiceSummaryCards(summary) {
       label: translate("services.filters.all"),
       count: summary?.total ?? 0,
     },
-    ...SERVICE_OPTIONS.map((option) => ({
+    ...getAllServiceOptions().map((option) => ({
       id: option.id,
-      label: translate(option.nameKey),
+      label: getServiceOptionLabel(option),
       count: summary?.perService?.[option.id] ?? 0,
     })),
   ];
@@ -5258,6 +5501,27 @@ function renderServiceManager() {
     return;
   }
 
+  const canAddServices = Boolean(state.accessRole) && canManageServices();
+  if (elements.serviceManagerAddForm) {
+    elements.serviceManagerAddForm.hidden = !canAddServices;
+  }
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddButton) {
+    elements.serviceManagerAddButton.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddHint) {
+    elements.serviceManagerAddHint.hidden = !canAddServices;
+  }
+  if (elements.serviceManagerBack) {
+    if (state.accessRole === ACCESS_ROLES.SERVICES) {
+      elements.serviceManagerBack.setAttribute("hidden", "true");
+    } else {
+      elements.serviceManagerBack.removeAttribute("hidden");
+    }
+  }
+
   if (!state.accessRole) {
     list.innerHTML = "";
     hideServiceSummary();
@@ -5340,6 +5604,45 @@ function renderServiceManager() {
     entries.forEach((entry) => {
       list.appendChild(createServiceManagerCard(entry));
     });
+  }
+}
+
+function handleServiceAddSubmit(event) {
+  event.preventDefault();
+
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    return;
+  }
+
+  const input = elements.serviceManagerAddInput;
+  if (!input) {
+    return;
+  }
+
+  const result = registerCustomService(input.value);
+  if (!result.success) {
+    const key =
+      result.reason === "exists"
+        ? "serviceManager.add.exists"
+        : result.reason === "reserved"
+        ? "serviceManager.add.reserved"
+        : "serviceManager.add.invalid";
+    const trimmed = typeof input.value === "string" ? input.value.trim() : "";
+    input.value = trimmed;
+    setStatusFromKey(key, {}, true);
+    input.focus();
+    return;
+  }
+
+  const { option } = result;
+  input.value = "";
+  input.focus();
+  setStatusFromKey("serviceManager.add.success", { name: option.label });
+  ensureServiceManagerFilterOptions();
+  recalculateServiceSummaries();
+  if (isServiceManagerPage) {
+    renderServiceManager();
   }
 }
 
@@ -6145,6 +6448,13 @@ function setupEventListeners() {
     });
   }
 
+  if (elements.serviceManagerAddForm) {
+    elements.serviceManagerAddForm.addEventListener(
+      "submit",
+      handleServiceAddSubmit
+    );
+  }
+
   if (elements.closeModal) {
     elements.closeModal.addEventListener("click", closeModal);
   }
@@ -6214,6 +6524,7 @@ initializeLanguage();
 setupAccessControlEvents();
 setupUserProfileEvents();
 setupAssistant();
+initializeCustomServices();
 initializeServiceAssignments();
 
 async function bootstrap() {
