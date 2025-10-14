@@ -1,0 +1,37 @@
+{
+  "edition": "home",
+  "label": "Flowmetrics Home",
+  "summary": "Pacote base sem o módulo de serviços.",
+  "files": [
+    {
+      "path": "flowmetrics-home/index.html",
+      "source": "../index.html",
+      "description": "Página inicial da dashboard Flowmetrics."
+    },
+    {
+      "path": "flowmetrics-home/category.html",
+      "source": "../category.html",
+      "description": "Visualização de categorias e filtros da edição Home."
+    },
+    {
+      "path": "flowmetrics-home/styles.css",
+      "source": "../styles.css",
+      "description": "Estilos compartilhados para a experiência Flowmetrics."
+    },
+    {
+      "path": "flowmetrics-home/script.js",
+      "source": "../script.js",
+      "description": "Lógica de carregamento de dados e controles de acesso."
+    },
+    {
+      "path": "flowmetrics-home/data/credentials.json",
+      "source": "../data/credentials.json",
+      "description": "Credenciais padrão com hashes criptografados."
+    },
+    {
+      "path": "flowmetrics-home/data/settings.json",
+      "source": "../data/settings.json",
+      "description": "Defina \"edition\": \"home\" para ocultar o módulo de serviços."
+    }
+  ]
+}

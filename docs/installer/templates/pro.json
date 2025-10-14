@@ -1,0 +1,42 @@
+{
+  "edition": "pro",
+  "label": "Flowmetrics Pro",
+  "summary": "Inclui o painel completo de serviços e gerenciamento avançado.",
+  "files": [
+    {
+      "path": "flowmetrics-pro/index.html",
+      "source": "../index.html",
+      "description": "Página inicial com todos os cartões e métricas."
+    },
+    {
+      "path": "flowmetrics-pro/category.html",
+      "source": "../category.html",
+      "description": "Visualização de categorias com filtros para capitães e serviços."
+    },
+    {
+      "path": "flowmetrics-pro/services.html",
+      "source": "../services.html",
+      "description": "Gerenciador de serviços habilitado apenas na edição Pro."
+    },
+    {
+      "path": "flowmetrics-pro/styles.css",
+      "source": "../styles.css",
+      "description": "Estilos unificados da experiência Flowmetrics."
+    },
+    {
+      "path": "flowmetrics-pro/script.js",
+      "source": "../script.js",
+      "description": "Lógica de acesso, filtros e atribuições de serviços."
+    },
+    {
+      "path": "flowmetrics-pro/data/credentials.json",
+      "source": "../data/credentials.json",
+      "description": "Credenciais padrão com hashes criptografados."
+    },
+    {
+      "path": "flowmetrics-pro/data/settings.json",
+      "source": "../data/settings.json",
+      "description": "Defina \"edition\": \"pro\" para liberar o módulo de serviços."
+    }
+  ]
+}

@@ -3,18 +3,21 @@ const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
-const SERVICE_STORAGE_KEY = "igcolina-services";
+const SERVICE_STORAGE_KEY = "flowmetrics-services";
 const SERVICE_FILTER_ALL = "all";
-const SERVICE_OPTIONS = [
-  { id: "literature", nameKey: "services.names.literature" },
-  { id: "reception", nameKey: "services.names.reception" },
-  { id: "projection", nameKey: "services.names.projection" },
-  { id: "broadcast", nameKey: "services.names.broadcast" },
-  { id: "responsible", nameKey: "services.names.responsible" },
-  { id: "speaker", nameKey: "services.names.speaker" },
-  { id: "kids", nameKey: "services.names.kids" },
-  { id: "kitchen", nameKey: "services.names.kitchen" },
-];
+const SERVICE_FILTER_UNASSIGNED = "unassigned";
+const DEFAULT_SERVICE_OPTIONS = [];
+
+const CUSTOM_SERVICE_STORAGE_KEY = "flowmetrics-custom-service-options";
+const RESERVED_SERVICE_IDS = new Set([
+  SERVICE_FILTER_ALL,
+  SERVICE_FILTER_UNASSIGNED,
+  "active",
+]);
+const DEFAULT_SERVICE_OPTION_IDS = new Set(
+  DEFAULT_SERVICE_OPTIONS.map((option) => option.id)
+);
+const customServiceOptions = new Map();
 
 const EMPTY_SERVICE_ASSIGNMENT = { active: false, services: [] };
 
@@ -27,14 +30,13 @@ function hasActiveServices(entry) {
 }
 
 const CAPTAIN_ALLOWED_CATEGORIES = ["teens", "parents", "services"];
-const CAPTAIN_CARD_CATEGORIES = ["teens", "parents"];
 
 const pageType = document.body?.dataset.page ?? "dashboard";
 const isDashboardPage = pageType === "dashboard";
 const isCategoryPage = pageType === "category";
 const isServiceManagerPage = pageType === "service-manager";
 
-const LANGUAGE_STORAGE_KEY = "igcolina-language";
+const LANGUAGE_STORAGE_KEY = "flowmetrics-language";
 const LANGUAGE_OPTIONS = {
   pt: { code: "pt", label: "PT", name: "Português", locale: "pt-BR" },
   en: { code: "en", label: "EN", name: "English", locale: "en-US" },
@@ -44,11 +46,11 @@ const LANGUAGE_OPTIONS = {
 const TRANSLATIONS = {
   pt: {
     app: {
-      title: "Dados da IGColina",
-      tagline: "Dashboard criada para uso da Igreja em Colina® 2025",
-      homeAria: "Início · Dados da IGColina",
+      title: "Flowmetrics Dashboard",
+      tagline: "Inteligência ministerial Flowmetrics · 2025",
+      homeAria: "Início · Flowmetrics Dashboard",
       document: ({ page }) =>
-        page ? `${page} · Dados da IGColina` : "Dados da IGColina",
+        page ? `${page} · Flowmetrics Dashboard` : "Flowmetrics Dashboard",
     },
     header: {
       lastUpdated: {
@@ -69,6 +71,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Clique para acessar as informações correspondentes.",
+      restrictedHint: "Não está liberado essa função para esse perfil.",
     },
     categories: {
       total: {
@@ -189,6 +192,7 @@ const TRANSLATIONS = {
       ageLabel: ({ value }) => `Idade: ${value}`,
       phoneLabel: ({ value }) => `Telefone: ${value}`,
       serviceLabel: ({ value }) => `Serviço: ${value}`,
+      servingTag: "Servindo",
       you: "Você",
     },
     parents: {
@@ -236,33 +240,29 @@ const TRANSLATIONS = {
       summaryDescription: "Clique em um serviço para filtrar os irmãos que servem.",
       filters: {
         all: "Todos os serviços",
+        unassigned: "N.Serviço",
       },
       countLabel: ({ count }) =>
         `${count} ${count === 1 ? "irmão servindo" : "irmãos servindo"}`,
+      countLabelUnassigned: ({ count }) =>
+        `${count} ${count === 1 ? "irmão sem serviço" : "irmãos sem serviço"}`,
       empty: {
         all: "Nenhum irmão serve na vida da igreja no momento.",
         service: ({ service }) => `Nenhum irmão serve em ${service}.`,
+        unassigned: "Todos os irmãos estão servindo no momento.",
       },
       meta: {
         all: "todos os serviços",
+        unassigned: "irmãos sem serviço",
         service: ({ service }) => `serviço: ${service}`,
       },
       tagsLabel: "Serviços desempenhados",
       selectLabel: "Selecione os serviços",
       feedback: {
-        inactive: "Nenhum serviço atribuído no momento.",
-        active: ({ service }) => `Servindo em: ${service}.`,
+        inactive: "N.Serviço",
+        active: "Servindo",
       },
-      names: {
-        literature: "Literatura",
-        reception: "Recepção",
-        projection: "Projeção",
-        broadcast: "Transmissão",
-        responsible: "Irmão Responsável",
-        speaker: "Irmão que Fala a mensagem",
-        kids: "Casa Kids",
-        kitchen: "Cozinha CDA",
-      },
+      chartLabelUnassigned: "Idades dos irmãos sem serviço",
     },
     access: {
       modalTitle: "Selecione a seguir sua função:",
@@ -300,6 +300,41 @@ const TRANSLATIONS = {
       switch: "Trocar de usuário",
       manageServices: "Gerenciar serviços",
       openDashboard: "Ir para o painel principal",
+      password: {
+        changeAction: "Trocar senha",
+        title: "Trocar senha",
+        description: "Defina uma nova senha para este perfil.",
+        newPlaceholder: "Digite a nova senha",
+        confirmPlaceholder: "Confirme a nova senha",
+        save: "Salvar senha",
+        cancel: "Cancelar",
+        required: "Digite a nova senha.",
+        mismatch: "As senhas informadas não são iguais.",
+        invalid: "Informe uma senha válida.",
+        success: "Senha atualizada com sucesso.",
+        unavailable: "Entre com um perfil válido para alterar a senha.",
+      },
+      manage: {
+        open: "Gerenciar perfis",
+        title: "Adicionar perfil",
+        description:
+          "Cadastre um novo acesso informando o nome, a função e a senha.",
+        namePlaceholder: "Digite o nome do perfil",
+        rolePlaceholder: "Selecione a função",
+        passwordPlaceholder: "Cadastre uma senha",
+        confirmPlaceholder: "Confirme a senha",
+        save: "Salvar perfil",
+        cancel: "Cancelar",
+        restricted: "Apenas o perfil ADM pode gerenciar novos acessos.",
+        nameRequired: "Informe o nome do perfil.",
+        roleRequired: "Selecione a função do perfil.",
+        passwordRequired: "Informe uma senha para o novo perfil.",
+        passwordMismatch: "As senhas informadas não são iguais.",
+        passwordInvalid: "Informe uma senha válida.",
+        passwordDuplicate: "Já existe um perfil registrado com essa senha.",
+        success: ({ name, role }) =>
+          `Perfil "${name}" adicionado na função ${role}.`,
+      },
     },
     language: {
       toggleAria: "Selecionar idioma",
@@ -358,7 +393,7 @@ const TRANSLATIONS = {
           capitao:
             "Somente o perfil Serviços pode atribuir ministérios. Avise o responsável para que registre o serviço correto dos adolescentes.",
         servicos:
-            "No gerenciador de serviços, abra o card do irmão e marque as caixas de todos os ministérios em que ele atua. Você pode selecionar quantas frentes forem necessárias ao mesmo tempo.",
+            "No gerenciador de serviços, toque no card do irmão para abrir o painel de atribuição. Escolha as frentes em que ele serve e confirme em \"Salvar alterações\".",
       },
       removeService: {
         responsavel:
@@ -366,7 +401,7 @@ const TRANSLATIONS = {
         capitao:
             "Somente o perfil Serviços pode remover um serviço. Avise a equipe responsável para que a alteração seja feita.",
         servicos:
-            "Dentro do gerenciador, desmarque as caixas dos ministérios que não se aplicam ou deixe todas vazias para remover completamente a participação do irmão.",
+            "Abra o card do irmão, utilize o painel de atribuição para retirar os serviços que não se aplicam e salve para confirmar a alteração.",
       },
         filterServices: {
           responsavel:
@@ -374,7 +409,7 @@ const TRANSLATIONS = {
           capitao:
             "Como Capitão de Tropa, você apenas visualiza as tags dos adolescentes e de seus pais; filtros detalhados estão disponíveis para o perfil Serviços.",
           servicos:
-            "Use os cartões de resumo ou o filtro do gerenciador para listar apenas quem serve em uma frente específica. Selecione 'Serviços' para alternar entre ativos, inativos ou um ministério determinado.",
+            "Use os cartões de resumo ou o filtro do gerenciador para listar apenas quem serve em uma frente específica. Selecione 'Serviços' para alternar entre ativos, N.Serviço ou um ministério determinado.",
         },
         fallback: "Estou aqui para ajudar com as principais dúvidas do painel.",
       },
@@ -391,31 +426,93 @@ const TRANSLATIONS = {
           "Como responsável pelos serviços, você pode atribuir ministérios (inclusive mais de um por irmão) e ajustar quem está servindo diretamente pelo gerenciador.",
       },
       customFollowUp:
-        "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a liderança da IGColina.",
+        "Verifique se os dados estão atualizados na planilha e utilize os cartões ou a busca para localizar rapidamente as informações desejadas. Caso a dúvida persista, entre em contato com a equipe Flowmetrics.",
     },
     serviceManager: {
       title: "Gerenciar serviços",
       description:
-        "Marque as frentes de atuação de cada irmão diretamente no card.",
+        "Toque no card para abrir o painel de serviços do irmão e salvar as alterações.",
       back: "← Voltar ao painel principal",
       filterLabel: "Filtrar",
       filters: {
         all: "Todos os registros",
         active: "Servindo",
-        inactive: "Sem serviço",
+        unassigned: "N.Serviço",
+      },
+      proOnly: "Disponível apenas na edição Flowmetrics Pro.",
+      add: {
+        title: "Cadastrar novo serviço",
+        label: "Nome do serviço (Português)",
+        placeholder: "Digite o nome do serviço em Português",
+        labelEn: "Nome do serviço (Inglês)",
+        placeholderEn: "Digite o nome em Inglês",
+        labelEs: "Nome do serviço (Espanhol)",
+        placeholderEs: "Digite o nome em Espanhol",
+        helper:
+          "Informe o nome nas três línguas para que os serviços apareçam traduzidos em todo o painel.",
+        button: "Adicionar serviço",
+        success: ({ name }) => `Serviço "${name}" adicionado.`,
+        exists: "Esse serviço já está disponível.",
+        invalid: "Informe um nome válido para adicionar o serviço.",
+        reserved: "Esse nome não pode ser usado como serviço.",
+      },
+      edit: {
+        title: ({ name }) =>
+          name ? `Editar serviço ${name}` : "Editar serviço",
+        button: "Salvar serviço",
+        cancelButton: "Cancelar edição",
+        start: ({ name }) =>
+          name
+            ? `Editando o serviço "${name}". Faça os ajustes e salve.`
+            : "Editando serviço. Faça os ajustes e salve.",
+        success: ({ name }) =>
+          name ? `Serviço atualizado para "${name}".` : "Serviço atualizado.",
+        invalid: "Informe nomes válidos para atualizar o serviço.",
+        reserved: "Esse nome não pode ser usado como serviço.",
+        exists: "Já existe um serviço com esse nome.",
+        missing: "Não foi possível localizar o serviço selecionado.",
+        cancel: "Edição cancelada.",
+      },
+      custom: {
+        title: "Serviços personalizados",
+        description:
+          "Edite as traduções ou remova os serviços cadastrados pelo painel.",
+        empty: "Nenhum serviço personalizado cadastrado.",
+        edit: "Editar",
+        delete: "Excluir",
+        deleteConfirm: ({ name }) => `Remover o serviço "${name}"?`,
+        deleteSuccess: ({ name }) => `Serviço "${name}" removido.`,
+        deleteError: "Não foi possível remover o serviço. Tente novamente.",
+        language: {
+          pt: "Português",
+          en: "Inglês",
+          es: "Espanhol",
+        },
       },
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
         "Atribuição de serviços disponível apenas para o perfil Serviços.",
     },
+    serviceAssignment: {
+      title: ({ name }) => `Gerenciar serviços de ${name}`,
+      subtitle:
+        "Selecione as frentes de atuação, ajuste o status e confirme para salvar.",
+      statusLabel: "Situação atual",
+      empty: "Cadastre novos serviços para atribuir.",
+      cancel: "Cancelar",
+      save: "Salvar alterações",
+      close: "Fechar painel de serviços",
+      success: ({ name }) => `Serviços atualizados para ${name}.`,
+      open: ({ name }) => `Gerenciar serviços de ${name}`,
+    },
   },
   en: {
     app: {
-      title: "IGColina Data",
-      tagline: "Dashboard created for Igreja em Colina® 2025",
-      homeAria: "Home · IGColina Data",
+      title: "Flowmetrics Data",
+      tagline: "Flowmetrics ministry insights · 2025",
+      homeAria: "Home · Flowmetrics Data",
       document: ({ page }) =>
-        page ? `${page} · IGColina Data` : "IGColina Data",
+        page ? `${page} · Flowmetrics Data` : "Flowmetrics Data",
     },
     header: {
       lastUpdated: {
@@ -436,6 +533,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Click to access the corresponding information.",
+      restrictedHint: "This function isn't available for this profile.",
     },
     categories: {
       total: {
@@ -554,6 +652,7 @@ const TRANSLATIONS = {
       ageLabel: ({ value }) => `Age: ${value}`,
       phoneLabel: ({ value }) => `Phone: ${value}`,
       serviceLabel: ({ value }) => `Service: ${value}`,
+      servingTag: "Serving",
       you: "You",
     },
     parents: {
@@ -601,33 +700,29 @@ const TRANSLATIONS = {
       summaryDescription: "Click a ministry to filter the serving members.",
       filters: {
         all: "All services",
+        unassigned: "No service",
       },
       countLabel: ({ count }) =>
         `${count} ${count === 1 ? "member serving" : "members serving"}`,
+      countLabelUnassigned: ({ count }) =>
+        `${count} ${count === 1 ? "member without service" : "members without service"}`,
       empty: {
         all: "No members are currently serving.",
         service: ({ service }) => `No members are serving in ${service}.`,
+        unassigned: "Everyone currently has at least one service.",
       },
       meta: {
         all: "all services",
+        unassigned: "members without a service",
         service: ({ service }) => `service: ${service}`,
       },
       tagsLabel: "Serving in",
       selectLabel: "Choose the services",
       feedback: {
-        inactive: "No services assigned yet.",
-        active: ({ service }) => `Serving in: ${service}.`,
+        inactive: "No service",
+        active: "Serving",
       },
-      names: {
-        literature: "Literature",
-        reception: "Reception",
-        projection: "Projection",
-        broadcast: "Broadcast",
-        responsible: "Responsible Brother",
-        speaker: "Message Speaker",
-        kids: "Casa Kids",
-        kitchen: "CDA Kitchen",
-      },
+      chartLabelUnassigned: "Ages of members without a service",
     },
     access: {
       modalTitle: "Select your role below:",
@@ -665,6 +760,40 @@ const TRANSLATIONS = {
       switch: "Switch user",
       manageServices: "Manage services",
       openDashboard: "Go to main dashboard",
+      password: {
+        changeAction: "Change password",
+        title: "Change password",
+        description: "Set a new password for this profile.",
+        newPlaceholder: "Enter the new password",
+        confirmPlaceholder: "Confirm the new password",
+        save: "Save password",
+        cancel: "Cancel",
+        required: "Enter the new password.",
+        mismatch: "The passwords don't match.",
+        invalid: "Enter a valid password.",
+        success: "Password updated successfully.",
+        unavailable: "Sign in with a valid profile to change the password.",
+      },
+      manage: {
+        open: "Manage profiles",
+        title: "Add profile",
+        description:
+          "Create a new access by providing the name, role, and password.",
+        namePlaceholder: "Enter the profile name",
+        rolePlaceholder: "Select the role",
+        passwordPlaceholder: "Create a password",
+        confirmPlaceholder: "Confirm the password",
+        save: "Save profile",
+        cancel: "Cancel",
+        restricted: "Only the admin profile can manage new accesses.",
+        nameRequired: "Enter the profile name.",
+        roleRequired: "Select the profile role.",
+        passwordRequired: "Provide a password for the new profile.",
+        passwordMismatch: "The passwords don't match.",
+        passwordInvalid: "Enter a valid password.",
+        passwordDuplicate: "There's already a profile registered with this password.",
+        success: ({ name, role }) => `Profile "${name}" added as ${role}.`,
+      },
     },
     language: {
       toggleAria: "Choose language",
@@ -723,7 +852,7 @@ const TRANSLATIONS = {
           capitao:
             "Only the Services profile can assign ministries. Let the responsible team know so they can record the teens' assignments.",
         servicos:
-            "In the services manager, open the member's card and check every box that matches the ministries they serve. You can select more than one ministry at the same time.",
+            "In the services manager, select the member's card to open the assignment panel. Choose every ministry that applies and confirm with \"Save changes\".",
       },
       removeService: {
         responsavel:
@@ -731,7 +860,7 @@ const TRANSLATIONS = {
         capitao:
             "Only the Services profile can remove an assignment. Notify the team so they can apply the change.",
         servicos:
-            "Inside the manager, uncheck the ministry boxes that don't apply or clear them all to remove the assignment completely.",
+            "Open the member's card, use the assignment panel to uncheck the ministries that no longer apply, and save to confirm the update.",
       },
         filterServices: {
           responsavel:
@@ -739,7 +868,7 @@ const TRANSLATIONS = {
           capitao:
             "As a Troop Captain you only view the teen and parent tags; advanced filters live with the Services profile.",
           servicos:
-            "Use the summary cards or the manager filter to list only those serving in a specific ministry. The \"Services\" selector lets you switch between active, inactive, or a chosen ministry.",
+            "Use the summary cards or the manager filter to list only those serving in a specific ministry. The \"Services\" selector lets you switch between active, no service, or a chosen ministry.",
         },
         fallback: "I'm here to help with the main questions about the dashboard.",
       },
@@ -756,31 +885,92 @@ const TRANSLATIONS = {
           "As the services coordinator, you can assign ministries (even multiple per member) and maintain serving information directly from the manager.",
       },
       customFollowUp:
-        "Make sure the data is up to date in the spreadsheet and use the cards or search to quickly locate the information you need. If the question persists, contact the IGColina leadership.",
+        "Make sure the data is up to date in the spreadsheet and use the cards or search to quickly locate the information you need. If the question persists, reach out to the Flowmetrics team.",
     },
     serviceManager: {
       title: "Manage services",
       description:
-        "Check which ministries each member serves in directly from their card.",
+        "Select a card to open the member's service panel and save the desired changes.",
       back: "← Back to main dashboard",
       filterLabel: "Filter",
       filters: {
         all: "All records",
         active: "Serving",
-        inactive: "No service",
+        unassigned: "No service",
+      },
+      proOnly: "Available only in Flowmetrics Pro.",
+      add: {
+        title: "Add new service",
+        label: "Service name (Portuguese)",
+        placeholder: "Type the Portuguese name",
+        labelEn: "Service name (English)",
+        placeholderEn: "Type the English name",
+        labelEs: "Service name (Spanish)",
+        placeholderEs: "Type the Spanish name",
+        helper:
+          "Provide the name in every language so the service appears translated across the dashboard.",
+        button: "Add service",
+        success: ({ name }) => `Service "${name}" added.`,
+        exists: "That service is already available.",
+        invalid: "Enter a valid name to add the service.",
+        reserved: "That name cannot be used as a service.",
+      },
+      edit: {
+        title: ({ name }) => (name ? `Edit service ${name}` : "Edit service"),
+        button: "Save service",
+        cancelButton: "Cancel editing",
+        start: ({ name }) =>
+          name
+            ? `Editing "${name}". Update the names and save.`
+            : "Editing service. Update the names and save.",
+        success: ({ name }) =>
+          name ? `Service updated to "${name}".` : "Service updated.",
+        invalid: "Enter valid names to update the service.",
+        reserved: "That name cannot be used as a service.",
+        exists: "A service with this name already exists.",
+        missing: "Couldn't find the selected service.",
+        cancel: "Editing canceled.",
+      },
+      custom: {
+        title: "Custom services",
+        description:
+          "Adjust translations or remove services created from the dashboard.",
+        empty: "No custom services registered yet.",
+        edit: "Edit",
+        delete: "Delete",
+        deleteConfirm: ({ name }) => `Remove the service "${name}"?`,
+        deleteSuccess: ({ name }) => `Service "${name}" removed.`,
+        deleteError: "We couldn't remove the service. Try again.",
+        language: {
+          pt: "Portuguese",
+          en: "English",
+          es: "Spanish",
+        },
       },
       empty: "No members found for the selected filters.",
       restricted:
         "Service assignments are available only for the Services profile.",
     },
+    serviceAssignment: {
+      title: ({ name }) => `Manage services for ${name}`,
+      subtitle:
+        "Choose the ministries that apply, adjust the status, and save your changes.",
+      statusLabel: "Current status",
+      empty: "Add new services to make assignments available.",
+      cancel: "Cancel",
+      save: "Save changes",
+      close: "Close service panel",
+      success: ({ name }) => `Services updated for ${name}.`,
+      open: ({ name }) => `Manage services for ${name}`,
+    },
   },
   es: {
     app: {
-      title: "Datos de IGColina",
-      tagline: "Panel creado para uso de la Iglesia en Colina® 2025",
-      homeAria: "Inicio · Datos de IGColina",
+      title: "Datos Flowmetrics",
+      tagline: "Inteligencia ministerial Flowmetrics · 2025",
+      homeAria: "Inicio · Datos Flowmetrics",
       document: ({ page }) =>
-        page ? `${page} · Datos de IGColina` : "Datos de IGColina",
+        page ? `${page} · Datos Flowmetrics` : "Datos Flowmetrics",
     },
     header: {
       lastUpdated: {
@@ -801,6 +991,7 @@ const TRANSLATIONS = {
     },
     cards: {
       hint: "Haz clic para acceder a la información correspondiente.",
+      restrictedHint: "Esta función no está liberada para este perfil.",
     },
     categories: {
       total: {
@@ -920,6 +1111,7 @@ const TRANSLATIONS = {
       ageLabel: ({ value }) => `Edad: ${value}`,
       phoneLabel: ({ value }) => `Teléfono: ${value}`,
       serviceLabel: ({ value }) => `Servicio: ${value}`,
+      servingTag: "Sirviendo",
       you: "Tú",
     },
     parents: {
@@ -968,33 +1160,29 @@ const TRANSLATIONS = {
         "Haz clic en un servicio para filtrar a los hermanos que sirven.",
       filters: {
         all: "Todos los servicios",
+        unassigned: "Sin servicio",
       },
       countLabel: ({ count }) =>
         `${count} ${count === 1 ? "hermano sirviendo" : "hermanos sirviendo"}`,
+      countLabelUnassigned: ({ count }) =>
+        `${count} ${count === 1 ? "hermano sin servicio" : "hermanos sin servicio"}`,
       empty: {
         all: "No hay hermanos sirviendo en este momento.",
         service: ({ service }) => `No hay hermanos sirviendo en ${service}.`,
+        unassigned: "Todos los hermanos están sirviendo por ahora.",
       },
       meta: {
         all: "todos los servicios",
+        unassigned: "hermanos sin servicio",
         service: ({ service }) => `servicio: ${service}`,
       },
       tagsLabel: "Servicios en los que participa",
       selectLabel: "Elige los servicios",
       feedback: {
-        inactive: "No tiene servicios asignados actualmente.",
-        active: ({ service }) => `Sirviendo en: ${service}.`,
+        inactive: "Sin servicio",
+        active: "Sirviendo",
       },
-      names: {
-        literature: "Literatura",
-        reception: "Recepción",
-        projection: "Proyección",
-        broadcast: "Transmisión",
-        responsible: "Hermano Responsable",
-        speaker: "Hermano que comparte el mensaje",
-        kids: "Casa Kids",
-        kitchen: "Cocina CDA",
-      },
+      chartLabelUnassigned: "Edades de los hermanos sin servicio",
     },
     access: {
       modalTitle: "Selecciona a continuación tu función:",
@@ -1032,6 +1220,42 @@ const TRANSLATIONS = {
       switch: "Cambiar usuario",
       manageServices: "Gestionar servicios",
       openDashboard: "Ir al panel principal",
+      password: {
+        changeAction: "Cambiar contraseña",
+        title: "Cambiar contraseña",
+        description: "Define una nueva contraseña para este perfil.",
+        newPlaceholder: "Ingresa la nueva contraseña",
+        confirmPlaceholder: "Confirma la nueva contraseña",
+        save: "Guardar contraseña",
+        cancel: "Cancelar",
+        required: "Ingresa la nueva contraseña.",
+        mismatch: "Las contraseñas no coinciden.",
+        invalid: "Ingresa una contraseña válida.",
+        success: "Contraseña actualizada correctamente.",
+        unavailable:
+          "Accede con un perfil válido para cambiar la contraseña.",
+      },
+      manage: {
+        open: "Gestionar perfiles",
+        title: "Agregar perfil",
+        description:
+          "Crea un nuevo acceso indicando el nombre, la función y la contraseña.",
+        namePlaceholder: "Ingresa el nombre del perfil",
+        rolePlaceholder: "Selecciona la función",
+        passwordPlaceholder: "Crea una contraseña",
+        confirmPlaceholder: "Confirma la contraseña",
+        save: "Guardar perfil",
+        cancel: "Cancelar",
+        restricted: "Solo el perfil ADM puede gestionar nuevos accesos.",
+        nameRequired: "Ingresa el nombre del perfil.",
+        roleRequired: "Selecciona la función del perfil.",
+        passwordRequired: "Ingresa una contraseña para el nuevo perfil.",
+        passwordMismatch: "Las contraseñas no coinciden.",
+        passwordInvalid: "Ingresa una contraseña válida.",
+        passwordDuplicate: "Ya existe un perfil registrado con esa contraseña.",
+        success: ({ name, role }) =>
+          `Perfil "${name}" agregado como ${role}.`,
+      },
     },
     language: {
       toggleAria: "Seleccionar idioma",
@@ -1090,7 +1314,7 @@ const TRANSLATIONS = {
           capitao:
             "Solo el perfil Servicios puede asignar ministerios. Informa al equipo responsable para que registre el servicio de los adolescentes.",
         servicos:
-            "En el gestor de servicios, abre la tarjeta del hermano y marca todas las casillas que correspondan a los ministerios en los que participa. Puedes elegir más de uno a la vez.",
+            "En el gestor de servicios, toca la tarjeta del hermano para abrir el panel de asignación. Selecciona los ministerios correspondientes y confirma con \"Guardar cambios\".",
       },
       removeService: {
         responsavel:
@@ -1098,7 +1322,7 @@ const TRANSLATIONS = {
         capitao:
             "Solo el perfil Servicios puede eliminar un servicio. Avisa al equipo responsable para que realice el cambio.",
         servicos:
-            "Dentro del gestor, desmarca las casillas de los ministerios que no correspondan o déjalas todas vacías para eliminar completamente la asignación.",
+            "Abre la tarjeta del hermano, utiliza el panel de asignación para quitar los ministerios que ya no correspondan y guarda para confirmar la actualización.",
       },
         filterServices: {
           responsavel:
@@ -1106,7 +1330,7 @@ const TRANSLATIONS = {
           capitao:
             "Como Capitán de Tropa solo visualizas las etiquetas de los adolescentes y sus padres; los filtros avanzados están disponibles para el perfil Servicios.",
           servicos:
-            "Utiliza las tarjetas de resumen o el filtro del gestor para listar solo a quienes sirven en un ministerio específico. El selector \"Servicios\" permite alternar entre activos, inactivos o un ministerio elegido.",
+            "Utiliza las tarjetas de resumen o el filtro del gestor para listar solo a quienes sirven en un ministerio específico. El selector \"Servicios\" permite alternar entre activos, sin servicio o un ministerio elegido.",
         },
         fallback: "Estoy aquí para ayudarte con las principales dudas del panel.",
       },
@@ -1123,22 +1347,84 @@ const TRANSLATIONS = {
           "Como responsable de los servicios, puedes asignar ministerios (incluso más de uno por hermano) y mantener la información actualizada directamente en el gestor.",
       },
       customFollowUp:
-        "Verifica que los datos estén actualizados en la planilla y utiliza las tarjetas o la búsqueda para localizar rápidamente la información deseada. Si la duda persiste, ponte en contacto con la lideranza de IGColina.",
+        "Verifica que los datos estén actualizados en la planilla y utiliza las tarjetas o la búsqueda para localizar rápidamente la información deseada. Si la duda persiste, ponte en contacto con el equipo Flowmetrics.",
     },
     serviceManager: {
       title: "Gestionar servicios",
       description:
-        "Marca en qué ministerios sirve cada hermano directamente desde su tarjeta.",
+        "Toca la tarjeta para abrir el panel de servicios del hermano y guardar los cambios necesarios.",
       back: "← Volver al panel principal",
       filterLabel: "Filtrar",
       filters: {
         all: "Todos los registros",
         active: "Sirviendo",
-        inactive: "Sin servicio",
+        unassigned: "Sin servicio",
+      },
+      proOnly: "Disponible solo en la edición Flowmetrics Pro.",
+      add: {
+        title: "Agregar nuevo servicio",
+        label: "Nombre del servicio (Portugués)",
+        placeholder: "Escribe el nombre en Portugués",
+        labelEn: "Nombre del servicio (Inglés)",
+        placeholderEn: "Escribe el nombre en Inglés",
+        labelEs: "Nombre del servicio (Español)",
+        placeholderEs: "Escribe el nombre en Español",
+        helper:
+          "Completa el nombre en los tres idiomas para que el servicio aparezca traducido en todo el panel.",
+        button: "Agregar servicio",
+        success: ({ name }) => `Servicio "${name}" agregado.`,
+        exists: "Ese servicio ya está disponible.",
+        invalid: "Ingresa un nombre válido para agregar el servicio.",
+        reserved: "Ese nombre no puede utilizarse como servicio.",
+      },
+      edit: {
+        title: ({ name }) =>
+          name ? `Editar servicio ${name}` : "Editar servicio",
+        button: "Guardar servicio",
+        cancelButton: "Cancelar edición",
+        start: ({ name }) =>
+          name
+            ? `Editando el servicio "${name}". Actualiza los nombres y guarda.`
+            : "Editando servicio. Actualiza los nombres y guarda.",
+        success: ({ name }) =>
+          name ? `Servicio actualizado a "${name}".` : "Servicio actualizado.",
+        invalid: "Ingresa nombres válidos para actualizar el servicio.",
+        reserved: "Ese nombre no se puede usar como servicio.",
+        exists: "Ya existe un servicio con ese nombre.",
+        missing: "No fue posible encontrar el servicio seleccionado.",
+        cancel: "Edición cancelada.",
+      },
+      custom: {
+        title: "Servicios personalizados",
+        description:
+          "Ajusta las traducciones o elimina los servicios creados desde el panel.",
+        empty: "Aún no hay servicios personalizados registrados.",
+        edit: "Editar",
+        delete: "Eliminar",
+        deleteConfirm: ({ name }) => `¿Eliminar el servicio "${name}"?`,
+        deleteSuccess: ({ name }) => `Servicio "${name}" eliminado.`,
+        deleteError: "No fue posible eliminar el servicio. Inténtalo nuevamente.",
+        language: {
+          pt: "Portugués",
+          en: "Inglés",
+          es: "Español",
+        },
       },
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
         "La asignación de servicios está disponible solo para el perfil Servicios.",
+    },
+    serviceAssignment: {
+      title: ({ name }) => `Gestionar servicios de ${name}`,
+      subtitle:
+        "Selecciona los ministerios correspondientes, ajusta el estado y guarda los cambios.",
+      statusLabel: "Estado actual",
+      empty: "Agrega nuevos servicios para poder asignarlos.",
+      cancel: "Cancelar",
+      save: "Guardar cambios",
+      close: "Cerrar panel de servicios",
+      success: ({ name }) => `Servicios actualizados para ${name}.`,
+      open: ({ name }) => `Gestionar servicios de ${name}`,
     },
   },
 };
@@ -1173,40 +1459,15 @@ const FULL_ACCESS_ROLES = new Set([
   ACCESS_ROLES.SERVICES,
 ]);
 
-const NAME_SECRET = "IGCOLINA2025";
+let NAME_SECRET = "FLOWMETRICS2025";
 
-const RESPONSIBLE_ROLE_CREDENTIALS = {
-  "7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f":
-    "0426312c2925272f5d10615c253122",
-  "73a2af8864fc500fa49048bf3003776c19938f360e56bd03663866fb3087884a":
-    "042e2223252a2628",
-  "b74b7e3fcb623d805dacf98db27530f845760c47e3b0faa702b84e9ff3902c37":
-    "0829273da5691d285e4653",
-  "b411746bdf09bde7f1fe70ddc8fa57241a0cb79d14d6e9c27e598635ca7dae4d":
-    "1a2231282527262e",
-  "3f95b1b8a32c2c0251dfdbc3c8a30aab6d6e680cf0ef03e8af84a65dff0c4a85":
-    "0a2e2720",
-  "060e33205a731400c2eb92bc12cf921a4e44cf1851d216f144337dd6ec5350a7":
-    "0a2631232527262e41",
-  "ff4b467b7a593047c46682ecdbf6da36b3f3bb4b50d35f08f17f751ef5f15531":
-    "2337252e2f21272f53",
-};
+let baseRoleCredentials = {};
 
-const SERVICES_ROLE_CREDENTIALS = Object.freeze({
-  "1dfb4b20fb5e68711da6a808cc60651fd78ff853b24778ec292af422e58cd957":
-    "1a22313925ae2132",
-});
+const ROLE_CREDENTIALS_STORAGE_KEY = "flowmetrics-role-credentials";
 
-const ROLE_CREDENTIALS = {
-  [ACCESS_ROLES.RESPONSIBLE]: RESPONSIBLE_ROLE_CREDENTIALS,
-  [ACCESS_ROLES.SERVICES]: SERVICES_ROLE_CREDENTIALS,
-  [ACCESS_ROLES.CAPTAIN]: {
-    "892cc7e526dcdacf4f31b35252576b942c802e12db33ee5ba0040d82c0860342":
-      "0a26332638aa2b32125457151d352c3f2d",
-  },
-};
+const ACCESS_SESSION_KEY = "flowmetrics-access-role";
 
-const ACCESS_SESSION_KEY = "igcolina-access-role";
+const SETTINGS_URL = "data/settings.json";
 
 const elements = {
   appTitle: document.getElementById("app-title"),
@@ -1279,6 +1540,8 @@ const elements = {
   userMenuRole: document.getElementById("user-menu-role"),
   userMenuDetail: document.getElementById("user-menu-detail"),
   switchUser: document.getElementById("switch-user"),
+  changePassword: document.getElementById("change-password"),
+  manageProfiles: document.getElementById("manage-profiles"),
   manageServices: document.getElementById("manage-services"),
   accessModal: document.getElementById("access-modal"),
   accessOptions: document.getElementById("access-options"),
@@ -1314,15 +1577,72 @@ const elements = {
   parentChoiceMother: document.getElementById("parent-choice-mother"),
   parentChoiceCancel: document.getElementById("parent-choice-cancel"),
   parentChoiceClose: document.getElementById("parent-choice-close"),
+  passwordModal: document.getElementById("password-modal"),
+  passwordModalDialog: document.getElementById("password-modal-dialog"),
+  passwordModalForm: document.getElementById("password-modal-form"),
+  passwordModalClose: document.getElementById("password-modal-close"),
+  passwordModalCancel: document.getElementById("password-modal-cancel"),
+  passwordModalTitle: document.getElementById("password-modal-title"),
+  passwordModalDescription: document.getElementById("password-modal-description"),
+  passwordModalSave: document.getElementById("password-modal-save"),
+  passwordModalNew: document.getElementById("password-modal-new"),
+  passwordModalConfirm: document.getElementById("password-modal-confirm"),
+  passwordModalFeedback: document.getElementById("password-modal-feedback"),
+  profileModal: document.getElementById("profile-modal"),
+  profileModalDialog: document.getElementById("profile-modal-dialog"),
+  profileModalForm: document.getElementById("profile-modal-form"),
+  profileModalClose: document.getElementById("profile-modal-close"),
+  profileModalCancel: document.getElementById("profile-modal-cancel"),
+  profileModalTitle: document.getElementById("profile-modal-title"),
+  profileModalDescription: document.getElementById("profile-modal-description"),
+  profileModalSave: document.getElementById("profile-modal-save"),
+  profileModalName: document.getElementById("profile-modal-name"),
+  profileModalRole: document.getElementById("profile-modal-role"),
+  profileModalPassword: document.getElementById("profile-modal-password"),
+  profileModalConfirm: document.getElementById("profile-modal-confirm"),
+  profileModalFeedback: document.getElementById("profile-modal-feedback"),
   serviceManagerSection: document.getElementById("service-manager"),
   serviceManagerTitle: document.getElementById("service-manager-title"),
   serviceManagerDescription: document.getElementById("service-manager-description"),
   serviceManagerFilterLabel: document.getElementById("service-manager-filter-label"),
   serviceManagerFilter: document.getElementById("service-manager-filter"),
+  serviceManagerAddForm: document.getElementById("service-manager-add-form"),
+  serviceManagerAddTitle: document.getElementById("service-manager-add-title"),
+  serviceManagerAddLabel: document.getElementById("service-manager-add-label"),
+  serviceManagerAddInput: document.getElementById("service-manager-add-input"),
+  serviceManagerAddLabelEn: document.getElementById("service-manager-add-label-en"),
+  serviceManagerAddInputEn: document.getElementById("service-manager-add-input-en"),
+  serviceManagerAddLabelEs: document.getElementById("service-manager-add-label-es"),
+  serviceManagerAddInputEs: document.getElementById("service-manager-add-input-es"),
+  serviceManagerAddButton: document.getElementById("service-manager-add-button"),
+  serviceManagerAddCancel: document.getElementById("service-manager-add-cancel"),
+  serviceManagerAddHint: document.getElementById("service-manager-add-hint"),
   serviceManagerList: document.getElementById("service-manager-list"),
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
   serviceManagerNotice: document.getElementById("service-manager-notice"),
+  serviceManagerCustomSection: document.getElementById("service-manager-custom"),
+  serviceManagerCustomTitle: document.getElementById("service-manager-custom-title"),
+  serviceManagerCustomDescription: document.getElementById(
+    "service-manager-custom-description"
+  ),
+  serviceManagerCustomList: document.getElementById("service-manager-custom-list"),
+  serviceManagerCustomEmpty: document.getElementById("service-manager-custom-empty"),
+  serviceAssignmentModal: document.getElementById("service-assignment-modal"),
+  serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
+  serviceAssignmentTitle: document.getElementById("service-assignment-title"),
+  serviceAssignmentSubtitle: document.getElementById("service-assignment-subtitle"),
+  serviceAssignmentMeta: document.getElementById("service-assignment-meta"),
+  serviceAssignmentStatusLabel: document.getElementById(
+    "service-assignment-status-label"
+  ),
+  serviceAssignmentStatus: document.getElementById("service-assignment-status"),
+  serviceAssignmentOptions: document.getElementById("service-assignment-options"),
+  serviceAssignmentEmpty: document.getElementById("service-assignment-empty"),
+  serviceAssignmentForm: document.getElementById("service-assignment-form"),
+  serviceAssignmentCancel: document.getElementById("service-assignment-cancel"),
+  serviceAssignmentSave: document.getElementById("service-assignment-save"),
+  serviceAssignmentClose: document.getElementById("service-assignment-close"),
 };
 
 const CATEGORY_CONFIG = [
@@ -1351,24 +1671,6 @@ const CATEGORY_CONFIG = [
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 11 && entry.age <= 17,
   },
   {
-    id: "parents",
-    titleKey: "categories.parents.title",
-    descriptionKey: "categories.parents.description",
-    chartLabelKey: "categories.parents.chartLabel",
-    emptyMessageKey: "categories.parents.empty",
-    filter: () => true,
-    isParentCategory: true,
-  },
-  {
-    id: "services",
-    titleKey: "categories.services.title",
-    descriptionKey: "categories.services.description",
-    chartLabelKey: "categories.services.chartLabel",
-    emptyMessageKey: "categories.services.empty",
-    filter: (entry) => hasActiveServices(entry),
-    isServiceCategory: true,
-  },
-  {
     id: "captains",
     titleKey: "categories.captains.title",
     descriptionKey: "categories.captains.description",
@@ -1391,6 +1693,24 @@ const CATEGORY_CONFIG = [
     chartLabelKey: "categories.stewards.chartLabel",
     emptyMessageKey: "categories.stewards.empty",
     filter: (entry) => Number.isFinite(entry.age) && entry.age >= 50,
+  },
+  {
+    id: "parents",
+    titleKey: "categories.parents.title",
+    descriptionKey: "categories.parents.description",
+    chartLabelKey: "categories.parents.chartLabel",
+    emptyMessageKey: "categories.parents.empty",
+    filter: () => true,
+    isParentCategory: true,
+  },
+  {
+    id: "services",
+    titleKey: "categories.services.title",
+    descriptionKey: "categories.services.description",
+    chartLabelKey: "categories.services.chartLabel",
+    emptyMessageKey: "categories.services.empty",
+    filter: (entry) => hasActiveServices(entry),
+    isServiceCategory: true,
   },
 ];
 
@@ -1452,10 +1772,17 @@ const state = {
   activeUserName: null,
   activeUserSecret: null,
   serviceAssignments: new Map(),
-  serviceSummary: { total: 0, perService: {} },
-  accessibleServiceSummary: { total: 0, perService: {} },
+  customServiceOptions,
+  serviceSummary: { total: 0, unassigned: 0, perService: {} },
+  accessibleServiceSummary: { total: 0, unassigned: 0, perService: {} },
   activeServiceFilter: SERVICE_FILTER_ALL,
   activeDetailEntry: null,
+  activeServiceModalEntry: null,
+  activeServiceModalTrigger: null,
+  editingServiceId: null,
+  roleCredentials: cloneRoleCredentials(),
+  edition: 'pro',
+  enableServices: true,
   assistant: {
     greeted: false,
     customMode: false,
@@ -1470,7 +1797,7 @@ function hasFullAccessRole(role) {
 }
 
 function canManageServices() {
-  return state.accessRole === ACCESS_ROLES.SERVICES;
+  return state.enableServices && state.accessRole === ACCESS_ROLES.SERVICES;
 }
 
 const ASSISTANT_QUESTION_SETS = {
@@ -2023,6 +2350,159 @@ function applyLanguage(options = {}) {
       "serviceManager.restricted"
     );
   }
+  if (elements.serviceManagerAddTitle) {
+    elements.serviceManagerAddTitle.textContent = state.editingServiceId
+      ? translate("serviceManager.edit.title", {
+          name: translateServiceName(state.editingServiceId),
+        })
+      : translate("serviceManager.add.title");
+  }
+  if (elements.serviceManagerAddLabel) {
+    elements.serviceManagerAddLabel.textContent = translate(
+      "serviceManager.add.label"
+    );
+  }
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.placeholder = translate(
+      "serviceManager.add.placeholder"
+    );
+  }
+  if (elements.serviceManagerAddLabelEn) {
+    elements.serviceManagerAddLabelEn.textContent = translate(
+      "serviceManager.add.labelEn"
+    );
+  }
+  if (elements.serviceManagerAddInputEn) {
+    elements.serviceManagerAddInputEn.placeholder = translate(
+      "serviceManager.add.placeholderEn"
+    );
+  }
+  if (elements.serviceManagerAddLabelEs) {
+    elements.serviceManagerAddLabelEs.textContent = translate(
+      "serviceManager.add.labelEs"
+    );
+  }
+  if (elements.serviceManagerAddInputEs) {
+    elements.serviceManagerAddInputEs.placeholder = translate(
+      "serviceManager.add.placeholderEs"
+    );
+  }
+  if (elements.serviceManagerAddButton) {
+    elements.serviceManagerAddButton.textContent = state.editingServiceId
+      ? translate("serviceManager.edit.button")
+      : translate("serviceManager.add.button");
+  }
+  if (elements.serviceManagerAddCancel) {
+    elements.serviceManagerAddCancel.textContent = translate(
+      "serviceManager.edit.cancelButton"
+    );
+  }
+  if (elements.serviceManagerAddHint) {
+    elements.serviceManagerAddHint.textContent = translate(
+      "serviceManager.add.helper"
+    );
+  }
+  renderCustomServiceList();
+  renderProfileRoleOptions();
+
+  if (elements.passwordModalTitle) {
+    elements.passwordModalTitle.textContent = translate("profile.password.title");
+  }
+  if (elements.passwordModalDescription) {
+    elements.passwordModalDescription.textContent = translate(
+      "profile.password.description"
+    );
+  }
+  if (elements.passwordModalNew) {
+    elements.passwordModalNew.placeholder = translate(
+      "profile.password.newPlaceholder"
+    );
+  }
+  if (elements.passwordModalConfirm) {
+    elements.passwordModalConfirm.placeholder = translate(
+      "profile.password.confirmPlaceholder"
+    );
+  }
+  if (elements.passwordModalSave) {
+    elements.passwordModalSave.textContent = translate("profile.password.save");
+  }
+  if (elements.passwordModalCancel) {
+    elements.passwordModalCancel.textContent = translate(
+      "profile.password.cancel"
+    );
+  }
+
+  if (elements.profileModalTitle) {
+    elements.profileModalTitle.textContent = translate("profile.manage.title");
+  }
+  if (elements.profileModalDescription) {
+    elements.profileModalDescription.textContent = translate(
+      "profile.manage.description"
+    );
+  }
+  if (elements.profileModalName) {
+    elements.profileModalName.placeholder = translate(
+      "profile.manage.namePlaceholder"
+    );
+  }
+  if (elements.profileModalPassword) {
+    elements.profileModalPassword.placeholder = translate(
+      "profile.manage.passwordPlaceholder"
+    );
+  }
+  if (elements.profileModalConfirm) {
+    elements.profileModalConfirm.placeholder = translate(
+      "profile.manage.confirmPlaceholder"
+    );
+  }
+  if (elements.profileModalSave) {
+    elements.profileModalSave.textContent = translate("profile.manage.save");
+  }
+  if (elements.profileModalCancel) {
+    elements.profileModalCancel.textContent = translate("profile.manage.cancel");
+  }
+
+  if (elements.serviceAssignmentSubtitle) {
+    elements.serviceAssignmentSubtitle.textContent = translate(
+      "serviceAssignment.subtitle"
+    );
+  }
+  if (elements.serviceAssignmentStatusLabel) {
+    elements.serviceAssignmentStatusLabel.textContent = translate(
+      "serviceAssignment.statusLabel"
+    );
+  }
+  if (elements.serviceAssignmentCancel) {
+    elements.serviceAssignmentCancel.textContent = translate(
+      "serviceAssignment.cancel"
+    );
+  }
+  if (elements.serviceAssignmentSave) {
+    elements.serviceAssignmentSave.textContent = translate(
+      "serviceAssignment.save"
+    );
+  }
+  if (elements.serviceAssignmentEmpty) {
+    elements.serviceAssignmentEmpty.textContent = translate(
+      "serviceAssignment.empty"
+    );
+  }
+  if (elements.serviceAssignmentClose) {
+    elements.serviceAssignmentClose.setAttribute(
+      "aria-label",
+      translate("serviceAssignment.close")
+    );
+  }
+
+  if (
+    elements.serviceAssignmentModal &&
+    !elements.serviceAssignmentModal.hidden &&
+    state.activeServiceModalEntry
+  ) {
+    populateServiceAssignmentModal(state.activeServiceModalEntry, {
+      preserveSelection: true,
+    });
+  }
 
   ensureServiceManagerFilterOptions();
   if (state.activeDetailEntry) {
@@ -2097,6 +2577,7 @@ function setLanguage(language, { persist = true } = {}) {
   if (elements.categoryCards || elements.categoryTitle) {
     renderCategory(state.activeCategory);
   }
+  applyAccessRestrictions();
   updateBirthdays();
   updateLastUpdated();
 }
@@ -2214,6 +2695,245 @@ function clearStoredAccess() {
   } catch (error) {
     console.warn("Unable to clear access session:", error);
   }
+}
+
+function cloneRoleCredentials(source = baseRoleCredentials) {
+  const clone = {};
+  Object.entries(source).forEach(([role, credentials]) => {
+    clone[role] = { ...(credentials ?? {}) };
+  });
+  return clone;
+}
+
+async function loadRoleCredentials() {
+  baseRoleCredentials = {};
+
+  if (typeof fetch === "function") {
+    try {
+      const response = await fetch("data/credentials.json", {
+        cache: "no-store",
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload && typeof payload === "object") {
+          if (typeof payload.nameSecret === "string" && payload.nameSecret.trim()) {
+            NAME_SECRET = payload.nameSecret.trim();
+          }
+          if (payload.roles && typeof payload.roles === "object") {
+            baseRoleCredentials = {};
+            Object.entries(payload.roles).forEach(([role, credentials]) => {
+              if (!role) {
+                return;
+              }
+              if (!baseRoleCredentials[role]) {
+                baseRoleCredentials[role] = {};
+              }
+              if (credentials && typeof credentials === "object") {
+                Object.entries(credentials).forEach(([hash, secret]) => {
+                  if (
+                    typeof hash === "string" &&
+                    hash &&
+                    typeof secret === "string" &&
+                    secret
+                  ) {
+                    baseRoleCredentials[role][hash] = secret;
+                  }
+                });
+              }
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load Flowmetrics base credentials:", error);
+    }
+  }
+
+  state.roleCredentials = cloneRoleCredentials();
+
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const stored = localStorage.getItem(ROLE_CREDENTIALS_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") {
+      return;
+    }
+
+    Object.entries(parsed).forEach(([role, credentials]) => {
+      if (!role || typeof credentials !== "object" || credentials === null) {
+        return;
+      }
+      if (!state.roleCredentials[role]) {
+        state.roleCredentials[role] = {};
+      }
+      Object.entries(credentials).forEach(([hash, secret]) => {
+        if (typeof hash === "string" && hash && typeof secret === "string") {
+          state.roleCredentials[role][hash] = secret;
+        }
+      });
+    });
+  } catch (error) {
+    console.warn("Failed to load role credentials:", error);
+  }
+}
+
+async function loadSettings() {
+  state.edition = 'pro';
+  state.enableServices = true;
+
+  if (typeof fetch !== 'function') {
+    updateEditionDataset();
+    return;
+  }
+
+  try {
+    const response = await fetch(SETTINGS_URL, { cache: 'no-store' });
+    if (response.ok) {
+      const payload = await response.json();
+      if (payload && typeof payload === 'object') {
+        const editionValue = typeof payload.edition === 'string'
+          ? payload.edition.trim().toLowerCase()
+          : '';
+        if (editionValue === 'home') {
+          state.edition = 'home';
+          state.enableServices = false;
+        } else if (editionValue === 'pro') {
+          state.edition = 'pro';
+          state.enableServices = true;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load Flowmetrics settings:', error);
+  }
+
+  updateEditionDataset();
+}
+
+function updateEditionDataset() {
+  if (document.body) {
+    document.body.dataset.edition = state.edition;
+  }
+}
+
+function applyEditionRestrictions() {
+  updateEditionDataset();
+
+  const hideServices = !state.enableServices;
+
+  if (elements.manageServices) {
+    if (hideServices) {
+      elements.manageServices.setAttribute('hidden', '');
+      elements.manageServices.setAttribute('aria-hidden', 'true');
+    } else {
+      elements.manageServices.removeAttribute('hidden');
+      elements.manageServices.removeAttribute('aria-hidden');
+    }
+  }
+
+  if (elements.serviceSummary) {
+    elements.serviceSummary.hidden = hideServices;
+  }
+  if (elements.serviceSummaryTitle) {
+    elements.serviceSummaryTitle.hidden = hideServices;
+  }
+  if (elements.serviceSummaryDescription) {
+    elements.serviceSummaryDescription.hidden = hideServices;
+  }
+  if (elements.serviceSummaryGrid) {
+    elements.serviceSummaryGrid.hidden = hideServices;
+  }
+
+  if (hideServices) {
+    hideServiceSummary();
+    if (elements.services) {
+      elements.services.textContent = '0';
+    }
+  }
+}
+
+function persistRoleCredentials() {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const payload = {};
+    Object.entries(state.roleCredentials || {}).forEach(([role, credentials]) => {
+      if (!role || !credentials) {
+        return;
+      }
+      payload[role] = { ...credentials };
+    });
+    localStorage.setItem(ROLE_CREDENTIALS_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Failed to persist role credentials:", error);
+  }
+}
+
+function getRoleCredentials(role) {
+  if (!role) {
+    return {};
+  }
+  if (!state.roleCredentials) {
+    state.roleCredentials = cloneRoleCredentials();
+  }
+  if (!state.roleCredentials[role]) {
+    state.roleCredentials[role] = {};
+  }
+  return state.roleCredentials[role];
+}
+
+function replaceRoleCredential(role, oldHash, newHash, secret) {
+  if (!role || !secret || !newHash) {
+    return;
+  }
+  const credentials = getRoleCredentials(role);
+  if (oldHash && oldHash !== newHash) {
+    delete credentials[oldHash];
+  }
+  credentials[newHash] = secret;
+  persistRoleCredentials();
+}
+
+function addRoleCredential(role, hash, secret) {
+  if (!role || !hash || !secret) {
+    return false;
+  }
+  const credentials = getRoleCredentials(role);
+  if (credentials[hash]) {
+    return false;
+  }
+  credentials[hash] = secret;
+  persistRoleCredentials();
+  return true;
+}
+
+function removeRoleCredential(role, hash) {
+  if (!role || !hash) {
+    return;
+  }
+  const credentials = getRoleCredentials(role);
+  if (credentials[hash]) {
+    delete credentials[hash];
+    persistRoleCredentials();
+  }
+}
+
+function findCredentialHashForSecret(role, secret) {
+  if (!role || !secret) {
+    return null;
+  }
+  const credentials = getRoleCredentials(role);
+  const entry = Object.entries(credentials).find(([, value]) => value === secret);
+  return entry ? entry[0] : null;
 }
 
 async function hashPassword(password) {
@@ -2425,19 +3145,31 @@ function applyAccessRestrictions() {
   elements.summaryCards.forEach((card) => {
     const categoryId = card.dataset.category;
     if (!categoryId) return;
-    const hideCard =
-      state.accessRole === ACCESS_ROLES.CAPTAIN &&
-      !CAPTAIN_CARD_CATEGORIES.includes(categoryId);
-    card.hidden = hideCard;
-    if (hideCard) {
-      card.removeAttribute("aria-disabled");
-      card.tabIndex = -1;
+
+    if (!state.enableServices && categoryId === 'services') {
+      card.hidden = true;
+      card.classList.add('edition-disabled');
+      card.setAttribute('aria-hidden', 'true');
+      card.removeAttribute('tabindex');
       return;
     }
 
     const allowed = isCategoryAllowed(categoryId);
+    const restricted = !allowed;
+
+    card.hidden = false;
+    card.classList.remove('edition-disabled');
+    card.removeAttribute('aria-hidden');
     card.classList.toggle("restricted", !allowed);
-    if (!allowed) {
+    const hintElement = card.querySelector(".card-hint");
+    if (hintElement) {
+      if (restricted && state.accessRole === ACCESS_ROLES.CAPTAIN) {
+        hintElement.textContent = translate("cards.restrictedHint");
+      } else {
+        hintElement.textContent = translate("cards.hint");
+      }
+    }
+    if (restricted) {
       card.setAttribute("aria-disabled", "true");
       card.tabIndex = -1;
     } else {
@@ -2450,6 +3182,20 @@ function applyAccessRestrictions() {
     const categoryId = link.dataset.categoryLink;
     if (!categoryId) return;
     const listItem = link.closest("li");
+    link.removeAttribute('aria-hidden');
+
+    if (!state.enableServices && categoryId === 'services') {
+      if (listItem) {
+        listItem.hidden = true;
+      } else {
+        link.hidden = true;
+      }
+      link.setAttribute('aria-hidden', 'true');
+      link.setAttribute('aria-disabled', 'true');
+      link.tabIndex = -1;
+      return;
+    }
+
     const hideLink =
       state.accessRole === ACCESS_ROLES.CAPTAIN &&
       !CAPTAIN_ALLOWED_CATEGORIES.includes(categoryId);
@@ -2471,7 +3217,11 @@ function applyAccessRestrictions() {
     }
   });
 
-  ensureActiveServiceFilterValid(state.accessibleServiceSummary);
+  if (state.enableServices) {
+    ensureActiveServiceFilterValid(state.accessibleServiceSummary);
+  } else {
+    state.activeServiceFilter = SERVICE_FILTER_ALL;
+  }
 
   if (elements.overviewTitle && elements.overviewDescription) {
     if (state.accessRole === ACCESS_ROLES.CAPTAIN) {
@@ -2493,10 +3243,34 @@ function applyAccessRestrictions() {
 
   updateUserProfileUI();
   updateBirthdays();
+  redirectToServiceManagerIfNeeded();
+}
+
+function redirectToServiceManagerIfNeeded() {
+  if (!state.enableServices) {
+    return;
+  }
+  if (state.accessRole !== ACCESS_ROLES.SERVICES) {
+    return;
+  }
+  if (!isDashboardPage) {
+    return;
+  }
+
+  try {
+    window.location.replace("services.html");
+  } catch (error) {
+    window.location.assign("services.html");
+  }
 }
 
 function isUserMenuOpen() {
   return elements.userProfile?.classList.contains("open");
+}
+
+function isAdminUser() {
+  const name = (state.activeUserName || "").toString().trim().toLowerCase();
+  return name === "jpfachina";
 }
 
 function setUserMenuOpen(open) {
@@ -2545,6 +3319,14 @@ function updateUserProfileUI() {
       elements.manageServices.hidden = true;
       elements.manageServices.setAttribute("aria-hidden", "true");
     }
+    if (elements.changePassword) {
+      elements.changePassword.hidden = true;
+      elements.changePassword.setAttribute("aria-hidden", "true");
+    }
+    if (elements.manageProfiles) {
+      elements.manageProfiles.hidden = true;
+      elements.manageProfiles.setAttribute("aria-hidden", "true");
+    }
     closeUserMenu();
     return;
   }
@@ -2564,13 +3346,66 @@ function updateUserProfileUI() {
     elements.userMenuDetail.textContent = getRoleDescription(accessRole);
   }
   if (elements.manageServices) {
-    const isServiceManager = accessRole === ACCESS_ROLES.SERVICES;
+    const isServiceManager =
+      accessRole === ACCESS_ROLES.SERVICES && state.enableServices;
     elements.manageServices.hidden = !isServiceManager;
     if (isServiceManager) {
       elements.manageServices.removeAttribute("aria-hidden");
     } else {
       elements.manageServices.setAttribute("aria-hidden", "true");
     }
+  }
+  if (elements.changePassword) {
+    elements.changePassword.textContent = translate(
+      "profile.password.changeAction"
+    );
+  }
+  if (elements.manageProfiles) {
+    elements.manageProfiles.textContent = translate("profile.manage.open");
+  }
+  if (elements.changePassword) {
+    elements.changePassword.hidden = false;
+    elements.changePassword.removeAttribute("aria-hidden");
+  }
+  if (elements.manageProfiles) {
+    const isAdmin = isAdminUser();
+    elements.manageProfiles.hidden = !isAdmin;
+    if (isAdmin) {
+      elements.manageProfiles.removeAttribute("aria-hidden");
+    } else {
+      elements.manageProfiles.setAttribute("aria-hidden", "true");
+    }
+  }
+}
+
+function isElementOpen(element) {
+  if (!element) {
+    return false;
+  }
+  if (typeof element.hidden === "boolean") {
+    if (element.hidden) {
+      return false;
+    }
+  }
+  const ariaHidden = element.getAttribute?.("aria-hidden");
+  return ariaHidden === "false";
+}
+
+function refreshBodyScrollLock() {
+  const detailOpen = isElementOpen(elements.modal);
+  const assignmentOpen = Boolean(
+    elements.serviceAssignmentModal && !elements.serviceAssignmentModal.hidden
+  );
+  const parentOpen = Boolean(elements.parentChoice && !elements.parentChoice.hidden);
+  const passwordOpen = Boolean(elements.passwordModal && !elements.passwordModal.hidden);
+  const profileOpen = Boolean(elements.profileModal && !elements.profileModal.hidden);
+  const assistantOpen = Boolean(
+    elements.assistantPanel && !elements.assistantPanel.hidden
+  );
+  if (detailOpen || assignmentOpen || parentOpen || passwordOpen || profileOpen) {
+    document.body.style.overflow = "hidden";
+  } else if (!assistantOpen) {
+    document.body.style.overflow = "";
   }
 }
 
@@ -2598,8 +3433,255 @@ function handleManageServicesNavigation() {
     return;
   }
 
-  const target = isServiceManagerPage ? "index.html" : "services.html";
-  window.location.assign(target);
+  if (!isServiceManagerPage) {
+    window.location.assign("services.html");
+  }
+}
+
+function resetPasswordModal() {
+  if (elements.passwordModalNew) {
+    elements.passwordModalNew.value = "";
+  }
+  if (elements.passwordModalConfirm) {
+    elements.passwordModalConfirm.value = "";
+  }
+  if (elements.passwordModalFeedback) {
+    elements.passwordModalFeedback.textContent = "";
+  }
+}
+
+function openPasswordModal() {
+  if (!elements.passwordModal) {
+    return;
+  }
+  if (!state.accessRole || !state.activeUserSecret) {
+    setStatusFromKey("profile.password.unavailable", {}, true);
+    return;
+  }
+
+  closeUserMenu();
+  resetPasswordModal();
+  elements.passwordModal.hidden = false;
+  elements.passwordModal.setAttribute("aria-hidden", "false");
+  refreshBodyScrollLock();
+
+  setTimeout(() => {
+    if (elements.passwordModalNew && typeof elements.passwordModalNew.focus === "function") {
+      try {
+        elements.passwordModalNew.focus();
+      } catch (error) {
+        // ignore focus errors
+      }
+    }
+  }, 0);
+}
+
+function closePasswordModal() {
+  if (!elements.passwordModal) {
+    return;
+  }
+  if (elements.passwordModal.hidden) {
+    return;
+  }
+  elements.passwordModal.hidden = true;
+  elements.passwordModal.setAttribute("aria-hidden", "true");
+  refreshBodyScrollLock();
+  resetPasswordModal();
+}
+
+function showPasswordFeedback(key, isError = true) {
+  if (!elements.passwordModalFeedback) {
+    return;
+  }
+  elements.passwordModalFeedback.textContent = key
+    ? translate(key)
+    : "";
+  elements.passwordModalFeedback.classList.toggle("error", Boolean(isError));
+}
+
+async function handlePasswordFormSubmit(event) {
+  event.preventDefault();
+  if (!state.accessRole || !state.activeUserSecret) {
+    showPasswordFeedback("profile.password.unavailable");
+    return;
+  }
+
+  const newPassword = elements.passwordModalNew?.value ?? "";
+  const confirmPassword = elements.passwordModalConfirm?.value ?? "";
+
+  if (!newPassword.trim()) {
+    showPasswordFeedback("profile.password.required");
+    elements.passwordModalNew?.focus();
+    return;
+  }
+
+  if (newPassword.trim() !== confirmPassword.trim()) {
+    showPasswordFeedback("profile.password.mismatch");
+    elements.passwordModalConfirm?.focus();
+    return;
+  }
+
+  const hashed = await hashPassword(newPassword);
+  if (!hashed) {
+    showPasswordFeedback("profile.password.invalid");
+    return;
+  }
+
+  const role = state.accessRole;
+  const secret = state.activeUserSecret;
+  const oldHash = findCredentialHashForSecret(role, secret);
+  replaceRoleCredential(role, oldHash, hashed, secret);
+  closePasswordModal();
+  setStatusFromKey("profile.password.success");
+}
+
+function resetProfileModal() {
+  if (elements.profileModalName) {
+    elements.profileModalName.value = "";
+  }
+  if (elements.profileModalRole) {
+    elements.profileModalRole.value = "";
+  }
+  if (elements.profileModalPassword) {
+    elements.profileModalPassword.value = "";
+  }
+  if (elements.profileModalConfirm) {
+    elements.profileModalConfirm.value = "";
+  }
+  if (elements.profileModalFeedback) {
+    elements.profileModalFeedback.textContent = "";
+  }
+}
+
+function renderProfileRoleOptions() {
+  if (!elements.profileModalRole) {
+    return;
+  }
+  const select = elements.profileModalRole;
+  const previous = select.value;
+  select.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = translate("profile.manage.rolePlaceholder");
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.appendChild(placeholder);
+
+  Object.entries(ACCESS_METADATA).forEach(([role, metadata]) => {
+    const option = document.createElement("option");
+    option.value = role;
+    option.textContent = translate(metadata.labelKey);
+    select.appendChild(option);
+  });
+
+  if (previous) {
+    select.value = previous;
+  }
+}
+
+function openProfileModal() {
+  if (!isAdminUser()) {
+    setStatusFromKey("profile.manage.restricted", {}, true);
+    return;
+  }
+  if (!elements.profileModal) {
+    return;
+  }
+
+  closeUserMenu();
+  renderProfileRoleOptions();
+  resetProfileModal();
+  elements.profileModal.hidden = false;
+  elements.profileModal.setAttribute("aria-hidden", "false");
+  refreshBodyScrollLock();
+
+  setTimeout(() => {
+    if (elements.profileModalName && typeof elements.profileModalName.focus === "function") {
+      try {
+        elements.profileModalName.focus();
+      } catch (error) {
+        // ignore
+      }
+    }
+  }, 0);
+}
+
+function closeProfileModal() {
+  if (!elements.profileModal) {
+    return;
+  }
+  if (elements.profileModal.hidden) {
+    return;
+  }
+  elements.profileModal.hidden = true;
+  elements.profileModal.setAttribute("aria-hidden", "true");
+  refreshBodyScrollLock();
+  resetProfileModal();
+}
+
+function showProfileFeedback(key) {
+  if (!elements.profileModalFeedback) {
+    return;
+  }
+  elements.profileModalFeedback.textContent = key ? translate(key) : "";
+  elements.profileModalFeedback.classList.toggle("error", Boolean(key));
+}
+
+async function handleProfileFormSubmit(event) {
+  event.preventDefault();
+  if (!isAdminUser()) {
+    showProfileFeedback("profile.manage.restricted");
+    return;
+  }
+
+  const nameValue = elements.profileModalName?.value ?? "";
+  const roleValue = elements.profileModalRole?.value ?? "";
+  const passwordValue = elements.profileModalPassword?.value ?? "";
+  const confirmValue = elements.profileModalConfirm?.value ?? "";
+
+  const trimmedName = nameValue.trim();
+  if (!trimmedName) {
+    showProfileFeedback("profile.manage.nameRequired");
+    elements.profileModalName?.focus();
+    return;
+  }
+
+  if (!roleValue) {
+    showProfileFeedback("profile.manage.roleRequired");
+    elements.profileModalRole?.focus();
+    return;
+  }
+
+  if (!passwordValue.trim()) {
+    showProfileFeedback("profile.manage.passwordRequired");
+    elements.profileModalPassword?.focus();
+    return;
+  }
+
+  if (passwordValue.trim() !== confirmValue.trim()) {
+    showProfileFeedback("profile.manage.passwordMismatch");
+    elements.profileModalConfirm?.focus();
+    return;
+  }
+
+  const hashed = await hashPassword(passwordValue);
+  if (!hashed) {
+    showProfileFeedback("profile.manage.passwordInvalid");
+    return;
+  }
+
+  const secret = encryptNameSecret(trimmedName);
+  const added = addRoleCredential(roleValue, hashed, secret);
+  if (!added) {
+    showProfileFeedback("profile.manage.passwordDuplicate");
+    return;
+  }
+
+  closeProfileModal();
+  setStatusFromKey("profile.manage.success", {
+    name: trimmedName,
+    role: translate(ACCESS_METADATA[roleValue]?.labelKey ?? ""),
+  });
 }
 
 function handleUserProfileOutsideClick(event) {
@@ -2631,6 +3713,14 @@ function setupUserProfileEvents() {
       "click",
       handleManageServicesNavigation
     );
+  }
+
+  if (elements.changePassword) {
+    elements.changePassword.addEventListener("click", openPasswordModal);
+  }
+
+  if (elements.manageProfiles) {
+    elements.manageProfiles.addEventListener("click", openProfileModal);
   }
 
   document.addEventListener("click", handleUserProfileOutsideClick);
@@ -2740,7 +3830,7 @@ async function handleAccessSubmit(event) {
   }
 
   const hashed = await hashPassword(password);
-  const allowedUsers = ROLE_CREDENTIALS[role] ?? {};
+  const allowedUsers = getRoleCredentials(role);
   const userSecret = allowedUsers[hashed];
   const userName = decryptNameSecret(userSecret);
 
@@ -2758,9 +3848,9 @@ async function handleAccessSubmit(event) {
   state.activeUserName = userName;
   state.activeUserSecret = userSecret;
   storeAccess(role, userSecret);
+  hideAccessModal();
   applyAccessRestrictions();
   buildSuggestions();
-  hideAccessModal();
   if (typeof state.accessResolver === "function") {
     const resolver = state.accessResolver;
     state.accessResolver = null;
@@ -3140,23 +4230,68 @@ function buildSupplementalIndex(entries) {
   return index;
 }
 
-function sanitizeServiceId(value) {
-  if (!value) {
+function normalizeServiceId(value) {
+  if (value == null) {
     return "";
   }
 
-  const normalized = String(value).trim().toLowerCase();
-  return SERVICE_OPTIONS.some((option) => option.id === normalized)
-    ? normalized
-    : "";
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized.replace(/\s+/g, "-");
+}
+
+function sanitizeServiceId(value) {
+  const normalized = normalizeServiceId(value);
+  if (!normalized) {
+    return "";
+  }
+
+  if (DEFAULT_SERVICE_OPTION_IDS.has(normalized)) {
+    return normalized;
+  }
+
+  if (customServiceOptions.has(normalized)) {
+    return normalized;
+  }
+
+  return "";
 }
 
 function translateServiceName(serviceId) {
-  if (!serviceId) {
+  const normalized = sanitizeServiceId(serviceId);
+  if (!normalized) {
     return "";
   }
-  const translation = translate(`services.names.${serviceId}`);
-  return translation || serviceId;
+
+  const defaultOption = DEFAULT_SERVICE_OPTIONS.find(
+    (option) => option.id === normalized
+  );
+  if (defaultOption?.nameKey) {
+    const translation = translate(defaultOption.nameKey);
+    return translation || normalized;
+  }
+
+  const customOption = customServiceOptions.get(normalized);
+  if (customOption) {
+    if (customOption.labels && typeof customOption.labels === "object") {
+      const language = state.language ?? getDefaultLanguage();
+      const label =
+        customOption.labels[language] ??
+        customOption.labels.pt ??
+        customOption.label;
+      if (label) {
+        return label;
+      }
+    }
+    if (customOption.label) {
+      return customOption.label;
+    }
+  }
+
+  return normalized;
 }
 
 function normalizeServiceAssignment(rawAssignment) {
@@ -3355,38 +4490,323 @@ function resolveServiceKeys(record, supplementalEntry, context = {}) {
 }
 
 function buildServiceSummary(entries) {
-  const summary = { total: 0, perService: {} };
+  const summary = { total: 0, unassigned: 0, perService: {} };
 
   if (!Array.isArray(entries) || !entries.length) {
     return summary;
   }
 
   entries.forEach((entry) => {
-    const assignment = entry?.service;
-    if (!assignment?.active) {
-      return;
-    }
-
+    const assignment = entry?.service ?? EMPTY_SERVICE_ASSIGNMENT;
     const services = Array.isArray(assignment.services)
       ? assignment.services
       : [];
 
-    if (!services.length) {
+    const normalizedServices = services
+      .map((serviceId) => sanitizeServiceId(serviceId))
+      .filter(Boolean);
+
+    const isActive = Boolean(assignment.active && normalizedServices.length);
+
+    if (!isActive) {
+      summary.unassigned += 1;
       return;
     }
 
     summary.total += 1;
-    services.forEach((serviceId) => {
-      const normalized = sanitizeServiceId(serviceId);
-      if (!normalized) {
-        return;
-      }
-      summary.perService[normalized] =
-        (summary.perService[normalized] ?? 0) + 1;
+    normalizedServices.forEach((serviceId) => {
+      summary.perService[serviceId] =
+        (summary.perService[serviceId] ?? 0) + 1;
     });
   });
 
   return summary;
+}
+
+function getCustomServiceOptions() {
+  return Array.from(customServiceOptions.values()).sort((a, b) =>
+    collator.compare(getServiceOptionLabel(a), getServiceOptionLabel(b))
+  );
+}
+
+function getAllServiceOptions() {
+  return [...DEFAULT_SERVICE_OPTIONS, ...getCustomServiceOptions()];
+}
+
+function getServiceOptionLabel(option) {
+  if (!option) {
+    return "";
+  }
+  if (option.nameKey) {
+    return translate(option.nameKey);
+  }
+  if (option.labels && typeof option.labels === "object") {
+    const language = state.language ?? getDefaultLanguage();
+    const label = option.labels[language] ?? option.labels.pt ?? option.label;
+    return label ?? "";
+  }
+  return option.label ?? "";
+}
+
+function loadCustomServices() {
+  customServiceOptions.clear();
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const stored = localStorage.getItem(CUSTOM_SERVICE_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") {
+      return;
+    }
+
+    Object.entries(parsed).forEach(([id, value]) => {
+      const normalizedId = normalizeServiceId(id);
+      const rawLabel =
+        typeof value === "string"
+          ? value
+          : typeof value?.label === "string"
+          ? value.label
+          : "";
+      const baseLabel = rawLabel.trim();
+      if (!normalizedId || !baseLabel) {
+        return;
+      }
+      if (RESERVED_SERVICE_IDS.has(normalizedId)) {
+        return;
+      }
+      if (DEFAULT_SERVICE_OPTION_IDS.has(normalizedId)) {
+        return;
+      }
+      if (customServiceOptions.has(normalizedId)) {
+        return;
+      }
+      const labels = {};
+      if (value && typeof value === "object" && value.labels) {
+        labels.pt = String(value.labels.pt ?? baseLabel).trim() || baseLabel;
+        labels.en = String(value.labels.en ?? labels.pt).trim() || labels.pt;
+        labels.es = String(value.labels.es ?? labels.pt).trim() || labels.pt;
+      } else {
+        labels.pt = baseLabel;
+        labels.en = baseLabel;
+        labels.es = baseLabel;
+      }
+      customServiceOptions.set(normalizedId, {
+        id: normalizedId,
+        label: labels.pt,
+        labels,
+      });
+    });
+  } catch (error) {
+    console.warn("Failed to load custom services:", error);
+  }
+}
+
+function persistCustomServices() {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const payload = {};
+    customServiceOptions.forEach((option, id) => {
+      const label = typeof option?.label === "string" ? option.label.trim() : "";
+      if (!id || !label) {
+        return;
+      }
+      const labels = option?.labels && typeof option.labels === "object"
+        ? {
+            pt: String(option.labels.pt ?? label).trim() || label,
+            en: String(option.labels.en ?? option.labels.pt ?? label).trim() || label,
+            es: String(option.labels.es ?? option.labels.pt ?? label).trim() || label,
+          }
+        : { pt: label, en: label, es: label };
+      payload[id] = { label, labels };
+    });
+    localStorage.setItem(CUSTOM_SERVICE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Failed to persist custom services:", error);
+  }
+}
+
+function normalizeCustomServiceLabels(rawInput) {
+  if (!rawInput) {
+    return null;
+  }
+
+  if (typeof rawInput === "string") {
+    const label = rawInput.trim();
+    if (!label) {
+      return null;
+    }
+    return { pt: label, en: label, es: label };
+  }
+
+  if (typeof rawInput === "object") {
+    const base =
+      typeof rawInput.pt === "string"
+        ? rawInput.pt.trim()
+        : typeof rawInput.label === "string"
+        ? rawInput.label.trim()
+        : "";
+    if (!base) {
+      return null;
+    }
+
+    const english =
+      typeof rawInput.en === "string" ? rawInput.en.trim() : "";
+    const spanish =
+      typeof rawInput.es === "string" ? rawInput.es.trim() : "";
+
+    return {
+      pt: base,
+      en: english || base,
+      es: spanish || base,
+    };
+  }
+
+  return null;
+}
+
+function registerCustomService(rawInput) {
+  const labels = normalizeCustomServiceLabels(rawInput);
+  if (!labels) {
+    return { success: false, reason: "invalid" };
+  }
+
+  const normalizedId = normalizeServiceId(labels.pt);
+  if (!normalizedId) {
+    return { success: false, reason: "invalid" };
+  }
+
+  if (RESERVED_SERVICE_IDS.has(normalizedId)) {
+    return { success: false, reason: "reserved" };
+  }
+
+  if (DEFAULT_SERVICE_OPTION_IDS.has(normalizedId)) {
+    return { success: false, reason: "exists", id: normalizedId };
+  }
+
+  if (customServiceOptions.has(normalizedId)) {
+    return { success: false, reason: "exists", id: normalizedId };
+  }
+
+  const option = { id: normalizedId, label: labels.pt, labels };
+  customServiceOptions.set(normalizedId, option);
+  persistCustomServices();
+  return { success: true, option };
+}
+
+function updateAssignmentsForServiceChange(oldId, newId) {
+  if (!oldId || !state.serviceAssignments) {
+    return false;
+  }
+  let changed = false;
+  const sanitizedOld = sanitizeServiceId(oldId);
+  const sanitizedNew = sanitizeServiceId(newId);
+  state.serviceAssignments.forEach((assignment) => {
+    if (!assignment || !Array.isArray(assignment.services)) {
+      return;
+    }
+
+    const updated = [];
+    let assignmentChanged = false;
+
+    assignment.services.forEach((serviceId) => {
+      const normalized = sanitizeServiceId(serviceId);
+      if (!normalized) {
+        assignmentChanged = true;
+        return;
+      }
+      if (normalized === sanitizedOld) {
+        if (sanitizedNew) {
+          if (!updated.includes(sanitizedNew)) {
+            updated.push(sanitizedNew);
+          }
+        } else {
+          assignmentChanged = true;
+        }
+        if (sanitizedNew !== sanitizedOld) {
+          assignmentChanged = true;
+        }
+        return;
+      }
+      if (!updated.includes(normalized)) {
+        updated.push(normalized);
+      }
+    });
+
+    if (updated.length !== assignment.services.length) {
+      assignmentChanged = true;
+    }
+
+    if (assignmentChanged) {
+      assignment.services = updated;
+      assignment.active = Boolean(assignment.active && assignment.services.length);
+      changed = true;
+    }
+  });
+  if (changed) {
+    persistServiceAssignments();
+    applyServiceAssignmentsToEntries();
+  }
+  return changed;
+}
+
+function updateCustomService(optionId, rawInput) {
+  const current = optionId ? customServiceOptions.get(optionId) : null;
+  if (!current) {
+    return { success: false, reason: "missing" };
+  }
+
+  const labels = normalizeCustomServiceLabels(rawInput);
+  if (!labels) {
+    return { success: false, reason: "invalid" };
+  }
+
+  const normalizedId = normalizeServiceId(labels.pt);
+  if (!normalizedId) {
+    return { success: false, reason: "invalid" };
+  }
+
+  if (RESERVED_SERVICE_IDS.has(normalizedId)) {
+    return { success: false, reason: "reserved" };
+  }
+
+  if (DEFAULT_SERVICE_OPTION_IDS.has(normalizedId) && normalizedId !== optionId) {
+    return { success: false, reason: "exists", id: normalizedId };
+  }
+
+  const existing = customServiceOptions.get(normalizedId);
+  if (existing && normalizedId !== optionId) {
+    return { success: false, reason: "exists", id: normalizedId };
+  }
+
+  customServiceOptions.delete(optionId);
+  const option = { id: normalizedId, label: labels.pt, labels };
+  customServiceOptions.set(normalizedId, option);
+  persistCustomServices();
+
+  if (normalizedId !== optionId) {
+    updateAssignmentsForServiceChange(optionId, normalizedId);
+  }
+
+  return { success: true, option };
+}
+
+function deleteCustomService(optionId) {
+  if (!optionId || !customServiceOptions.has(optionId)) {
+    return false;
+  }
+  customServiceOptions.delete(optionId);
+  persistCustomServices();
+  updateAssignmentsForServiceChange(optionId, null);
+  return true;
 }
 
 function loadServiceAssignments() {
@@ -3499,7 +4919,8 @@ function applyServiceAssignmentsToEntries() {
 function ensureActiveServiceFilterValid(summary) {
   const validIds = new Set([
     SERVICE_FILTER_ALL,
-    ...SERVICE_OPTIONS.map((option) => option.id),
+    SERVICE_FILTER_UNASSIGNED,
+    ...getAllServiceOptions().map((option) => option.id),
   ]);
 
   if (!validIds.has(state.activeServiceFilter)) {
@@ -3508,6 +4929,14 @@ function ensureActiveServiceFilterValid(summary) {
   }
 
   if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
+    return;
+  }
+
+  if (state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED) {
+    const inactiveCount = summary?.unassigned ?? 0;
+    if (inactiveCount <= 0) {
+      state.activeServiceFilter = SERVICE_FILTER_ALL;
+    }
     return;
   }
 
@@ -3530,7 +4959,14 @@ function recalculateServiceSummaries() {
 }
 
 function initializeServiceAssignments() {
+  if (!state.enableServices) {
+    return;
+  }
   loadServiceAssignments();
+}
+
+function initializeCustomServices() {
+  loadCustomServices();
 }
 
 function matchSupplementalRecord(record, birthDate) {
@@ -4645,10 +6081,13 @@ function ensureServiceManagerFilterOptions() {
   const options = [
     { value: "all", label: translate("serviceManager.filters.all") },
     { value: "active", label: translate("serviceManager.filters.active") },
-    { value: "inactive", label: translate("serviceManager.filters.inactive") },
-    ...SERVICE_OPTIONS.map((option) => ({
+    {
+      value: SERVICE_FILTER_UNASSIGNED,
+      label: translate("serviceManager.filters.unassigned"),
+    },
+    ...getAllServiceOptions().map((option) => ({
       value: option.id,
-      label: translate(option.nameKey),
+      label: getServiceOptionLabel(option),
     })),
   ];
 
@@ -4740,7 +6179,7 @@ function renderServiceOptions(container, selectedServices, options = {}) {
 
   container.innerHTML = "";
 
-  SERVICE_OPTIONS.forEach((option) => {
+  getAllServiceOptions().forEach((option) => {
     const label = document.createElement("label");
     label.className = optionClass;
 
@@ -4762,7 +6201,7 @@ function renderServiceOptions(container, selectedServices, options = {}) {
     });
 
     const span = document.createElement("span");
-    span.textContent = translate(option.nameKey);
+    span.textContent = getServiceOptionLabel(option);
 
     label.append(input, span);
     container.appendChild(label);
@@ -4835,6 +6274,23 @@ function renderServiceControls(entry) {
   });
 }
 
+function refreshActiveServiceInterfaces({ preserveSelection = true } = {}) {
+  const modalVisible =
+    elements.serviceAssignmentModal &&
+    !elements.serviceAssignmentModal.hidden &&
+    state.activeServiceModalEntry;
+
+  if (modalVisible) {
+    populateServiceAssignmentModal(state.activeServiceModalEntry, {
+      preserveSelection,
+    });
+  }
+
+  if (state.activeDetailEntry) {
+    renderServiceControls(state.activeDetailEntry);
+  }
+}
+
 function hideServiceSummary() {
   if (elements.serviceSummary) {
     elements.serviceSummary.hidden = true;
@@ -4866,17 +6322,25 @@ function renderServiceSummaryCards(summary) {
       id: SERVICE_FILTER_ALL,
       label: translate("services.filters.all"),
       count: summary?.total ?? 0,
+      type: "all",
     },
-    ...SERVICE_OPTIONS.map((option) => ({
+    {
+      id: SERVICE_FILTER_UNASSIGNED,
+      label: translate("services.filters.unassigned"),
+      count: summary?.unassigned ?? 0,
+      type: "unassigned",
+    },
+    ...getAllServiceOptions().map((option) => ({
       id: option.id,
-      label: translate(option.nameKey),
+      label: getServiceOptionLabel(option),
       count: summary?.perService?.[option.id] ?? 0,
+      type: "service",
     })),
   ];
 
   elements.serviceSummaryGrid.innerHTML = "";
 
-  cards.forEach(({ id, label, count }) => {
+  cards.forEach(({ id, label, count, type }) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "service-summary-card";
@@ -4891,7 +6355,11 @@ function renderServiceSummaryCards(summary) {
     const title = document.createElement("strong");
     title.textContent = label;
     const meta = document.createElement("span");
-    meta.textContent = translate("services.countLabel", { count });
+    const metaKey =
+      type === "unassigned"
+        ? "services.countLabelUnassigned"
+        : "services.countLabel";
+    meta.textContent = translate(metaKey, { count });
 
     button.append(title, meta);
     elements.serviceSummaryGrid.appendChild(button);
@@ -4939,24 +6407,16 @@ function updateCategoryCards(entries, category, options = {}) {
 
     card.append(nameElement, ageElement, phoneElement);
 
-    if (entry.service?.active && Array.isArray(entry.service.services)) {
+    if (hasActiveServices(entry)) {
       const tagList = document.createElement("div");
       tagList.className = "service-tags";
 
-      entry.service.services.forEach((serviceId) => {
-        const normalized = sanitizeServiceId(serviceId);
-        if (!normalized) {
-          return;
-        }
-        const tag = document.createElement("span");
-        tag.className = "service-tag";
-        tag.textContent = translateServiceName(normalized);
-        tagList.appendChild(tag);
-      });
+      const tag = document.createElement("span");
+      tag.className = "service-tag service-tag--status";
+      tag.textContent = translate("people.servingTag");
+      tagList.appendChild(tag);
 
-      if (tagList.children.length) {
-        card.appendChild(tagList);
-      }
+      card.appendChild(tagList);
     }
 
     card.addEventListener("click", () => openRecord(entry.record));
@@ -5108,21 +6568,26 @@ function renderServicesCategory(category) {
     elements.teensFilter.hidden = true;
   }
 
-  const summary = state.accessibleServiceSummary ?? { total: 0, perService: {} };
+  const summary =
+    state.accessibleServiceSummary ?? { total: 0, unassigned: 0, perService: {} };
   ensureActiveServiceFilterValid(summary);
   renderServiceSummaryCards(summary);
 
-  const servingEntries = getAccessibleEntries().filter((entry) =>
+  const accessibleEntries = getAccessibleEntries();
+  const servingEntries = accessibleEntries.filter((entry) =>
     category.filter(entry)
   );
 
-  let filteredEntries = servingEntries;
-  if (state.activeServiceFilter !== SERVICE_FILTER_ALL) {
+  let filteredEntries;
+  if (state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED) {
+    filteredEntries = accessibleEntries.filter((entry) => !hasActiveServices(entry));
+  } else if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
+    filteredEntries = servingEntries;
+  } else {
     filteredEntries = servingEntries.filter((entry) => {
-      const services = entry.service?.services;
-      if (!Array.isArray(services)) {
-        return false;
-      }
+      const services = Array.isArray(entry.service?.services)
+        ? entry.service.services.map((serviceId) => sanitizeServiceId(serviceId)).filter(Boolean)
+        : [];
       return services.includes(state.activeServiceFilter);
     });
   }
@@ -5135,6 +6600,8 @@ function renderServicesCategory(category) {
     const filterLabel =
       state.activeServiceFilter === SERVICE_FILTER_ALL
         ? translate("services.meta.all")
+        : state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED
+        ? translate("services.meta.unassigned")
         : translate("services.meta.service", {
             service: translateServiceName(state.activeServiceFilter),
           });
@@ -5148,16 +6615,19 @@ function renderServicesCategory(category) {
   const emptyMessage =
     state.activeServiceFilter === SERVICE_FILTER_ALL
       ? translate("services.empty.all")
+      : state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED
+      ? translate("services.empty.unassigned")
       : translate("services.empty.service", {
           service: translateServiceName(state.activeServiceFilter),
         });
 
+  const baseChartLabel = translateCategoryField(category, "chartLabel");
   const chartLabel =
     state.activeServiceFilter === SERVICE_FILTER_ALL
-      ? translateCategoryField(category, "chartLabel")
-      : `${translateCategoryField(category, "chartLabel")} · ${translateServiceName(
-          state.activeServiceFilter
-        )}`;
+      ? baseChartLabel
+      : state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED
+      ? translate("services.chartLabelUnassigned")
+      : `${baseChartLabel} · ${translateServiceName(state.activeServiceFilter)}`;
 
   updateCategoryCards(filteredEntries, category, { emptyMessage });
   updateCategoryChart(filteredEntries, category, {
@@ -5181,19 +6651,287 @@ function formatServiceStatusText(entry) {
   return translate("services.feedback.inactive");
 }
 
+function getServiceAssignmentModalSelectedServices() {
+  if (!elements.serviceAssignmentOptions) {
+    return [];
+  }
+  return Array.from(
+    elements.serviceAssignmentOptions.querySelectorAll(
+      'input[type="checkbox"]:checked'
+    )
+  )
+    .map((input) => sanitizeServiceId(input.value))
+    .filter(Boolean);
+}
+
+function updateServiceAssignmentModalStatus() {
+  if (!elements.serviceAssignmentStatus) {
+    return;
+  }
+
+  const services = getServiceAssignmentModalSelectedServices();
+  let statusText = translate("services.feedback.inactive");
+  if (services.length) {
+    const names = services
+      .map((serviceId) => translateServiceName(serviceId))
+      .filter(Boolean);
+    if (names.length) {
+      statusText = translate("services.feedback.active", {
+        service: names.join(", "),
+      });
+    }
+  }
+
+  elements.serviceAssignmentStatus.textContent = statusText;
+  elements.serviceAssignmentStatus.classList.toggle(
+    "service-assignment-status-active",
+    services.length > 0
+  );
+}
+
+function populateServiceAssignmentModal(entry, options = {}) {
+  const {
+    preserveSelection = false,
+  } = options;
+
+  if (!entry || !elements.serviceAssignmentModal) {
+    return;
+  }
+
+  const targetEntry =
+    findEntryByRecord(entry.record) ??
+    findEntryByServiceKey(entry.serviceKey) ??
+    entry;
+
+  state.activeServiceModalEntry = targetEntry;
+
+  if (elements.serviceAssignmentTitle) {
+    elements.serviceAssignmentTitle.textContent = translate(
+      "serviceAssignment.title",
+      {
+        name: targetEntry.name || translate("modal.noName"),
+      }
+    );
+  }
+
+  if (elements.serviceAssignmentMeta) {
+    elements.serviceAssignmentMeta.innerHTML = "";
+
+    const ageSpan = document.createElement("span");
+    ageSpan.textContent = translate("people.ageLabel", {
+      value: formatAge(targetEntry.age),
+    });
+    elements.serviceAssignmentMeta.appendChild(ageSpan);
+
+    const phoneSpan = document.createElement("span");
+    const phoneValue = targetEntry.phone
+      ? formatPhone(targetEntry.phone)
+      : translate("format.phoneMissing");
+    phoneSpan.textContent = translate("people.phoneLabel", {
+      value: phoneValue,
+    });
+    elements.serviceAssignmentMeta.appendChild(phoneSpan);
+  }
+
+  if (elements.serviceAssignmentOptions) {
+    const assignment = targetEntry.service ?? EMPTY_SERVICE_ASSIGNMENT;
+    let selectedServices;
+    if (preserveSelection) {
+      selectedServices = getServiceAssignmentModalSelectedServices();
+    } else if (assignment.active && Array.isArray(assignment.services)) {
+      selectedServices = assignment.services
+        .map((serviceId) => sanitizeServiceId(serviceId))
+        .filter(Boolean);
+    } else {
+      selectedServices = [];
+    }
+
+    renderServiceOptions(elements.serviceAssignmentOptions, selectedServices, {
+      disabled: false,
+      optionClass: "service-assignment-option",
+    });
+
+    const hasOptions = elements.serviceAssignmentOptions.childElementCount > 0;
+    if (elements.serviceAssignmentEmpty) {
+      elements.serviceAssignmentEmpty.hidden = hasOptions;
+    }
+    if (elements.serviceAssignmentSave) {
+      elements.serviceAssignmentSave.disabled = !hasOptions;
+    }
+  }
+
+  updateServiceAssignmentModalStatus();
+}
+
+function openServiceAssignmentModal(entry, trigger = null) {
+  if (!canManageServices()) {
+    return;
+  }
+
+  if (!elements.serviceAssignmentModal) {
+    return;
+  }
+
+  const targetEntry =
+    findEntryByRecord(entry?.record) ??
+    findEntryByServiceKey(entry?.serviceKey) ??
+    entry;
+
+  if (!targetEntry) {
+    return;
+  }
+
+  closeModal();
+
+  if (trigger) {
+    state.activeServiceModalTrigger = trigger;
+  } else {
+    state.activeServiceModalTrigger = document.activeElement;
+  }
+
+  populateServiceAssignmentModal(targetEntry, { preserveSelection: false });
+
+  elements.serviceAssignmentModal.hidden = false;
+  elements.serviceAssignmentModal.setAttribute("aria-hidden", "false");
+  refreshBodyScrollLock();
+
+  setTimeout(() => {
+    const firstOption = elements.serviceAssignmentOptions?.querySelector(
+      'input[type="checkbox"]'
+    );
+    const focusTarget = firstOption || elements.serviceAssignmentSave;
+    if (focusTarget && typeof focusTarget.focus === "function") {
+      try {
+        focusTarget.focus();
+      } catch (error) {
+        // Ignore focus errors
+      }
+    }
+  }, 0);
+}
+
+function closeServiceAssignmentModal() {
+  if (!elements.serviceAssignmentModal) {
+    return;
+  }
+  if (elements.serviceAssignmentModal.hidden) {
+    state.activeServiceModalEntry = null;
+    state.activeServiceModalTrigger = null;
+    return;
+  }
+
+  elements.serviceAssignmentModal.hidden = true;
+  elements.serviceAssignmentModal.setAttribute("aria-hidden", "true");
+
+  refreshBodyScrollLock();
+
+  const trigger = state.activeServiceModalTrigger;
+  state.activeServiceModalEntry = null;
+  state.activeServiceModalTrigger = null;
+
+  if (trigger && document.contains(trigger)) {
+    try {
+      trigger.focus();
+    } catch (error) {
+      // Ignore focus errors
+    }
+  } else if (elements.serviceManagerFilter) {
+    try {
+      elements.serviceManagerFilter.focus();
+    } catch (error) {
+      // Ignore focus errors
+    }
+  }
+}
+
+function handleServiceAssignmentOptionsChange(event) {
+  if (!event || !event.target) {
+    return;
+  }
+  if (!event.target.matches('input[type="checkbox"]')) {
+    return;
+  }
+  updateServiceAssignmentModalStatus();
+}
+
+function handleServiceAssignmentSubmit(event) {
+  event.preventDefault();
+
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    closeServiceAssignmentModal();
+    return;
+  }
+
+  const entry = state.activeServiceModalEntry;
+  if (!entry) {
+    closeServiceAssignmentModal();
+    return;
+  }
+
+  const services = getServiceAssignmentModalSelectedServices();
+  updateServiceAssignment(entry, {
+    active: services.length > 0,
+    services,
+  });
+  setStatusFromKey("serviceAssignment.success", {
+    name: entry.name || translate("modal.noName"),
+  });
+  closeServiceAssignmentModal();
+}
+
 function createServiceManagerCard(entry) {
   const card = document.createElement("article");
   card.className = "service-manager-card";
 
+  const interactive = canManageServices();
+  if (interactive) {
+    card.classList.add("service-manager-card-interactive");
+    card.tabIndex = 0;
+    card.setAttribute(
+      "role",
+      "button"
+    );
+    card.setAttribute(
+      "aria-label",
+      translate("serviceAssignment.open", {
+        name: entry.name || translate("modal.noName"),
+      })
+    );
+
+    const handleOpen = (event) => {
+      if (!canManageServices()) {
+        return;
+      }
+      if (event) {
+        event.preventDefault();
+      }
+      openServiceAssignmentModal(entry, card);
+    };
+
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button, a")) {
+        return;
+      }
+      handleOpen(event);
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleOpen();
+      }
+    });
+  } else {
+    card.setAttribute("role", "group");
+  }
+
   const header = document.createElement("div");
   header.className = "service-manager-card-header";
 
-  const nameButton = document.createElement("button");
-  nameButton.type = "button";
-  nameButton.className = "service-manager-name";
-  nameButton.textContent = entry.name || translate("modal.noName");
-  nameButton.addEventListener("click", () => openRecord(entry.record));
-  header.appendChild(nameButton);
+  const nameHeading = document.createElement("h3");
+  nameHeading.className = "service-manager-name";
+  nameHeading.textContent = entry.name || translate("modal.noName");
+  header.appendChild(nameHeading);
 
   const status = document.createElement("span");
   status.className = "service-manager-status";
@@ -5220,31 +6958,248 @@ function createServiceManagerCard(entry) {
 
   card.appendChild(meta);
 
-  const controls = document.createElement("div");
-  controls.className = "service-manager-actions";
-
   const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
-  const checklist = document.createElement("div");
-  checklist.className = "service-manager-checklist";
-  controls.appendChild(checklist);
+  const services = Array.isArray(assignment.services)
+    ? assignment.services
+        .map((serviceId) => sanitizeServiceId(serviceId))
+        .filter(Boolean)
+    : [];
 
-  renderServiceOptions(checklist, assignment.services, {
-    disabled: false,
-    optionClass: "service-manager-option",
-    onChange: (services) => {
-      if (!canManageServices()) {
-        return;
-      }
-      updateServiceAssignment(entry, {
-        active: services.length > 0,
-        services,
-      });
-    },
-  });
+  if (assignment.active && services.length) {
+    const tags = document.createElement("div");
+    tags.className = "service-manager-tags";
 
-  card.appendChild(controls);
+    services.forEach((serviceId) => {
+      const tag = document.createElement("span");
+      tag.className = "service-manager-tag";
+      tag.textContent = translateServiceName(serviceId);
+      tags.appendChild(tag);
+    });
+
+    card.appendChild(tags);
+  }
 
   return card;
+}
+
+function resetServiceFormFields() {
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.value = "";
+  }
+  if (elements.serviceManagerAddInputEn) {
+    elements.serviceManagerAddInputEn.value = "";
+  }
+  if (elements.serviceManagerAddInputEs) {
+    elements.serviceManagerAddInputEs.value = "";
+  }
+}
+
+function exitServiceEditMode({ preserveValues = false } = {}) {
+  state.editingServiceId = null;
+  if (!preserveValues) {
+    resetServiceFormFields();
+  }
+  if (elements.serviceManagerAddTitle) {
+    elements.serviceManagerAddTitle.textContent = translate(
+      "serviceManager.add.title"
+    );
+  }
+  if (elements.serviceManagerAddButton) {
+    elements.serviceManagerAddButton.textContent = translate(
+      "serviceManager.add.button"
+    );
+  }
+  if (elements.serviceManagerAddCancel) {
+    elements.serviceManagerAddCancel.hidden = true;
+  }
+}
+
+function enterServiceEditMode(optionId) {
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    return;
+  }
+  const option = optionId ? customServiceOptions.get(optionId) : null;
+  if (!option) {
+    return;
+  }
+  state.editingServiceId = optionId;
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.value = option.labels?.pt ?? option.label ?? "";
+  }
+  if (elements.serviceManagerAddInputEn) {
+    elements.serviceManagerAddInputEn.value = option.labels?.en ?? option.label ?? "";
+  }
+  if (elements.serviceManagerAddInputEs) {
+    elements.serviceManagerAddInputEs.value = option.labels?.es ?? option.label ?? "";
+  }
+  if (elements.serviceManagerAddTitle) {
+    elements.serviceManagerAddTitle.textContent = translate(
+      "serviceManager.edit.title",
+      { name: option.labels?.pt ?? option.label ?? "" }
+    );
+  }
+  if (elements.serviceManagerAddButton) {
+    elements.serviceManagerAddButton.textContent = translate(
+      "serviceManager.edit.button"
+    );
+  }
+  if (elements.serviceManagerAddCancel) {
+    elements.serviceManagerAddCancel.hidden = false;
+  }
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.focus();
+  }
+  setStatusFromKey("serviceManager.edit.start", {
+    name: getServiceOptionLabel(option),
+  });
+}
+
+function renderCustomServiceList() {
+  const section = elements.serviceManagerCustomSection;
+  const list = elements.serviceManagerCustomList;
+  const empty = elements.serviceManagerCustomEmpty;
+  if (!section || !list || !empty) {
+    return;
+  }
+
+  const canManage = Boolean(state.accessRole) && canManageServices();
+  section.hidden = !canManage;
+  if (!canManage) {
+    list.innerHTML = "";
+    empty.hidden = true;
+    return;
+  }
+
+  if (elements.serviceManagerCustomTitle) {
+    elements.serviceManagerCustomTitle.textContent = translate(
+      "serviceManager.custom.title"
+    );
+  }
+  if (elements.serviceManagerCustomDescription) {
+    elements.serviceManagerCustomDescription.textContent = translate(
+      "serviceManager.custom.description"
+    );
+  }
+
+  const options = getCustomServiceOptions();
+  list.innerHTML = "";
+
+  if (!options.length) {
+    empty.textContent = translate("serviceManager.custom.empty");
+    empty.hidden = false;
+    return;
+  }
+
+  empty.hidden = true;
+
+  options.forEach((option) => {
+    const item = document.createElement("li");
+    item.className = "service-manager-custom-item";
+    item.dataset.serviceId = option.id;
+
+    const info = document.createElement("div");
+    info.className = "service-manager-custom-info";
+
+    const name = document.createElement("span");
+    name.className = "service-manager-custom-name";
+    name.textContent = option.labels?.pt ?? option.label ?? "";
+    info.appendChild(name);
+
+    const translationsList = document.createElement("ul");
+    translationsList.className = "service-manager-custom-translations";
+
+    const languages = [
+      { code: "pt", label: translate("serviceManager.custom.language.pt") },
+      { code: "en", label: translate("serviceManager.custom.language.en") },
+      { code: "es", label: translate("serviceManager.custom.language.es") },
+    ];
+
+    languages.forEach(({ code, label }) => {
+      const value = option.labels?.[code] ?? option.label ?? "";
+      const row = document.createElement("li");
+      row.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+      translationsList.appendChild(row);
+    });
+
+    info.appendChild(translationsList);
+    item.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "service-manager-custom-actions";
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "service-manager-custom-action";
+    editButton.dataset.action = "edit";
+    editButton.textContent = translate("serviceManager.custom.edit");
+    actions.appendChild(editButton);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "service-manager-custom-action danger";
+    deleteButton.dataset.action = "delete";
+    deleteButton.textContent = translate("serviceManager.custom.delete");
+    actions.appendChild(deleteButton);
+
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+function handleCustomServiceListClick(event) {
+  if (!event || !event.target) {
+    return;
+  }
+  const button = event.target.closest("button[data-action]");
+  if (!button) {
+    return;
+  }
+  const item = button.closest("[data-service-id]");
+  if (!item) {
+    return;
+  }
+  const serviceId = item.dataset.serviceId;
+  if (!serviceId) {
+    return;
+  }
+
+  const action = button.dataset.action;
+  if (action === "edit") {
+    enterServiceEditMode(serviceId);
+    return;
+  }
+
+  if (action === "delete") {
+    if (!canManageServices()) {
+      setStatusFromKey("serviceManager.restricted", {}, true);
+      return;
+    }
+    const label = translateServiceName(serviceId) || serviceId;
+    const confirmMessage = translate("serviceManager.custom.deleteConfirm", {
+      name: label,
+    });
+    const confirmed = window.confirm(confirmMessage);
+    if (!confirmed) {
+      return;
+    }
+    const removed = deleteCustomService(serviceId);
+    if (removed) {
+      if (state.editingServiceId === serviceId) {
+        exitServiceEditMode();
+      }
+      renderCustomServiceList();
+      ensureServiceManagerFilterOptions();
+      recalculateServiceSummaries();
+      if (isServiceManagerPage) {
+        renderServiceManager();
+      }
+      refreshActiveServiceInterfaces({ preserveSelection: true });
+      setStatusFromKey("serviceManager.custom.deleteSuccess", { name: label });
+    } else {
+      setStatusFromKey("serviceManager.custom.deleteError", {}, true);
+    }
+  }
 }
 
 function renderServiceManager() {
@@ -5258,6 +7213,78 @@ function renderServiceManager() {
     return;
   }
 
+  if (!state.enableServices) {
+    if (elements.serviceManagerAddForm) {
+      elements.serviceManagerAddForm.hidden = true;
+    }
+    if (elements.serviceManagerAddInput) {
+      elements.serviceManagerAddInput.disabled = true;
+    }
+    if (elements.serviceManagerAddInputEn) {
+      elements.serviceManagerAddInputEn.disabled = true;
+    }
+    if (elements.serviceManagerAddInputEs) {
+      elements.serviceManagerAddInputEs.disabled = true;
+    }
+    if (elements.serviceManagerAddButton) {
+      elements.serviceManagerAddButton.disabled = true;
+    }
+    if (elements.serviceManagerAddCancel) {
+      elements.serviceManagerAddCancel.disabled = true;
+      elements.serviceManagerAddCancel.hidden = true;
+    }
+    if (elements.serviceManagerAddHint) {
+      elements.serviceManagerAddHint.hidden = true;
+    }
+    list.innerHTML = '';
+    hideServiceSummary();
+    empty.textContent = translate('serviceManager.proOnly');
+    empty.hidden = false;
+    if (elements.serviceManagerNotice) {
+      elements.serviceManagerNotice.hidden = false;
+      elements.serviceManagerNotice.textContent = translate('serviceManager.proOnly');
+    }
+    closeServiceAssignmentModal();
+    return;
+  }
+
+  const canAddServices = Boolean(state.accessRole) && canManageServices();
+  if (elements.serviceManagerAddForm) {
+    elements.serviceManagerAddForm.hidden = !canAddServices;
+  }
+  if (elements.serviceManagerAddInput) {
+    elements.serviceManagerAddInput.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddInputEn) {
+    elements.serviceManagerAddInputEn.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddInputEs) {
+    elements.serviceManagerAddInputEs.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddButton) {
+    elements.serviceManagerAddButton.disabled = !canAddServices;
+  }
+  if (elements.serviceManagerAddCancel) {
+    elements.serviceManagerAddCancel.disabled = !canAddServices;
+    elements.serviceManagerAddCancel.hidden =
+      !canAddServices || !state.editingServiceId;
+  }
+  if (elements.serviceManagerAddHint) {
+    elements.serviceManagerAddHint.hidden = !canAddServices;
+  }
+  if (!canAddServices) {
+    exitServiceEditMode({ preserveValues: true });
+  }
+
+  renderCustomServiceList();
+  if (elements.serviceManagerBack) {
+    if (state.accessRole === ACCESS_ROLES.SERVICES) {
+      elements.serviceManagerBack.setAttribute("hidden", "true");
+    } else {
+      elements.serviceManagerBack.removeAttribute("hidden");
+    }
+  }
+
   if (!state.accessRole) {
     list.innerHTML = "";
     hideServiceSummary();
@@ -5266,6 +7293,7 @@ function renderServiceManager() {
     if (elements.serviceManagerNotice) {
       elements.serviceManagerNotice.hidden = false;
     }
+    closeServiceAssignmentModal();
     return;
   }
 
@@ -5280,6 +7308,7 @@ function renderServiceManager() {
     if (state.accessRole) {
       setStatusFromKey("serviceManager.restricted", {}, true);
     }
+    closeServiceAssignmentModal();
     return;
   }
 
@@ -5289,14 +7318,17 @@ function renderServiceManager() {
 
   ensureServiceManagerFilterOptions();
 
-  const summary = state.serviceSummary ?? { total: 0, perService: {} };
+  const summary =
+    state.serviceSummary ?? { total: 0, unassigned: 0, perService: {} };
   renderServiceSummaryCards(summary);
 
   const filterValue = elements.serviceManagerFilter?.value ?? "all";
   const normalizedFilter = sanitizeServiceId(filterValue);
 
-  if (filterValue === "all" || filterValue === "active" || filterValue === "inactive") {
+  if (filterValue === "all" || filterValue === "active") {
     state.activeServiceFilter = SERVICE_FILTER_ALL;
+  } else if (filterValue === SERVICE_FILTER_UNASSIGNED) {
+    state.activeServiceFilter = SERVICE_FILTER_UNASSIGNED;
   } else if (normalizedFilter) {
     state.activeServiceFilter = normalizedFilter;
   } else {
@@ -5307,25 +7339,18 @@ function renderServiceManager() {
 
   entries = entries.filter((entry) => {
     const assignment = entry.service ?? EMPTY_SERVICE_ASSIGNMENT;
-    const active = Boolean(
-      assignment.active &&
-        Array.isArray(assignment.services) &&
-        assignment.services.length
-    );
-    if (filterValue === "active") {
-      return active;
-    }
-    if (filterValue === "inactive") {
+    const services = Array.isArray(assignment.services)
+      ? assignment.services.map((serviceId) => sanitizeServiceId(serviceId)).filter(Boolean)
+      : [];
+    const active = Boolean(assignment.active && services.length);
+
+    if (filterValue === SERVICE_FILTER_UNASSIGNED) {
       return !active;
     }
-    if (filterValue !== "all" && normalizedFilter) {
-      return (
-        active &&
-        assignment.services &&
-        assignment.services.includes(normalizedFilter)
-      );
+    if (filterValue !== "all" && filterValue !== "active" && normalizedFilter) {
+      return active && services.includes(normalizedFilter);
     }
-    return true;
+    return active;
   });
 
   entries.sort((a, b) => collator.compare(a.name || "", b.name || ""));
@@ -5341,6 +7366,91 @@ function renderServiceManager() {
       list.appendChild(createServiceManagerCard(entry));
     });
   }
+}
+
+function handleServiceAddSubmit(event) {
+  event.preventDefault();
+
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    return;
+  }
+
+  const input = elements.serviceManagerAddInput;
+  const inputEn = elements.serviceManagerAddInputEn;
+  const inputEs = elements.serviceManagerAddInputEs;
+  if (!input) {
+    return;
+  }
+
+  const payload = {
+    pt: input.value,
+    en: inputEn?.value,
+    es: inputEs?.value,
+  };
+
+  if (state.editingServiceId) {
+    const result = updateCustomService(state.editingServiceId, payload);
+    if (!result.success) {
+      const key =
+        result.reason === "exists"
+          ? "serviceManager.edit.exists"
+          : result.reason === "reserved"
+          ? "serviceManager.edit.reserved"
+          : result.reason === "missing"
+          ? "serviceManager.edit.missing"
+          : "serviceManager.edit.invalid";
+      setStatusFromKey(key, {}, true);
+      input.focus();
+      return;
+    }
+
+    exitServiceEditMode();
+    renderCustomServiceList();
+    ensureServiceManagerFilterOptions();
+    recalculateServiceSummaries();
+    if (isServiceManagerPage) {
+      renderServiceManager();
+    }
+    refreshActiveServiceInterfaces({ preserveSelection: true });
+    setStatusFromKey("serviceManager.edit.success", {
+      name: result.option.label,
+    });
+    return;
+  }
+
+  const result = registerCustomService(payload);
+  if (!result.success) {
+    const key =
+      result.reason === "exists"
+        ? "serviceManager.add.exists"
+        : result.reason === "reserved"
+        ? "serviceManager.add.reserved"
+        : "serviceManager.add.invalid";
+    const trimmed = typeof input.value === "string" ? input.value.trim() : "";
+    input.value = trimmed;
+    if (inputEn && typeof inputEn.value === "string") {
+      inputEn.value = inputEn.value.trim();
+    }
+    if (inputEs && typeof inputEs.value === "string") {
+      inputEs.value = inputEs.value.trim();
+    }
+    setStatusFromKey(key, {}, true);
+    input.focus();
+    return;
+  }
+
+  const { option } = result;
+  resetServiceFormFields();
+  input.focus();
+  renderCustomServiceList();
+  ensureServiceManagerFilterOptions();
+  recalculateServiceSummaries();
+  if (isServiceManagerPage) {
+    renderServiceManager();
+  }
+  refreshActiveServiceInterfaces({ preserveSelection: true });
+  setStatusFromKey("serviceManager.add.success", { name: option.label });
 }
 
 function formatAge(age) {
@@ -5797,15 +7907,23 @@ function handleServiceSummaryClick(event) {
   }
 
   const serviceId = card.dataset.serviceId || SERVICE_FILTER_ALL;
-  const sanitized = sanitizeServiceId(serviceId);
-  state.activeServiceFilter =
-    serviceId === SERVICE_FILTER_ALL || !sanitized
-      ? SERVICE_FILTER_ALL
-      : sanitized;
+  let targetFilter = SERVICE_FILTER_ALL;
+  if (serviceId === SERVICE_FILTER_UNASSIGNED) {
+    targetFilter = SERVICE_FILTER_UNASSIGNED;
+  } else if (serviceId === SERVICE_FILTER_ALL) {
+    targetFilter = SERVICE_FILTER_ALL;
+  } else {
+    const sanitized = sanitizeServiceId(serviceId);
+    targetFilter = sanitized || SERVICE_FILTER_ALL;
+  }
+
+  state.activeServiceFilter = targetFilter;
   if (isServiceManagerPage) {
     if (elements.serviceManagerFilter) {
       if (state.activeServiceFilter === SERVICE_FILTER_ALL) {
         elements.serviceManagerFilter.value = "all";
+      } else if (state.activeServiceFilter === SERVICE_FILTER_UNASSIGNED) {
+        elements.serviceManagerFilter.value = SERVICE_FILTER_UNASSIGNED;
       } else {
         elements.serviceManagerFilter.value = state.activeServiceFilter;
       }
@@ -5847,7 +7965,7 @@ function openDetailModal(title, detailItems, { searchValue } = {}) {
   });
 
   elements.modal.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
+  refreshBodyScrollLock();
   elements.suggestions?.classList.remove("visible");
 }
 
@@ -5962,7 +8080,7 @@ function openParentChoice(entry, availableRoles = []) {
       if (motherButton) motherButton.removeEventListener("click", onMother);
       if (cancelButton) cancelButton.removeEventListener("click", onCancel);
       if (closeButton) closeButton.removeEventListener("click", onCancel);
-      document.body.style.overflow = "";
+      refreshBodyScrollLock();
       if (previousFocus && typeof previousFocus.focus === "function") {
         try {
           previousFocus.focus();
@@ -6038,7 +8156,7 @@ function openParentChoice(entry, availableRoles = []) {
 
     overlay.hidden = false;
     overlay.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    refreshBodyScrollLock();
 
     overlay.addEventListener("click", onOverlayClick);
     document.addEventListener("keydown", onKeydown);
@@ -6072,7 +8190,7 @@ function closeParentChoice(value = null) {
 function closeModal() {
   if (!elements.modal) return;
   elements.modal.setAttribute("aria-hidden", "true");
-  document.body.style.overflow = "";
+  refreshBodyScrollLock();
   state.activeDetailEntry = null;
   hideServiceControls();
 }
@@ -6092,12 +8210,36 @@ function handleDocumentClick(event) {
   }
 
   if (
+    elements.serviceAssignmentModal &&
+    !elements.serviceAssignmentModal.hidden &&
+    event.target === elements.serviceAssignmentModal
+  ) {
+    closeServiceAssignmentModal();
+  }
+
+  if (
     elements.assistantPanel &&
     !elements.assistantPanel.hidden &&
     !elements.assistantPanel.contains(event.target) &&
     !elements.assistantToggle?.contains(event.target)
   ) {
     closeAssistant();
+  }
+
+  if (
+    elements.passwordModal &&
+    !elements.passwordModal.hidden &&
+    event.target === elements.passwordModal
+  ) {
+    closePasswordModal();
+  }
+
+  if (
+    elements.profileModal &&
+    !elements.profileModal.hidden &&
+    event.target === elements.profileModal
+  ) {
+    closeProfileModal();
   }
 
   if (
@@ -6145,6 +8287,89 @@ function setupEventListeners() {
     });
   }
 
+  if (elements.serviceManagerAddForm) {
+    elements.serviceManagerAddForm.addEventListener(
+      "submit",
+      handleServiceAddSubmit
+    );
+  }
+  if (elements.serviceManagerAddCancel) {
+    elements.serviceManagerAddCancel.addEventListener("click", () => {
+      exitServiceEditMode();
+      setStatusFromKey("serviceManager.edit.cancel");
+    });
+  }
+
+  if (elements.serviceManagerCustomList) {
+    elements.serviceManagerCustomList.addEventListener(
+      "click",
+      handleCustomServiceListClick
+    );
+  }
+
+  if (elements.serviceAssignmentForm) {
+    elements.serviceAssignmentForm.addEventListener(
+      "submit",
+      handleServiceAssignmentSubmit
+    );
+  }
+  if (elements.serviceAssignmentOptions) {
+    elements.serviceAssignmentOptions.addEventListener(
+      "change",
+      handleServiceAssignmentOptionsChange
+    );
+  }
+  if (elements.serviceAssignmentCancel) {
+    elements.serviceAssignmentCancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeServiceAssignmentModal();
+    });
+  }
+  if (elements.serviceAssignmentClose) {
+    elements.serviceAssignmentClose.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeServiceAssignmentModal();
+    });
+  }
+
+  if (elements.passwordModalClose) {
+    elements.passwordModalClose.addEventListener("click", (event) => {
+      event.preventDefault();
+      closePasswordModal();
+    });
+  }
+  if (elements.passwordModalCancel) {
+    elements.passwordModalCancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      closePasswordModal();
+    });
+  }
+  if (elements.passwordModalForm) {
+    elements.passwordModalForm.addEventListener(
+      "submit",
+      handlePasswordFormSubmit
+    );
+  }
+
+  if (elements.profileModalClose) {
+    elements.profileModalClose.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeProfileModal();
+    });
+  }
+  if (elements.profileModalCancel) {
+    elements.profileModalCancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeProfileModal();
+    });
+  }
+  if (elements.profileModalForm) {
+    elements.profileModalForm.addEventListener(
+      "submit",
+      handleProfileFormSubmit
+    );
+  }
+
   if (elements.closeModal) {
     elements.closeModal.addEventListener("click", closeModal);
   }
@@ -6152,9 +8377,12 @@ function setupEventListeners() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeModal();
+      closeServiceAssignmentModal();
       closeUserMenu();
       closeAssistant();
       closeParentChoice();
+      closePasswordModal();
+      closeProfileModal();
     }
   });
   document.addEventListener("click", handleDocumentClick);
@@ -6210,13 +8438,19 @@ function setupEventListeners() {
   });
 }
 
+const credentialsReady = loadRoleCredentials();
+const settingsReady = loadSettings();
 initializeLanguage();
 setupAccessControlEvents();
 setupUserProfileEvents();
 setupAssistant();
-initializeServiceAssignments();
+initializeCustomServices();
 
 async function bootstrap() {
+  await settingsReady;
+  await credentialsReady;
+  applyEditionRestrictions();
+  initializeServiceAssignments();
   await initializeAccessControl();
   applyAccessRestrictions();
   setupEventListeners();
