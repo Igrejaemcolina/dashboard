@@ -7,6 +7,7 @@ Este repositório contém a aplicação de dashboard responsiva que consome dado
 - `docs/index.html`, `docs/styles.css`, `docs/script.js`: código-fonte principal utilizado tanto para desenvolvimento local quanto para publicação.
 - `docs/category.html`: página dedicada para visualizar uma categoria específica de irmãos.
 - `docs/services.html`: página dedicada ao gerenciamento das frentes de serviço.
+- `docs/installer.html`: assistente estilo instalador do Windows para gerar a configuração inicial da dashboard (planilhas, serviços e perfis) exportando um pacote JSON.
 - Demais ativos (imagens, traduções e lógica) residem dentro do diretório `docs/`, que é a fonte oficial do GitHub Pages.
 
 ## Publicação no GitHub Pages
