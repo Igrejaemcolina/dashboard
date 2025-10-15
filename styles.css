@@ -1627,6 +1627,97 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   appearance: none;
 }
 
+.credential-modal-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.credential-modal-section h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.credential-modal-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.credential-modal-list[hidden] {
+  display: none;
+}
+
+.credential-modal-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.credential-modal-list-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.credential-modal-list-info {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.credential-modal-list-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.credential-modal-list-role {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.credential-modal-list-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.credential-modal-list-action {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.35rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.credential-modal-list-action:hover,
+.credential-modal-list-action:focus-visible {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.65);
+  color: var(--text-primary);
+}
+
+.credential-modal-list-action.danger {
+  border-color: rgba(248, 113, 113, 0.65);
+  color: #fecaca;
+}
+
+.credential-modal-list-action.danger:hover,
+.credential-modal-list-action.danger:focus-visible {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fee2e2;
+}
+
 .credential-modal-feedback {
   margin: 0;
   font-size: 0.85rem;

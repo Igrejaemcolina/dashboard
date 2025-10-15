@@ -319,11 +319,18 @@ const TRANSLATIONS = {
         title: "Adicionar perfil",
         description:
           "Cadastre um novo acesso informando o nome, a função e a senha.",
+        editTitle: ({ name }) =>
+          name ? `Editar perfil de ${name}` : "Editar perfil",
+        editDescription: ({ role }) =>
+          role
+            ? `Atualize o acesso do perfil (${role}) informando um novo nome ou senha.`
+            : "Atualize o acesso do perfil informando um novo nome ou senha.",
         namePlaceholder: "Digite o nome do perfil",
         rolePlaceholder: "Selecione a função",
         passwordPlaceholder: "Cadastre uma senha",
         confirmPlaceholder: "Confirme a senha",
         save: "Salvar perfil",
+        update: "Atualizar perfil",
         cancel: "Cancelar",
         restricted: "Apenas o perfil ADM pode gerenciar novos acessos.",
         nameRequired: "Informe o nome do perfil.",
@@ -334,7 +341,23 @@ const TRANSLATIONS = {
         passwordDuplicate: "Já existe um perfil registrado com essa senha.",
         success: ({ name, role }) =>
           `Perfil "${name}" adicionado na função ${role}.`,
+        updateSuccess: ({ name, role }) =>
+          `Perfil "${name}" atualizado na função ${role}.`,
+        deleteConfirm: ({ name }) =>
+          `Tem certeza de que deseja remover o acesso do perfil "${name}"?`,
+        deleteSuccess: ({ name }) =>
+          `Perfil "${name}" removido com sucesso.`,
+        listTitle: "Perfis existentes",
+        listEmpty: "Nenhum perfil cadastrado.",
+        editAction: "Editar",
+        deleteAction: "Remover",
       },
+    },
+    directory: {
+      download: "Baixar diretório (JSON)",
+      empty: "Ainda não existem registros disponíveis para exportar.",
+      ready:
+        "O arquivo JSON está pronto para download com os nomes, idades e telefones.",
     },
     language: {
       toggleAria: "Selecionar idioma",
@@ -778,11 +801,18 @@ const TRANSLATIONS = {
         title: "Add profile",
         description:
           "Create a new access by providing the name, role, and password.",
+        editTitle: ({ name }) =>
+          name ? `Edit profile for ${name}` : "Edit profile",
+        editDescription: ({ role }) =>
+          role
+            ? `Update this profile (${role}) with a new name or password.`
+            : "Update this profile with a new name or password.",
         namePlaceholder: "Enter the profile name",
         rolePlaceholder: "Select the role",
         passwordPlaceholder: "Create a password",
         confirmPlaceholder: "Confirm the password",
         save: "Save profile",
+        update: "Update profile",
         cancel: "Cancel",
         restricted: "Only the admin profile can manage new accesses.",
         nameRequired: "Enter the profile name.",
@@ -792,7 +822,23 @@ const TRANSLATIONS = {
         passwordInvalid: "Enter a valid password.",
         passwordDuplicate: "There's already a profile registered with this password.",
         success: ({ name, role }) => `Profile "${name}" added as ${role}.`,
+        updateSuccess: ({ name, role }) =>
+          `Profile "${name}" updated as ${role}.`,
+        deleteConfirm: ({ name }) =>
+          `Are you sure you want to remove the profile "${name}"?`,
+        deleteSuccess: ({ name }) =>
+          `Profile "${name}" was removed successfully.`,
+        listTitle: "Existing profiles",
+        listEmpty: "No profiles registered yet.",
+        editAction: "Edit",
+        deleteAction: "Remove",
       },
+    },
+    directory: {
+      download: "Download directory (JSON)",
+      empty: "There are no records available to export yet.",
+      ready:
+        "The JSON file is ready with every name, age, and phone number.",
     },
     language: {
       toggleAria: "Choose language",
@@ -1238,11 +1284,18 @@ const TRANSLATIONS = {
         title: "Agregar perfil",
         description:
           "Crea un nuevo acceso indicando el nombre, la función y la contraseña.",
+        editTitle: ({ name }) =>
+          name ? `Editar perfil de ${name}` : "Editar perfil",
+        editDescription: ({ role }) =>
+          role
+            ? `Actualiza el acceso del perfil (${role}) con un nuevo nombre o contraseña.`
+            : "Actualiza el acceso del perfil con un nuevo nombre o contraseña.",
         namePlaceholder: "Ingresa el nombre del perfil",
         rolePlaceholder: "Selecciona la función",
         passwordPlaceholder: "Crea una contraseña",
         confirmPlaceholder: "Confirma la contraseña",
         save: "Guardar perfil",
+        update: "Actualizar perfil",
         cancel: "Cancelar",
         restricted: "Solo el perfil ADM puede gestionar nuevos accesos.",
         nameRequired: "Ingresa el nombre del perfil.",
@@ -1253,7 +1306,23 @@ const TRANSLATIONS = {
         passwordDuplicate: "Ya existe un perfil registrado con esa contraseña.",
         success: ({ name, role }) =>
           `Perfil "${name}" agregado como ${role}.`,
+        updateSuccess: ({ name, role }) =>
+          `Perfil "${name}" actualizado como ${role}.`,
+        deleteConfirm: ({ name }) =>
+          `¿Seguro que deseas eliminar el acceso del perfil "${name}"?`,
+        deleteSuccess: ({ name }) =>
+          `Perfil "${name}" eliminado correctamente.`,
+        listTitle: "Perfiles existentes",
+        listEmpty: "Aún no hay perfiles registrados.",
+        editAction: "Editar",
+        deleteAction: "Eliminar",
       },
+    },
+    directory: {
+      download: "Descargar directorio (JSON)",
+      empty: "Todavía no hay registros disponibles para exportar.",
+      ready:
+        "El archivo JSON está listo con todos los nombres, edades y teléfonos.",
     },
     language: {
       toggleAria: "Seleccionar idioma",
@@ -1566,6 +1635,7 @@ const elements = {
   switchUser: document.getElementById("switch-user"),
   changePassword: document.getElementById("change-password"),
   manageProfiles: document.getElementById("manage-profiles"),
+  downloadDirectory: document.getElementById("download-directory"),
   manageServices: document.getElementById("manage-services"),
   accessModal: document.getElementById("access-modal"),
   accessOptions: document.getElementById("access-options"),
@@ -1625,6 +1695,9 @@ const elements = {
   profileModalPassword: document.getElementById("profile-modal-password"),
   profileModalConfirm: document.getElementById("profile-modal-confirm"),
   profileModalFeedback: document.getElementById("profile-modal-feedback"),
+  profileModalList: document.getElementById("profile-modal-list"),
+  profileModalListEmpty: document.getElementById("profile-modal-list-empty"),
+  profileModalListTitle: document.getElementById("profile-modal-list-title"),
   serviceManagerSection: document.getElementById("service-manager"),
   serviceManagerTitle: document.getElementById("service-manager-title"),
   serviceManagerDescription: document.getElementById("service-manager-description"),
@@ -1805,6 +1878,16 @@ const state = {
   activeServiceModalTrigger: null,
   editingServiceId: null,
   roleCredentials: cloneRoleCredentials(),
+  profileModal: {
+    mode: "create",
+    editing: null,
+    entries: [],
+  },
+  directoryExport: {
+    entries: [],
+    json: "",
+    updatedAt: null,
+  },
   assistant: {
     greeted: false,
     customMode: false,
@@ -2454,35 +2537,9 @@ function applyLanguage(options = {}) {
     );
   }
 
-  if (elements.profileModalTitle) {
-    elements.profileModalTitle.textContent = translate("profile.manage.title");
-  }
-  if (elements.profileModalDescription) {
-    elements.profileModalDescription.textContent = translate(
-      "profile.manage.description"
-    );
-  }
-  if (elements.profileModalName) {
-    elements.profileModalName.placeholder = translate(
-      "profile.manage.namePlaceholder"
-    );
-  }
-  if (elements.profileModalPassword) {
-    elements.profileModalPassword.placeholder = translate(
-      "profile.manage.passwordPlaceholder"
-    );
-  }
-  if (elements.profileModalConfirm) {
-    elements.profileModalConfirm.placeholder = translate(
-      "profile.manage.confirmPlaceholder"
-    );
-  }
-  if (elements.profileModalSave) {
-    elements.profileModalSave.textContent = translate("profile.manage.save");
-  }
-  if (elements.profileModalCancel) {
-    elements.profileModalCancel.textContent = translate("profile.manage.cancel");
-  }
+  applyProfileModalTranslations();
+  renderProfileList();
+  renderProfileRoleOptions();
 
   if (elements.serviceAssignmentSubtitle) {
     elements.serviceAssignmentSubtitle.textContent = translate(
@@ -3199,6 +3256,11 @@ function updateUserProfileUI() {
       elements.manageProfiles.hidden = true;
       elements.manageProfiles.setAttribute("aria-hidden", "true");
     }
+    if (elements.downloadDirectory) {
+      elements.downloadDirectory.hidden = true;
+      elements.downloadDirectory.setAttribute("aria-hidden", "true");
+    }
+    updateDirectoryDownloadButton();
     closeUserMenu();
     return;
   }
@@ -3247,6 +3309,18 @@ function updateUserProfileUI() {
       elements.manageProfiles.setAttribute("aria-hidden", "true");
     }
   }
+  if (elements.downloadDirectory) {
+    const showDownload = Boolean(accessRole);
+    elements.downloadDirectory.textContent = translate("directory.download");
+    elements.downloadDirectory.hidden = !showDownload;
+    if (showDownload) {
+      elements.downloadDirectory.removeAttribute("aria-hidden");
+    } else {
+      elements.downloadDirectory.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  updateDirectoryDownloadButton();
 }
 
 function isElementOpen(element) {
@@ -3406,12 +3480,246 @@ async function handlePasswordFormSubmit(event) {
   setStatusFromKey("profile.password.success");
 }
 
-function resetProfileModal() {
+function applyProfileModalTranslations() {
+  const modalState = state.profileModal ?? { mode: "create", editing: null };
+  const isEdit = modalState.mode === "edit";
+  const editing = modalState.editing;
+  const roleLabel = editing?.role
+    ? translate(ACCESS_METADATA[editing.role]?.labelKey ?? "")
+    : "";
+  const replacements = {
+    name: editing?.name ?? "",
+    role: roleLabel,
+  };
+
+  if (elements.profileModalTitle) {
+    const key = isEdit ? "profile.manage.editTitle" : "profile.manage.title";
+    elements.profileModalTitle.textContent = translate(key, replacements);
+  }
+  if (elements.profileModalDescription) {
+    const key = isEdit
+      ? "profile.manage.editDescription"
+      : "profile.manage.description";
+    elements.profileModalDescription.textContent = translate(key, replacements);
+  }
+  if (elements.profileModalSave) {
+    const key = isEdit ? "profile.manage.update" : "profile.manage.save";
+    elements.profileModalSave.textContent = translate(key);
+  }
+  if (elements.profileModalCancel) {
+    elements.profileModalCancel.textContent = translate("profile.manage.cancel");
+  }
   if (elements.profileModalName) {
-    elements.profileModalName.value = "";
+    elements.profileModalName.placeholder = translate(
+      "profile.manage.namePlaceholder"
+    );
+  }
+  if (elements.profileModalPassword) {
+    elements.profileModalPassword.placeholder = translate(
+      "profile.manage.passwordPlaceholder"
+    );
+  }
+  if (elements.profileModalConfirm) {
+    elements.profileModalConfirm.placeholder = translate(
+      "profile.manage.confirmPlaceholder"
+    );
+  }
+  if (elements.profileModalListTitle) {
+    elements.profileModalListTitle.textContent = translate(
+      "profile.manage.listTitle"
+    );
+  }
+  if (elements.profileModalListEmpty) {
+    elements.profileModalListEmpty.textContent = translate(
+      "profile.manage.listEmpty"
+    );
+  }
+}
+
+function buildStoredProfileEntries() {
+  const entries = [];
+  const credentials = state.roleCredentials ?? {};
+
+  Object.entries(credentials).forEach(([role, hashes]) => {
+    if (!hashes || typeof hashes !== "object") {
+      return;
+    }
+
+    Object.entries(hashes).forEach(([hash, secret]) => {
+      if (!hash || typeof secret !== "string") {
+        return;
+      }
+      const name = decryptNameSecret(secret)?.trim();
+      if (!name) {
+        return;
+      }
+
+      const roleLabel = translate(ACCESS_METADATA[role]?.labelKey ?? "");
+      entries.push({
+        role,
+        hash,
+        secret,
+        name,
+        roleLabel,
+      });
+    });
+  });
+
+  entries.sort((a, b) => {
+    const nameComparison = collator.compare(a.name, b.name);
+    if (nameComparison !== 0) {
+      return nameComparison;
+    }
+    return collator.compare(a.roleLabel ?? "", b.roleLabel ?? "");
+  });
+
+  return entries;
+}
+
+function findStoredProfileEntry(role, hash) {
+  if (!role || !hash) {
+    return null;
+  }
+  const list = state.profileModal?.entries ?? [];
+  return list.find((entry) => entry.role === role && entry.hash === hash) ?? null;
+}
+
+function renderProfileList() {
+  if (!elements.profileModalList) {
+    return;
+  }
+
+  const entries = buildStoredProfileEntries();
+  state.profileModal = state.profileModal ?? { mode: "create", editing: null };
+  state.profileModal.entries = entries;
+
+  const list = elements.profileModalList;
+  list.innerHTML = "";
+
+  if (!entries.length) {
+    list.hidden = true;
+    if (elements.profileModalListEmpty) {
+      elements.profileModalListEmpty.hidden = false;
+    }
+    return;
+  }
+
+  list.hidden = false;
+  if (elements.profileModalListEmpty) {
+    elements.profileModalListEmpty.hidden = true;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  entries.forEach((entry) => {
+    const item = document.createElement("li");
+    item.className = "credential-modal-list-item";
+    item.dataset.role = entry.role;
+    item.dataset.hash = entry.hash;
+
+    const info = document.createElement("div");
+    info.className = "credential-modal-list-info";
+
+    const name = document.createElement("span");
+    name.className = "credential-modal-list-name";
+    name.textContent = entry.name;
+    info.appendChild(name);
+
+    const role = document.createElement("span");
+    role.className = "credential-modal-list-role";
+    role.textContent = entry.roleLabel;
+    info.appendChild(role);
+
+    const actions = document.createElement("div");
+    actions.className = "credential-modal-list-actions";
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "credential-modal-list-action";
+    editButton.dataset.action = "edit";
+    editButton.textContent = translate("profile.manage.editAction");
+    actions.appendChild(editButton);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "credential-modal-list-action danger";
+    deleteButton.dataset.action = "delete";
+    deleteButton.textContent = translate("profile.manage.deleteAction");
+    actions.appendChild(deleteButton);
+
+    item.appendChild(info);
+    item.appendChild(actions);
+    fragment.appendChild(item);
+  });
+
+  list.appendChild(fragment);
+}
+
+function handleProfileListClick(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) {
+    return;
+  }
+
+  const button = target.closest("button[data-action]");
+  if (!button) {
+    return;
+  }
+
+  const item = button.closest(".credential-modal-list-item");
+  if (!item) {
+    return;
+  }
+
+  const { role, hash } = item.dataset;
+  const entry = findStoredProfileEntry(role, hash);
+  if (!entry) {
+    return;
+  }
+
+  const action = button.dataset.action;
+  if (action === "edit") {
+    renderProfileRoleOptions();
+    setProfileModalMode("edit", entry);
+    try {
+      elements.profileModalName?.focus?.();
+    } catch (error) {
+      // ignore focus errors
+    }
+    return;
+  }
+
+  if (action === "delete") {
+    const confirmed = window.confirm(
+      translate("profile.manage.deleteConfirm", { name: entry.name })
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    removeRoleCredential(entry.role, entry.hash);
+    renderProfileList();
+    setProfileModalMode("create");
+    setStatusFromKey("profile.manage.deleteSuccess", { name: entry.name });
+  }
+}
+
+function setProfileModalMode(mode, profile = null) {
+  state.profileModal = state.profileModal ?? { mode: "create", editing: null };
+  state.profileModal.mode = mode;
+  state.profileModal.editing = profile ?? null;
+
+  applyProfileModalTranslations();
+
+  if (elements.profileModalName) {
+    elements.profileModalName.value = mode === "edit" ? profile?.name ?? "" : "";
   }
   if (elements.profileModalRole) {
-    elements.profileModalRole.value = "";
+    if (mode === "edit" && profile?.role) {
+      elements.profileModalRole.value = profile.role;
+    } else {
+      elements.profileModalRole.value = "";
+    }
   }
   if (elements.profileModalPassword) {
     elements.profileModalPassword.value = "";
@@ -3422,6 +3730,79 @@ function resetProfileModal() {
   if (elements.profileModalFeedback) {
     elements.profileModalFeedback.textContent = "";
   }
+}
+
+function resetProfileModal() {
+  setProfileModalMode("create");
+  renderProfileList();
+}
+
+function buildDirectoryExportEntries() {
+  if (!Array.isArray(state.enrichedRecords) || !state.enrichedRecords.length) {
+    return [];
+  }
+
+  const entries = state.enrichedRecords.map((entry) => ({
+    name: entry.name != null ? String(entry.name).trim() : "",
+    age: Number.isFinite(entry.age) ? entry.age : null,
+    phone: entry.phone != null ? String(entry.phone).trim() : "",
+  }));
+
+  entries.sort((a, b) => collator.compare(a.name ?? "", b.name ?? ""));
+  return entries;
+}
+
+function updateDirectoryExport() {
+  const entries = buildDirectoryExportEntries();
+  const json = JSON.stringify(entries, null, 2);
+
+  state.directoryExport = {
+    entries,
+    json,
+    updatedAt: entries.length ? new Date().toISOString() : null,
+  };
+
+  updateDirectoryDownloadButton();
+}
+
+function updateDirectoryDownloadButton() {
+  if (!elements.downloadDirectory) {
+    return;
+  }
+  const hasEntries = Boolean(state.directoryExport?.entries?.length);
+  elements.downloadDirectory.disabled = !hasEntries;
+  elements.downloadDirectory.setAttribute(
+    "aria-disabled",
+    hasEntries ? "false" : "true"
+  );
+}
+
+function handleDirectoryDownload(event) {
+  if (event) {
+    event.preventDefault?.();
+  }
+
+  const entries = state.directoryExport?.entries ?? [];
+  if (!entries.length) {
+    setStatusFromKey("directory.empty", {}, true);
+    return;
+  }
+
+  const json = state.directoryExport?.json ?? JSON.stringify(entries, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `diretorio-igcolina-${timestamp}.json`;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  setStatusFromKey("directory.ready");
 }
 
 function renderProfileRoleOptions() {
@@ -3542,16 +3923,44 @@ async function handleProfileFormSubmit(event) {
   }
 
   const secret = encryptNameSecret(trimmedName);
+  const modalState = state.profileModal ?? { mode: "create", editing: null };
+  const roleLabel = translate(ACCESS_METADATA[roleValue]?.labelKey ?? "");
+
+  if (modalState.mode === "edit" && modalState.editing) {
+    const previous = modalState.editing;
+
+    if (roleValue !== previous.role) {
+      const targetCredentials = getRoleCredentials(roleValue);
+      if (targetCredentials[hashed]) {
+        showProfileFeedback("profile.manage.passwordDuplicate");
+        return;
+      }
+      removeRoleCredential(previous.role, previous.hash);
+      addRoleCredential(roleValue, hashed, secret);
+    } else {
+      replaceRoleCredential(roleValue, previous.hash, hashed, secret);
+    }
+
+    renderProfileList();
+    setProfileModalMode("create");
+    setStatusFromKey("profile.manage.updateSuccess", {
+      name: trimmedName,
+      role: roleLabel,
+    });
+    return;
+  }
+
   const added = addRoleCredential(roleValue, hashed, secret);
   if (!added) {
     showProfileFeedback("profile.manage.passwordDuplicate");
     return;
   }
 
+  renderProfileList();
   closeProfileModal();
   setStatusFromKey("profile.manage.success", {
     name: trimmedName,
-    role: translate(ACCESS_METADATA[roleValue]?.labelKey ?? ""),
+    role: roleLabel,
   });
 }
 
@@ -3592,6 +4001,10 @@ function setupUserProfileEvents() {
 
   if (elements.manageProfiles) {
     elements.manageProfiles.addEventListener("click", openProfileModal);
+  }
+
+  if (elements.downloadDirectory) {
+    elements.downloadDirectory.addEventListener("click", handleDirectoryDownload);
   }
 
   document.addEventListener("click", handleUserProfileOutsideClick);
@@ -3877,6 +4290,7 @@ async function fetchSheetData() {
     applyServiceAssignmentsToEntries();
     state.parentEntries = buildParentEntries(state.enrichedRecords);
     state.parentSummary = summarizeParentEntries(state.parentEntries);
+    updateDirectoryExport();
     buildSuggestions();
 
     if (!CATEGORY_BY_ID[state.activeCategory]) {
@@ -8201,6 +8615,9 @@ function setupEventListeners() {
       "submit",
       handleProfileFormSubmit
     );
+  }
+  if (elements.profileModalList) {
+    elements.profileModalList.addEventListener("click", handleProfileListClick);
   }
 
   if (elements.closeModal) {
