@@ -15,6 +15,13 @@ const SERVICE_SYNC_DEFAULT_BRANCH = "main";
 const SERVICE_SYNC_DEFAULT_PATH = "data/service-assignments.json";
 const SERVICE_SYNC_DEBOUNCE_MS = 2_000;
 const SERVICE_SYNC_ACCEPT_HEADER = "application/vnd.github+json";
+const SERVICE_SYNC_MODES = {
+  GITHUB: "github",
+  WEBHOOK: "webhook",
+};
+const SERVICE_SYNC_DEFAULT_MODE = SERVICE_SYNC_MODES.GITHUB;
+const SERVICE_SYNC_DEFAULT_WRITE_METHOD = "PUT";
+const SERVICE_SYNC_WRITE_METHODS = new Set(["PUT", "POST"]);
 const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_ALL,
   SERVICE_FILTER_UNASSIGNED,
@@ -475,7 +482,7 @@ const TRANSLATIONS = {
           "Veja como configurar a sincronização e atualizar os ministérios em qualquer dispositivo.",
         steps: [
           "Acesse o gerenciador com o perfil Serviços e confirme se os irmãos aparecem na lista.",
-          "Preencha os dados do repositório compartilhado para ativar a sincronização e salve a configuração.",
+          "Escolha entre GitHub ou uma URL de API, preencha os dados obrigatórios e salve a configuração.",
           "Clique no card de um irmão, selecione as frentes em que ele serve e salve as alterações.",
           "Use o botão Atualizar agora para buscar mudanças feitas por outros dispositivos.",
         ],
@@ -534,26 +541,48 @@ const TRANSLATIONS = {
       sync: {
         title: "Sincronizar atribuições",
         description:
-          "Defina o repositório compartilhado para manter os serviços atualizados em todos os dispositivos.",
-        ownerLabel: "Dono do repositório",
-        repoLabel: "Repositório",
-        branchLabel: "Branch",
-        pathLabel: "Caminho do arquivo",
-        tokenLabel: "Token do GitHub",
-        tokenPlaceholder: "Informe o token com acesso de escrita",
-        tokenPlaceholderSaved: "Token armazenado — deixe em branco para manter",
+          "Escolha entre repositório GitHub ou uma URL de API JSON para manter as atribuições alinhadas em todos os dispositivos.",
+        mode: {
+          label: "Como deseja sincronizar?",
+          github: "Repositório GitHub",
+          webhook: "Link de API (JSON)",
+        },
+        github: {
+          ownerLabel: "Dono do repositório",
+          repoLabel: "Repositório",
+          branchLabel: "Branch",
+          pathLabel: "Caminho do arquivo",
+          tokenLabel: "Token do GitHub",
+          tokenPlaceholder: "Informe o token com acesso de escrita",
+          tokenPlaceholderSaved: "Token armazenado — deixe em branco para manter",
+        },
+        webhook: {
+          readUrlLabel: "URL para ler os dados",
+          readUrlPlaceholder: "https://exemplo.com/assignments.json",
+          writeUrlLabel: "URL para enviar atualizações (opcional)",
+          writeUrlPlaceholder: "Use se a escrita acontecer em outro endereço",
+          writeMethodLabel: "Método de escrita",
+          writeMethodPut: "PUT (substitui o JSON inteiro)",
+          writeMethodPost: "POST (envia o conteúdo como corpo)",
+          authHeaderLabel: "Cabeçalho de autorização",
+          authHeaderPlaceholder: "Authorization",
+          tokenLabel: "Valor do cabeçalho (se necessário)",
+          tokenPlaceholder: "Informe o valor usado para autenticar (opcional)",
+          tokenPlaceholderSaved:
+            "Valor armazenado — deixe em branco para manter",
+        },
         save: "Salvar configuração",
         clear: "Limpar dados",
         refresh: "Atualizar agora",
         statusSaved: "Configuração salva. Buscando dados compartilhados...",
         statusCleared: "Sincronização removida deste dispositivo.",
-        statusInvalid: "Informe dono e repositório para sincronizar.",
+        statusInvalid: "Informe os campos obrigatórios para sincronizar.",
         statusFetching: "Carregando atribuições compartilhadas...",
         statusFetched: "Atribuições sincronizadas com sucesso.",
-        statusSyncing: "Enviando atualizações para o repositório...",
-        statusSynced: "Serviços atualizados no repositório.",
+        statusSyncing: "Enviando atualizações para a origem remota...",
+        statusSynced: "Serviços atualizados no destino configurado.",
         statusUnauthorized:
-          "Não foi possível acessar o repositório. Confira o token e as permissões.",
+          "Não foi possível acessar a origem remota. Confira o token ou cabeçalho e as permissões.",
         statusError:
           "Falha na sincronização: {error}",
       },
@@ -996,7 +1025,7 @@ const TRANSLATIONS = {
           "Follow these steps to configure sync and keep every device up to date.",
         steps: [
           "Open the manager with the Services profile and confirm the member list is visible.",
-          "Fill in the shared repository details to enable synchronization and save the settings.",
+          "Choose whether to sync through GitHub or a JSON API, complete the required details, and save the settings.",
           "Select a member card, choose the ministries that apply, and save the changes.",
           "Use the Fetch now button to pull updates made from other devices.",
         ],
@@ -1054,26 +1083,47 @@ const TRANSLATIONS = {
       sync: {
         title: "Sync assignments",
         description:
-          "Configure the shared repository so every device sees the latest service assignments.",
-        ownerLabel: "Repository owner",
-        repoLabel: "Repository",
-        branchLabel: "Branch",
-        pathLabel: "File path",
-        tokenLabel: "GitHub token",
-        tokenPlaceholder: "Enter a token with commit access",
-        tokenPlaceholderSaved: "Token saved — leave blank to keep it",
+          "Choose between a GitHub repository or a JSON API endpoint so every device stays aligned.",
+        mode: {
+          label: "How would you like to sync?",
+          github: "GitHub repository",
+          webhook: "API link (JSON)",
+        },
+        github: {
+          ownerLabel: "Repository owner",
+          repoLabel: "Repository",
+          branchLabel: "Branch",
+          pathLabel: "File path",
+          tokenLabel: "GitHub token",
+          tokenPlaceholder: "Enter a token with commit access",
+          tokenPlaceholderSaved: "Token saved — leave blank to keep it",
+        },
+        webhook: {
+          readUrlLabel: "URL to fetch data",
+          readUrlPlaceholder: "https://example.com/assignments.json",
+          writeUrlLabel: "URL to send updates (optional)",
+          writeUrlPlaceholder: "Use it if writes happen at a different endpoint",
+          writeMethodLabel: "Write method",
+          writeMethodPut: "PUT (replace the entire JSON)",
+          writeMethodPost: "POST (send the payload in the body)",
+          authHeaderLabel: "Authorization header",
+          authHeaderPlaceholder: "Authorization",
+          tokenLabel: "Header value (if required)",
+          tokenPlaceholder: "Provide the value used for authentication (optional)",
+          tokenPlaceholderSaved: "Value stored — leave blank to keep it",
+        },
         save: "Save settings",
         clear: "Clear data",
         refresh: "Fetch now",
         statusSaved: "Settings saved. Pulling shared assignments...",
         statusCleared: "Sync removed from this device.",
-        statusInvalid: "Provide the owner and repository to sync.",
+        statusInvalid: "Fill in the required fields before syncing.",
         statusFetching: "Loading shared assignments...",
         statusFetched: "Assignments synchronized successfully.",
-        statusSyncing: "Uploading updates to the repository...",
-        statusSynced: "Services updated in the repository.",
+        statusSyncing: "Sending updates to the remote source...",
+        statusSynced: "Services updated on the configured destination.",
         statusUnauthorized:
-          "We couldn't access the repository. Check the token and permissions.",
+          "We couldn't access the remote source. Check the token or header and permissions.",
         statusError: "Sync failed: {error}",
       },
       empty: "No members found for the selected filters.",
@@ -1519,7 +1569,7 @@ const TRANSLATIONS = {
           "Sigue estos pasos para configurar la sincronización y mantener todo actualizado.",
         steps: [
           "Abre el gestor con el perfil Servicios y confirma que la lista de hermanos esté visible.",
-          "Completa los datos del repositorio compartido para activar la sincronización y guarda la configuración.",
+          "Elige si sincronizarás con GitHub o con una API JSON, completa los datos requeridos y guarda la configuración.",
           "Selecciona la tarjeta de un hermano, marca los ministerios correspondientes y guarda los cambios.",
           "Utiliza el botón Actualizar ahora para traer los cambios hechos en otros dispositivos.",
         ],
@@ -1578,27 +1628,50 @@ const TRANSLATIONS = {
       sync: {
         title: "Sincronizar asignaciones",
         description:
-          "Configura el repositorio compartido para que todos los dispositivos vean las asignaciones más recientes.",
-        ownerLabel: "Propietario del repositorio",
-        repoLabel: "Repositorio",
-        branchLabel: "Branch",
-        pathLabel: "Ruta del archivo",
-        tokenLabel: "Token de GitHub",
-        tokenPlaceholder: "Ingresa un token con permiso de escritura",
-        tokenPlaceholderSaved: "Token guardado — deja en blanco para mantenerlo",
+          "Elige entre un repositorio de GitHub o una URL de API JSON para mantener todo sincronizado.",
+        mode: {
+          label: "¿Cómo deseas sincronizar?",
+          github: "Repositorio de GitHub",
+          webhook: "Enlace de API (JSON)",
+        },
+        github: {
+          ownerLabel: "Propietario del repositorio",
+          repoLabel: "Repositorio",
+          branchLabel: "Branch",
+          pathLabel: "Ruta del archivo",
+          tokenLabel: "Token de GitHub",
+          tokenPlaceholder: "Ingresa un token con permiso de escritura",
+          tokenPlaceholderSaved: "Token guardado — deja en blanco para mantenerlo",
+        },
+        webhook: {
+          readUrlLabel: "URL para leer los datos",
+          readUrlPlaceholder: "https://ejemplo.com/asignaciones.json",
+          writeUrlLabel: "URL para enviar actualizaciones (opcional)",
+          writeUrlPlaceholder: "Úsala si los envíos ocurren en otra dirección",
+          writeMethodLabel: "Método de escritura",
+          writeMethodPut: "PUT (reemplaza todo el JSON)",
+          writeMethodPost: "POST (envía el contenido en el cuerpo)",
+          authHeaderLabel: "Encabezado de autorización",
+          authHeaderPlaceholder: "Authorization",
+          tokenLabel: "Valor del encabezado (si es necesario)",
+          tokenPlaceholder:
+            "Ingresa el valor utilizado para autenticar (opcional)",
+          tokenPlaceholderSaved:
+            "Valor guardado — deja en blanco para mantenerlo",
+        },
         save: "Guardar configuración",
         clear: "Limpiar datos",
         refresh: "Actualizar ahora",
         statusSaved:
           "Configuración guardada. Obteniendo asignaciones compartidas...",
         statusCleared: "Sincronización eliminada de este dispositivo.",
-        statusInvalid: "Informa el propietario y el repositorio para sincronizar.",
+        statusInvalid: "Completa los campos obligatorios para sincronizar.",
         statusFetching: "Cargando asignaciones compartidas...",
         statusFetched: "Asignaciones sincronizadas correctamente.",
-        statusSyncing: "Enviando actualizaciones al repositorio...",
-        statusSynced: "Servicios actualizados en el repositorio.",
+        statusSyncing: "Enviando actualizaciones al origen remoto...",
+        statusSynced: "Servicios actualizados en el destino configurado.",
         statusUnauthorized:
-          "No pudimos acceder al repositorio. Verifica el token y los permisos.",
+          "No pudimos acceder al origen remoto. Verifica el token o encabezado y los permisos.",
         statusError: "Error en la sincronización: {error}",
       },
       empty: "No se encontraron hermanos para los filtros seleccionados.",
@@ -1855,6 +1928,8 @@ const elements = {
   serviceSyncForm: document.getElementById("service-sync-form"),
   serviceSyncTitle: document.getElementById("service-sync-title"),
   serviceSyncDescription: document.getElementById("service-sync-description"),
+  serviceSyncModeLabel: document.getElementById("service-sync-mode-label"),
+  serviceSyncMode: document.getElementById("service-sync-mode"),
   serviceSyncOwnerLabel: document.getElementById("service-sync-owner-label"),
   serviceSyncOwner: document.getElementById("service-sync-owner"),
   serviceSyncRepoLabel: document.getElementById("service-sync-repo-label"),
@@ -1863,6 +1938,18 @@ const elements = {
   serviceSyncBranch: document.getElementById("service-sync-branch"),
   serviceSyncPathLabel: document.getElementById("service-sync-path-label"),
   serviceSyncPath: document.getElementById("service-sync-path"),
+  serviceSyncReadUrlLabel: document.getElementById("service-sync-read-url-label"),
+  serviceSyncReadUrl: document.getElementById("service-sync-read-url"),
+  serviceSyncWriteUrlLabel: document.getElementById("service-sync-write-url-label"),
+  serviceSyncWriteUrl: document.getElementById("service-sync-write-url"),
+  serviceSyncWriteMethodLabel: document.getElementById(
+    "service-sync-write-method-label"
+  ),
+  serviceSyncWriteMethod: document.getElementById("service-sync-write-method"),
+  serviceSyncAuthHeaderLabel: document.getElementById(
+    "service-sync-auth-header-label"
+  ),
+  serviceSyncAuthHeader: document.getElementById("service-sync-auth-header"),
   serviceSyncTokenLabel: document.getElementById("service-sync-token-label"),
   serviceSyncToken: document.getElementById("service-sync-token"),
   serviceSyncFeedback: document.getElementById("service-sync-feedback"),
@@ -1991,10 +2078,15 @@ const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
 
 function getDefaultServiceSyncConfig() {
   return {
+    mode: SERVICE_SYNC_DEFAULT_MODE,
     owner: "",
     repo: "",
     branch: SERVICE_SYNC_DEFAULT_BRANCH,
     path: SERVICE_SYNC_DEFAULT_PATH,
+    readUrl: "",
+    writeUrl: "",
+    writeMethod: SERVICE_SYNC_DEFAULT_WRITE_METHOD,
+    authHeader: "Authorization",
   };
 }
 
@@ -2006,12 +2098,33 @@ function sanitizeServiceSyncConfig(config) {
   const toTrimmedString = (value) =>
     typeof value === "string" ? value.trim() : "";
 
+  const modeCandidate = toTrimmedString(config.mode).toLowerCase();
+  const mode = Object.values(SERVICE_SYNC_MODES).includes(modeCandidate)
+    ? modeCandidate
+    : SERVICE_SYNC_DEFAULT_MODE;
   const owner = toTrimmedString(config.owner);
   const repo = toTrimmedString(config.repo);
   const branch = toTrimmedString(config.branch) || SERVICE_SYNC_DEFAULT_BRANCH;
   const path = toTrimmedString(config.path) || SERVICE_SYNC_DEFAULT_PATH;
+  const readUrl = toTrimmedString(config.readUrl);
+  const writeUrl = toTrimmedString(config.writeUrl);
+  const writeMethodCandidate = toTrimmedString(config.writeMethod).toUpperCase();
+  const writeMethod = SERVICE_SYNC_WRITE_METHODS.has(writeMethodCandidate)
+    ? writeMethodCandidate
+    : SERVICE_SYNC_DEFAULT_WRITE_METHOD;
+  const authHeader = toTrimmedString(config.authHeader) || "Authorization";
 
-  return { owner, repo, branch, path };
+  return {
+    mode,
+    owner,
+    repo,
+    branch,
+    path,
+    readUrl,
+    writeUrl,
+    writeMethod,
+    authHeader,
+  };
 }
 
 function getStoredServiceSyncConfig() {
@@ -5495,6 +5608,14 @@ function updateServiceSyncSecret(secret) {
 }
 
 function hasServiceSyncRepository(config = getServiceSyncConfig()) {
+  if (!config) {
+    return false;
+  }
+
+  if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
+    return Boolean(config.readUrl);
+  }
+
   return Boolean(
     config.owner &&
     config.repo &&
@@ -5504,7 +5625,11 @@ function hasServiceSyncRepository(config = getServiceSyncConfig()) {
 }
 
 function hasServiceSyncCredentials() {
-  return hasServiceSyncRepository() && Boolean(state.serviceSync?.secret);
+  const config = getServiceSyncConfig();
+  if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
+    return Boolean(config.readUrl);
+  }
+  return hasServiceSyncRepository(config) && Boolean(state.serviceSync?.secret);
 }
 
 function encodeServiceSyncPath(path) {
@@ -5517,6 +5642,9 @@ function encodeServiceSyncPath(path) {
 }
 
 function buildServiceSyncContentsUrl(config = getServiceSyncConfig()) {
+  if (config.mode !== SERVICE_SYNC_MODES.GITHUB) {
+    return "";
+  }
   const { owner, repo, branch, path } = config;
   if (!owner || !repo || !path) {
     return "";
@@ -5527,10 +5655,22 @@ function buildServiceSyncContentsUrl(config = getServiceSyncConfig()) {
 }
 
 function getServiceSyncHeaders(includeAuth = true) {
-  const headers = { Accept: SERVICE_SYNC_ACCEPT_HEADER };
-  if (includeAuth && state.serviceSync?.secret) {
-    headers.Authorization = `Bearer ${state.serviceSync.secret}`;
+  const config = getServiceSyncConfig();
+  const headers = {};
+
+  if (config.mode === SERVICE_SYNC_MODES.GITHUB) {
+    headers.Accept = SERVICE_SYNC_ACCEPT_HEADER;
+    if (includeAuth && state.serviceSync?.secret) {
+      headers.Authorization = `Bearer ${state.serviceSync.secret}`;
+    }
+  } else {
+    headers.Accept = "application/json";
+    if (includeAuth && state.serviceSync?.secret) {
+      const headerName = config.authHeader || "Authorization";
+      headers[headerName] = state.serviceSync.secret;
+    }
   }
+
   return headers;
 }
 
@@ -5539,7 +5679,67 @@ async function fetchServiceSyncFile({ parseContent = true, silent = false } = {}
     return { sha: null, assignments: new Map(), exists: false };
   }
 
-  const url = buildServiceSyncContentsUrl();
+  const config = getServiceSyncConfig();
+
+  if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
+    const url = config.readUrl;
+    if (!url) {
+      return { sha: null, assignments: new Map(), exists: false };
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers: getServiceSyncHeaders(true),
+        cache: "no-store",
+      });
+
+      if (response.status === 404) {
+        return { sha: null, assignments: new Map(), exists: false };
+      }
+
+      if (!response.ok) {
+        const error = new Error(
+          `Service sync request failed (${response.status} ${response.statusText})`
+        );
+        error.status = response.status;
+        throw error;
+      }
+
+      if (!parseContent) {
+        return { sha: null, assignments: null, exists: true };
+      }
+
+      let text;
+      try {
+        text = await response.text();
+      } catch (error) {
+        console.warn("Failed to read webhook response:", error);
+        text = "{}";
+      }
+
+      const raw = text && text.trim() ? text : "{}";
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (error) {
+        console.warn("Failed to parse webhook service assignments:", error);
+        parsed = {};
+      }
+
+      return {
+        sha: null,
+        assignments: createServiceAssignmentMapFromObject(parsed),
+        exists: true,
+      };
+    } catch (error) {
+      if (!silent) {
+        console.warn("Unable to fetch webhook service assignments:", error);
+      }
+      throw error;
+    }
+  }
+
+  const url = buildServiceSyncContentsUrl(config);
   if (!url) {
     return { sha: null, assignments: new Map(), exists: false };
   }
@@ -5750,6 +5950,42 @@ async function syncServiceAssignmentsToRemote({ silent = false } = {}) {
   }
 
   try {
+    const config = getServiceSyncConfig();
+    const payload = buildServiceAssignmentPayload();
+
+    if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
+      const targetUrl = config.writeUrl || config.readUrl;
+      if (!targetUrl) {
+        setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
+        return false;
+      }
+
+      const headers = {
+        ...getServiceSyncHeaders(true),
+        "Content-Type": "application/json",
+      };
+
+      const response = await fetch(targetUrl, {
+        method: config.writeMethod || SERVICE_SYNC_DEFAULT_WRITE_METHOD,
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const error = new Error(
+          `Service sync upload failed (${response.status} ${response.statusText})`
+        );
+        error.status = response.status;
+        throw error;
+      }
+
+      state.serviceSync.remoteSha = null;
+      if (!silent) {
+        setServiceSyncStatus("serviceManager.sync.statusSynced");
+      }
+      return true;
+    }
+
     if (!state.serviceSync.remoteSha) {
       try {
         const metadata = await fetchServiceSyncFile({
@@ -5764,7 +6000,6 @@ async function syncServiceAssignmentsToRemote({ silent = false } = {}) {
       }
     }
 
-    const payload = buildServiceAssignmentPayload();
     const content = JSON.stringify(payload, null, 2);
     const body = {
       message: "Atualiza atribuições de serviços",
@@ -5775,7 +6010,7 @@ async function syncServiceAssignmentsToRemote({ silent = false } = {}) {
       body.sha = state.serviceSync.remoteSha;
     }
 
-    const url = buildServiceSyncContentsUrl();
+    const url = buildServiceSyncContentsUrl(config);
     const response = await fetch(url, {
       method: "PUT",
       headers: {
@@ -5914,13 +6149,30 @@ function initializeCustomServices() {
 }
 
 function initializeServiceSync() {
-  applyServiceSyncTranslations();
   populateServiceSyncForm();
+  applyServiceSyncTranslations();
   updateServiceSyncVisibility();
 
   if (elements.serviceSyncForm) {
     elements.serviceSyncForm.addEventListener("submit", (event) => {
       handleServiceSyncSubmit(event);
+    });
+  }
+  if (elements.serviceSyncMode) {
+    elements.serviceSyncMode.addEventListener("change", () => {
+      const selected =
+        elements.serviceSyncMode?.value?.trim().toLowerCase() ??
+        SERVICE_SYNC_DEFAULT_MODE;
+      const mode = Object.values(SERVICE_SYNC_MODES).includes(selected)
+        ? selected
+        : SERVICE_SYNC_DEFAULT_MODE;
+      if (elements.serviceSyncForm) {
+        elements.serviceSyncForm.dataset.mode = mode;
+      }
+      if (elements.serviceSyncSection) {
+        elements.serviceSyncSection.dataset.mode = mode;
+      }
+      applyServiceSyncTranslations();
     });
   }
   if (elements.serviceSyncClear) {
@@ -8180,6 +8432,19 @@ function populateServiceSyncForm() {
   }
 
   const config = getServiceSyncConfig();
+  const mode = config.mode || SERVICE_SYNC_DEFAULT_MODE;
+
+  if (elements.serviceSyncMode) {
+    elements.serviceSyncMode.value = mode;
+  }
+
+  if (elements.serviceSyncForm) {
+    elements.serviceSyncForm.dataset.mode = mode;
+  }
+
+  if (elements.serviceSyncSection) {
+    elements.serviceSyncSection.dataset.mode = mode;
+  }
 
   if (elements.serviceSyncOwner) {
     elements.serviceSyncOwner.value = config.owner ?? "";
@@ -8193,12 +8458,22 @@ function populateServiceSyncForm() {
   if (elements.serviceSyncPath) {
     elements.serviceSyncPath.value = config.path ?? "";
   }
+  if (elements.serviceSyncReadUrl) {
+    elements.serviceSyncReadUrl.value = config.readUrl ?? "";
+  }
+  if (elements.serviceSyncWriteUrl) {
+    elements.serviceSyncWriteUrl.value = config.writeUrl ?? "";
+  }
+  if (elements.serviceSyncWriteMethod) {
+    elements.serviceSyncWriteMethod.value =
+      config.writeMethod || SERVICE_SYNC_DEFAULT_WRITE_METHOD;
+  }
+  if (elements.serviceSyncAuthHeader) {
+    elements.serviceSyncAuthHeader.value = config.authHeader ?? "";
+  }
   if (elements.serviceSyncToken) {
     elements.serviceSyncToken.value = "";
-    const key = state.serviceSync?.secret
-      ? "serviceManager.sync.tokenPlaceholderSaved"
-      : "serviceManager.sync.tokenPlaceholder";
-    elements.serviceSyncToken.placeholder = translate(key);
+    elements.serviceSyncToken.placeholder = "";
   }
 }
 
@@ -8206,6 +8481,13 @@ function applyServiceSyncTranslations() {
   if (!elements.serviceSyncSection) {
     return;
   }
+
+  const config = getServiceSyncConfig();
+  const activeMode =
+    elements.serviceSyncForm?.dataset.mode ||
+    config.mode ||
+    SERVICE_SYNC_DEFAULT_MODE;
+  const secretStored = Boolean(state.serviceSync?.secret);
 
   if (elements.serviceSyncTitle) {
     elements.serviceSyncTitle.textContent = translate("serviceManager.sync.title");
@@ -8215,36 +8497,108 @@ function applyServiceSyncTranslations() {
       "serviceManager.sync.description"
     );
   }
+  if (elements.serviceSyncModeLabel) {
+    elements.serviceSyncModeLabel.textContent = translate(
+      "serviceManager.sync.mode.label"
+    );
+  }
+  if (elements.serviceSyncMode) {
+    Array.from(elements.serviceSyncMode.options || []).forEach((option) => {
+      if (!option || !option.value) {
+        return;
+      }
+      const key =
+        option.value === SERVICE_SYNC_MODES.WEBHOOK
+          ? "serviceManager.sync.mode.webhook"
+          : "serviceManager.sync.mode.github";
+      option.textContent = translate(key);
+    });
+  }
   if (elements.serviceSyncOwnerLabel) {
     elements.serviceSyncOwnerLabel.textContent = translate(
-      "serviceManager.sync.ownerLabel"
+      "serviceManager.sync.github.ownerLabel"
     );
   }
   if (elements.serviceSyncRepoLabel) {
     elements.serviceSyncRepoLabel.textContent = translate(
-      "serviceManager.sync.repoLabel"
+      "serviceManager.sync.github.repoLabel"
     );
   }
   if (elements.serviceSyncBranchLabel) {
     elements.serviceSyncBranchLabel.textContent = translate(
-      "serviceManager.sync.branchLabel"
+      "serviceManager.sync.github.branchLabel"
     );
   }
   if (elements.serviceSyncPathLabel) {
     elements.serviceSyncPathLabel.textContent = translate(
-      "serviceManager.sync.pathLabel"
+      "serviceManager.sync.github.pathLabel"
+    );
+  }
+  if (elements.serviceSyncReadUrlLabel) {
+    elements.serviceSyncReadUrlLabel.textContent = translate(
+      "serviceManager.sync.webhook.readUrlLabel"
+    );
+  }
+  if (elements.serviceSyncReadUrl) {
+    elements.serviceSyncReadUrl.placeholder = translate(
+      "serviceManager.sync.webhook.readUrlPlaceholder"
+    );
+  }
+  if (elements.serviceSyncWriteUrlLabel) {
+    elements.serviceSyncWriteUrlLabel.textContent = translate(
+      "serviceManager.sync.webhook.writeUrlLabel"
+    );
+  }
+  if (elements.serviceSyncWriteUrl) {
+    elements.serviceSyncWriteUrl.placeholder = translate(
+      "serviceManager.sync.webhook.writeUrlPlaceholder"
+    );
+  }
+  if (elements.serviceSyncWriteMethodLabel) {
+    elements.serviceSyncWriteMethodLabel.textContent = translate(
+      "serviceManager.sync.webhook.writeMethodLabel"
+    );
+  }
+  if (elements.serviceSyncWriteMethod) {
+    Array.from(elements.serviceSyncWriteMethod.options || []).forEach(
+      (option) => {
+        if (!option || !option.value) {
+          return;
+        }
+        const key =
+          option.value.toUpperCase() === "POST"
+            ? "serviceManager.sync.webhook.writeMethodPost"
+            : "serviceManager.sync.webhook.writeMethodPut";
+        option.textContent = translate(key);
+      }
+    );
+  }
+  if (elements.serviceSyncAuthHeaderLabel) {
+    elements.serviceSyncAuthHeaderLabel.textContent = translate(
+      "serviceManager.sync.webhook.authHeaderLabel"
+    );
+  }
+  if (elements.serviceSyncAuthHeader) {
+    elements.serviceSyncAuthHeader.placeholder = translate(
+      "serviceManager.sync.webhook.authHeaderPlaceholder"
     );
   }
   if (elements.serviceSyncTokenLabel) {
-    elements.serviceSyncTokenLabel.textContent = translate(
-      "serviceManager.sync.tokenLabel"
-    );
+    const tokenLabelKey =
+      activeMode === SERVICE_SYNC_MODES.WEBHOOK
+        ? "serviceManager.sync.webhook.tokenLabel"
+        : "serviceManager.sync.github.tokenLabel";
+    elements.serviceSyncTokenLabel.textContent = translate(tokenLabelKey);
   }
   if (elements.serviceSyncToken) {
-    const key = state.serviceSync?.secret
-      ? "serviceManager.sync.tokenPlaceholderSaved"
-      : "serviceManager.sync.tokenPlaceholder";
-    elements.serviceSyncToken.placeholder = translate(key);
+    const placeholderKey = secretStored
+      ? activeMode === SERVICE_SYNC_MODES.WEBHOOK
+        ? "serviceManager.sync.webhook.tokenPlaceholderSaved"
+        : "serviceManager.sync.github.tokenPlaceholderSaved"
+      : activeMode === SERVICE_SYNC_MODES.WEBHOOK
+      ? "serviceManager.sync.webhook.tokenPlaceholder"
+      : "serviceManager.sync.github.tokenPlaceholder";
+    elements.serviceSyncToken.placeholder = translate(placeholderKey);
   }
   if (elements.serviceSyncSave) {
     elements.serviceSyncSave.textContent = translate("serviceManager.sync.save");
@@ -8288,10 +8642,15 @@ function updateServiceSyncVisibility() {
   section.hidden = !canManage;
 
   const controls = [
+    elements.serviceSyncMode,
     elements.serviceSyncOwner,
     elements.serviceSyncRepo,
     elements.serviceSyncBranch,
     elements.serviceSyncPath,
+    elements.serviceSyncReadUrl,
+    elements.serviceSyncWriteUrl,
+    elements.serviceSyncWriteMethod,
+    elements.serviceSyncAuthHeader,
     elements.serviceSyncToken,
     elements.serviceSyncSave,
     elements.serviceSyncClear,
@@ -8312,19 +8671,57 @@ async function handleServiceSyncSubmit(event) {
     return;
   }
 
-  const owner = elements.serviceSyncOwner?.value?.trim() ?? "";
-  const repo = elements.serviceSyncRepo?.value?.trim() ?? "";
-  const branch = elements.serviceSyncBranch?.value?.trim() ?? "";
-  const path = elements.serviceSyncPath?.value?.trim() ?? "";
-  const token = elements.serviceSyncToken?.value?.trim() ?? "";
+  const selectedMode =
+    elements.serviceSyncMode?.value?.trim().toLowerCase() ??
+    SERVICE_SYNC_DEFAULT_MODE;
+  const mode = Object.values(SERVICE_SYNC_MODES).includes(selectedMode)
+    ? selectedMode
+    : SERVICE_SYNC_DEFAULT_MODE;
 
-  if (!owner || !repo) {
-    setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
-    (elements.serviceSyncOwner || elements.serviceSyncRepo)?.focus?.();
-    return;
+  const token = elements.serviceSyncToken?.value?.trim() ?? "";
+  const nextConfig = { ...getServiceSyncConfig(), mode };
+
+  if (mode === SERVICE_SYNC_MODES.GITHUB) {
+    const owner = elements.serviceSyncOwner?.value?.trim() ?? "";
+    const repo = elements.serviceSyncRepo?.value?.trim() ?? "";
+    const branch = elements.serviceSyncBranch?.value?.trim() ?? "";
+    const path = elements.serviceSyncPath?.value?.trim() ?? "";
+
+    if (!owner || !repo) {
+      setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
+      (elements.serviceSyncOwner || elements.serviceSyncRepo)?.focus?.();
+      return;
+    }
+
+    nextConfig.owner = owner;
+    nextConfig.repo = repo;
+    nextConfig.branch = branch;
+    nextConfig.path = path;
+  } else {
+    const readUrl = elements.serviceSyncReadUrl?.value?.trim() ?? "";
+    const writeUrl = elements.serviceSyncWriteUrl?.value?.trim() ?? "";
+    const writeMethodRaw =
+      elements.serviceSyncWriteMethod?.value?.trim().toUpperCase() ??
+      SERVICE_SYNC_DEFAULT_WRITE_METHOD;
+    const writeMethod = SERVICE_SYNC_WRITE_METHODS.has(writeMethodRaw)
+      ? writeMethodRaw
+      : SERVICE_SYNC_DEFAULT_WRITE_METHOD;
+    const authHeader = elements.serviceSyncAuthHeader?.value?.trim() ?? "";
+
+    if (!readUrl) {
+      setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
+      elements.serviceSyncReadUrl?.focus?.();
+      return;
+    }
+
+    nextConfig.readUrl = readUrl;
+    nextConfig.writeUrl = writeUrl;
+    nextConfig.writeMethod = writeMethod;
+    nextConfig.authHeader = authHeader || "Authorization";
   }
 
-  updateServiceSyncConfig({ owner, repo, branch, path });
+  updateServiceSyncConfig(nextConfig);
+  state.serviceSync.remoteSha = null;
   if (token) {
     updateServiceSyncSecret(token);
   }

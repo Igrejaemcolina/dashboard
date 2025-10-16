@@ -2347,6 +2347,15 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   gap: 1.5rem;
 }
 
+.service-sync-form [data-sync-mode] {
+  display: none;
+}
+
+.service-sync-form[data-mode="github"] [data-sync-mode="github"],
+.service-sync-form[data-mode="webhook"] [data-sync-mode="webhook"] {
+  display: grid;
+}
+
 .service-sync-grid {
   display: grid;
   gap: 1.25rem;
@@ -2359,13 +2368,18 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   gap: 0.5rem;
 }
 
+.service-sync-field.full {
+  grid-column: 1 / -1;
+}
+
 
 .service-sync-field label {
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.service-sync-field input {
+.service-sync-field input,
+.service-sync-field select {
   padding: 0.75rem 1rem;
   border-radius: 0.85rem;
   border: 1px solid rgba(148, 163, 184, 0.35);
@@ -2379,14 +2393,16 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   color: rgba(226, 232, 240, 0.65);
 }
 
-.service-sync-field input:focus-visible {
+.service-sync-field input:focus-visible,
+.service-sync-field select:focus-visible {
   border-color: rgba(56, 189, 248, 0.85);
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
   outline: none;
   background: rgba(15, 23, 42, 0.9);
 }
 
-.service-sync-field input:disabled {
+.service-sync-field input:disabled,
+.service-sync-field select:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }

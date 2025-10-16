@@ -253,11 +253,24 @@
           <header class="service-sync-header">
             <h3 id="service-sync-title">Sincronizar atribuições</h3>
             <p id="service-sync-description">
-              Configure o repositório compartilhado para manter os serviços atualizados.
+              Escolha o método de sincronização para manter os serviços atualizados.
             </p>
           </header>
-          <form class="service-sync-form" id="service-sync-form">
-            <div class="service-sync-grid">
+          <form
+            class="service-sync-form"
+            id="service-sync-form"
+            data-mode="github"
+          >
+            <div class="service-sync-field">
+              <label for="service-sync-mode" id="service-sync-mode-label"
+                >Como deseja sincronizar?</label
+              >
+              <select id="service-sync-mode" name="service-sync-mode">
+                <option value="github">Repositório GitHub</option>
+                <option value="webhook">Link de API (JSON)</option>
+              </select>
+            </div>
+            <div class="service-sync-grid" data-sync-mode="github">
               <div class="service-sync-field">
                 <label for="service-sync-owner" id="service-sync-owner-label"
                   >Dono do repositório</label
@@ -281,7 +294,7 @@
                 />
               </div>
             </div>
-            <div class="service-sync-grid">
+            <div class="service-sync-grid" data-sync-mode="github">
               <div class="service-sync-field">
                 <label for="service-sync-branch" id="service-sync-branch-label"
                   >Branch</label
@@ -304,6 +317,60 @@
                   name="service-sync-path"
                   autocomplete="off"
                   value="data/service-assignments.json"
+                />
+              </div>
+            </div>
+            <div class="service-sync-grid" data-sync-mode="webhook">
+              <div class="service-sync-field full">
+                <label for="service-sync-read-url" id="service-sync-read-url-label"
+                  >URL para ler os dados</label
+                >
+                <input
+                  type="url"
+                  id="service-sync-read-url"
+                  name="service-sync-read-url"
+                  autocomplete="off"
+                  placeholder="https://"
+                />
+              </div>
+              <div class="service-sync-field full">
+                <label for="service-sync-write-url" id="service-sync-write-url-label"
+                  >URL para enviar atualizações (opcional)</label
+                >
+                <input
+                  type="url"
+                  id="service-sync-write-url"
+                  name="service-sync-write-url"
+                  autocomplete="off"
+                  placeholder="https://"
+                />
+              </div>
+            </div>
+            <div class="service-sync-grid" data-sync-mode="webhook">
+              <div class="service-sync-field">
+                <label
+                  for="service-sync-write-method"
+                  id="service-sync-write-method-label"
+                  >Método de escrita</label
+                >
+                <select
+                  id="service-sync-write-method"
+                  name="service-sync-write-method"
+                >
+                  <option value="PUT">PUT</option>
+                  <option value="POST">POST</option>
+                </select>
+              </div>
+              <div class="service-sync-field">
+                <label for="service-sync-auth-header" id="service-sync-auth-header-label"
+                  >Cabeçalho de autorização</label
+                >
+                <input
+                  type="text"
+                  id="service-sync-auth-header"
+                  name="service-sync-auth-header"
+                  autocomplete="off"
+                  placeholder="Authorization"
                 />
               </div>
             </div>
