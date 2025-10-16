@@ -1871,6 +1871,97 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   display: block;
 }
 
+.service-sync-banner {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #1f2937, #0f172a);
+  color: #f9fafb;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.service-sync-banner[hidden] {
+  display: none;
+}
+
+.service-sync-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.service-sync-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #f9fafb;
+}
+
+.service-sync-header p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 0.95rem;
+}
+
+.service-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.service-sync-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-sync-button.primary {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #0f172a;
+  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.35);
+}
+
+.service-sync-button.secondary {
+  background: rgba(148, 163, 184, 0.18);
+  color: #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.25);
+}
+
+.service-sync-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.service-sync-button:not(:disabled):hover,
+.service-sync-button:not(:disabled):focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 32px rgba(14, 165, 233, 0.35);
+  outline: none;
+}
+
+.service-sync-button.secondary:not(:disabled):hover,
+.service-sync-button.secondary:not(:disabled):focus-visible {
+  box-shadow: 0 14px 28px rgba(148, 163, 184, 0.25);
+}
+
+.service-sync-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.service-sync-status.error {
+  color: #fca5a5;
+}
+
 .service-manager-controls {
   display: flex;
   align-items: center;
@@ -2446,6 +2537,11 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   .service-assignment-modal {
     align-items: flex-end;
     padding: 1.5rem 1rem;
+  }
+
+  .service-sync-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .service-assignment-dialog {

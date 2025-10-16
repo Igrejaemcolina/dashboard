@@ -9,6 +9,24 @@ const SERVICE_FILTER_UNASSIGNED = "unassigned";
 const DEFAULT_SERVICE_OPTIONS = [];
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
+const SERVICE_SHEET_CONFIG_STORAGE_KEY = "igcolina-service-sheet-config";
+const SERVICE_SHEET_DEFAULT_TAB_NAMES = ["Serviços", "Servicos", "Services"];
+const GOOGLE_IDENTITY_SCRIPT_URL = "https://accounts.google.com/gsi/client";
+const GOOGLE_SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const SERVICE_SHEET_HEADER = [
+  "Service Key",
+  "Legacy Key",
+  "Nome",
+  "Telefone",
+  "Data de nascimento",
+  "Serviços (IDs)",
+  "Serviços (Português)",
+  "Serviços (Inglês)",
+  "Serviços (Espanhol)",
+  "Ativo",
+  "Atualizado por",
+  "Atualizado em",
+];
 const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_ALL,
   SERVICE_FILTER_UNASSIGNED,
@@ -491,6 +509,32 @@ const TRANSLATIONS = {
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
         "Atribuição de serviços disponível apenas para o perfil Serviços.",
+      sync: {
+        title: "Sincronização com planilha",
+        description:
+          "Conecte com o Google Sheets para compartilhar as atribuições em todos os dispositivos.",
+        buttons: {
+          connect: "Atualizar planilha",
+          authorize: "Autorizar Google",
+          syncing: "Sincronizando...",
+          configure: "Configurar planilha",
+        },
+        status: {
+          ready: "Planilha conectada e pronta para receber atualizações.",
+          syncing: "Enviando dados para a planilha...",
+          success: "Serviços atualizados na planilha.",
+          error: "Não foi possível atualizar a planilha. Tente novamente.",
+          unauthorized: "Autorize o acesso do Google para salvar as alterações.",
+          missingClient: "Informe o Client ID OAuth 2.0 para conectar.",
+          missingTab: "Informe o nome da aba da planilha.",
+        },
+        prompt: {
+          clientId:
+            "Cole o Client ID OAuth 2.0 configurado no console do Google Cloud.",
+          tabName:
+            "Informe o nome da aba da planilha onde os serviços serão salvos.",
+        },
+      },
     },
     serviceAssignment: {
       title: ({ name }) => `Gerenciar serviços de ${name}`,
@@ -948,6 +992,30 @@ const TRANSLATIONS = {
       empty: "No members found for the selected filters.",
       restricted:
         "Service assignments are available only for the Services profile.",
+      sync: {
+        title: "Spreadsheet sync",
+        description:
+          "Connect to Google Sheets so every device keeps the latest service assignments.",
+        buttons: {
+          connect: "Update spreadsheet",
+          authorize: "Authorize Google",
+          syncing: "Syncing...",
+          configure: "Configure sheet",
+        },
+        status: {
+          ready: "Spreadsheet connected and ready for updates.",
+          syncing: "Sending data to the spreadsheet...",
+          success: "Services updated in the spreadsheet.",
+          error: "Unable to update the spreadsheet. Try again.",
+          unauthorized: "Authorize Google access to save the changes.",
+          missingClient: "Provide the OAuth 2.0 Client ID to connect.",
+          missingTab: "Provide the sheet tab name.",
+        },
+        prompt: {
+          clientId: "Paste the OAuth 2.0 Client ID configured in Google Cloud.",
+          tabName: "Inform the sheet tab name where services will be stored.",
+        },
+      },
     },
     serviceAssignment: {
       title: ({ name }) => `Manage services for ${name}`,
@@ -1410,6 +1478,30 @@ const TRANSLATIONS = {
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
         "La asignación de servicios está disponible solo para el perfil Servicios.",
+      sync: {
+        title: "Sincronización con planilla",
+        description:
+          "Conéctate con Google Sheets para que todos los dispositivos reciban las últimas asignaciones.",
+        buttons: {
+          connect: "Actualizar planilla",
+          authorize: "Autorizar Google",
+          syncing: "Sincronizando...",
+          configure: "Configurar planilla",
+        },
+        status: {
+          ready: "Planilla conectada y lista para recibir actualizaciones.",
+          syncing: "Enviando datos a la planilla...",
+          success: "Servicios actualizados en la planilla.",
+          error: "No fue posible actualizar la planilla. Inténtalo nuevamente.",
+          unauthorized: "Autoriza el acceso de Google para guardar los cambios.",
+          missingClient: "Informa el Client ID OAuth 2.0 para conectar.",
+          missingTab: "Informa el nombre de la pestaña de la planilla.",
+        },
+        prompt: {
+          clientId: "Pega el Client ID OAuth 2.0 configurado en Google Cloud.",
+          tabName: "Indica el nombre de la pestaña donde se guardarán los servicios.",
+        },
+      },
     },
     serviceAssignment: {
       title: ({ name }) => `Gestionar servicios de ${name}`,
@@ -1667,6 +1759,12 @@ const elements = {
   serviceAssignmentCancel: document.getElementById("service-assignment-cancel"),
   serviceAssignmentSave: document.getElementById("service-assignment-save"),
   serviceAssignmentClose: document.getElementById("service-assignment-close"),
+  serviceSyncContainer: null,
+  serviceSyncTitle: null,
+  serviceSyncDescription: null,
+  serviceSyncStatus: null,
+  serviceSyncConnect: null,
+  serviceSyncConfigure: null,
 };
 
 const CATEGORY_CONFIG = [
@@ -1765,6 +1863,51 @@ const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
   ].map((label) => normalizeColumnLabel(label))
 );
 
+const DEFAULT_SERVICE_SHEET_CONFIG = {
+  sheetId: SUPPLEMENTAL_SHEET_ID,
+  tabName: SERVICE_SHEET_DEFAULT_TAB_NAMES[0] ?? null,
+  clientId: "",
+};
+
+function loadServiceSheetConfig() {
+  if (typeof localStorage === "undefined") {
+    return { ...DEFAULT_SERVICE_SHEET_CONFIG };
+  }
+
+  try {
+    const stored = localStorage.getItem(SERVICE_SHEET_CONFIG_STORAGE_KEY);
+    if (!stored) {
+      return { ...DEFAULT_SERVICE_SHEET_CONFIG };
+    }
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") {
+      return { ...DEFAULT_SERVICE_SHEET_CONFIG };
+    }
+    return {
+      ...DEFAULT_SERVICE_SHEET_CONFIG,
+      ...parsed,
+    };
+  } catch (error) {
+    console.warn("Failed to load service sheet config:", error);
+    return { ...DEFAULT_SERVICE_SHEET_CONFIG };
+  }
+}
+
+function saveServiceSheetConfig(config) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      SERVICE_SHEET_CONFIG_STORAGE_KEY,
+      JSON.stringify(config)
+    );
+  } catch (error) {
+    console.warn("Failed to persist service sheet config:", error);
+  }
+}
+
 const state = {
   records: [],
   columns: [],
@@ -1812,6 +1955,20 @@ const state = {
     questionsRendered: false,
   },
   language: null,
+  serviceSheet: {
+    columns: [],
+    records: [],
+    config: loadServiceSheetConfig(),
+    syncTimer: null,
+    syncing: false,
+    statusKey: null,
+    statusReplacements: {},
+    statusIsError: false,
+    scriptPromise: null,
+    tokenClient: null,
+    token: null,
+    tokenExpiresAt: 0,
+  },
 };
 
 function hasFullAccessRole(role) {
@@ -2515,6 +2672,8 @@ function applyLanguage(options = {}) {
       translate("serviceAssignment.close")
     );
   }
+
+  updateServiceSyncUI();
 
   if (
     elements.serviceAssignmentModal &&
@@ -3859,6 +4018,9 @@ async function fetchSheetData() {
         state.supplementalPhoneColumn
       );
       state.supplementalIndex = buildSupplementalIndex(state.supplementalEntries);
+      state.serviceSheet.columns = supplementalColumns;
+      state.serviceSheet.records = supplementalRecords;
+      applyRemoteServiceAssignments(supplementalRecords, supplementalColumns);
     } else {
       console.warn(
         "Unable to load the supplemental spreadsheet:",
@@ -3871,6 +4033,8 @@ async function fetchSheetData() {
       state.supplementalPhoneColumn = null;
       state.supplementalEntries = [];
       state.supplementalIndex = new Map();
+      state.serviceSheet.columns = [];
+      state.serviceSheet.records = [];
     }
 
     state.enrichedRecords = buildEnrichedRecords(records);
@@ -4101,6 +4265,177 @@ function buildSupplementalIndex(entries) {
   return index;
 }
 
+function findServiceSheetColumn(columns, labels) {
+  if (!Array.isArray(columns) || !columns.length) {
+    return null;
+  }
+
+  const normalizedTargets = labels
+    .map((label) => normalizeColumnLabel(label))
+    .filter(Boolean);
+
+  for (const column of columns) {
+    const normalized = normalizeColumnLabel(column);
+    if (!normalized) continue;
+    if (
+      normalizedTargets.some(
+        (target) => normalized === target || normalized.includes(target)
+      )
+    ) {
+      return column;
+    }
+  }
+
+  return null;
+}
+
+function buildServiceAssignmentsFromSheet(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
+
+  const servicesColumn =
+    findServiceSheetColumn(columns, [
+      "serviços (ids)",
+      "servicos (ids)",
+      "serviços",
+      "servicos",
+      "services",
+      "services (ids)",
+    ]) ?? null;
+
+  if (!servicesColumn) {
+    return null;
+  }
+
+  const serviceKeyColumn = findServiceSheetColumn(columns, [
+    "service key",
+    "chave do serviço",
+    "chave do servico",
+    "identificador",
+  ]);
+  const legacyKeyColumn = findServiceSheetColumn(columns, [
+    "legacy key",
+    "chave legada",
+  ]);
+  const activeColumn = findServiceSheetColumn(columns, [
+    "ativo",
+    "active",
+    "estado",
+  ]);
+  const nameColumn = findServiceSheetColumn(columns, [
+    "nome",
+    "nome do irmão",
+    "name",
+  ]);
+  const phoneColumn = findServiceSheetColumn(columns, [
+    "telefone",
+    "contato",
+    "phone",
+  ]);
+  const birthColumn = findServiceSheetColumn(columns, [
+    "data de nascimento",
+    "nascimento",
+    "birth",
+    "birthday",
+  ]);
+
+  const assignments = new Map();
+  const fallbackAssignments = new Map();
+
+  records.forEach((record) => {
+    if (!record) return;
+
+    const serviceIds = parseServiceList(record[servicesColumn]);
+    if (!serviceIds.length) {
+      return;
+    }
+
+    const active = activeColumn ? parseBoolean(record[activeColumn]) : true;
+    const normalized = normalizeServiceAssignment({
+      active,
+      services: serviceIds,
+    });
+
+    if (!normalized.active || !normalized.services.length) {
+      return;
+    }
+
+    let serviceKey = serviceKeyColumn ? record[serviceKeyColumn] ?? "" : "";
+    let legacyKey = legacyKeyColumn ? record[legacyKeyColumn] ?? "" : "";
+
+    if (typeof serviceKey === "string") {
+      serviceKey = serviceKey.trim();
+    } else {
+      serviceKey = String(serviceKey ?? "").trim();
+    }
+
+    if (typeof legacyKey === "string") {
+      legacyKey = legacyKey.trim();
+    } else {
+      legacyKey = String(legacyKey ?? "").trim();
+    }
+
+    if (serviceKey) {
+      assignments.set(serviceKey, normalized);
+    }
+
+    if (legacyKey) {
+      assignments.set(legacyKey, normalized);
+    }
+
+    if (!serviceKey && !legacyKey) {
+      const fallback = [];
+      if (nameColumn && record[nameColumn]) {
+        const normalizedName = normalizeString(record[nameColumn]);
+        if (normalizedName) {
+          fallback.push(normalizedName);
+        }
+      }
+
+      if (birthColumn && record[birthColumn]) {
+        const rawBirth = record.__raw?.[birthColumn] ?? record[birthColumn];
+        const birthDate = parseDate(rawBirth);
+        const formattedBirth = formatDateForSheet(birthDate);
+        if (formattedBirth) {
+          fallback.push(formattedBirth);
+        }
+      }
+
+      if (phoneColumn && record[phoneColumn]) {
+        const digits = extractPhoneDigits(record[phoneColumn]);
+        if (digits) {
+          fallback.push(digits);
+        }
+      }
+
+      if (fallback.length) {
+        const fallbackKey = fallback.join("|");
+        fallbackAssignments.set(fallbackKey, normalized);
+      }
+    }
+  });
+
+  if (!assignments.size && fallbackAssignments.size) {
+    fallbackAssignments.forEach((assignment, key) => {
+      assignments.set(key, assignment);
+    });
+  }
+
+  return assignments;
+}
+
+function applyRemoteServiceAssignments(records, columns) {
+  const remoteAssignments = buildServiceAssignmentsFromSheet(records, columns);
+  if (!remoteAssignments) {
+    return;
+  }
+
+  state.serviceAssignments = remoteAssignments;
+  persistLocalServiceAssignments();
+  setServiceSyncStatus("serviceManager.sync.status.ready");
+}
+
 function normalizeServiceId(value) {
   if (value == null) {
     return "";
@@ -4165,6 +4500,48 @@ function translateServiceName(serviceId) {
   return normalized;
 }
 
+function getServiceLabelByLanguage(serviceId, language) {
+  const normalized = sanitizeServiceId(serviceId);
+  if (!normalized) {
+    return "";
+  }
+
+  const targetLanguage =
+    language && LANGUAGE_OPTIONS[language]?.code
+      ? LANGUAGE_OPTIONS[language].code
+      : state.language ?? getDefaultLanguage();
+
+  const defaultOption = DEFAULT_SERVICE_OPTIONS.find(
+    (option) => option.id === normalized
+  );
+  if (defaultOption?.nameKey) {
+    const translation = translate(
+      defaultOption.nameKey,
+      {},
+      targetLanguage
+    );
+    return translation || normalized;
+  }
+
+  const customOption = customServiceOptions.get(normalized);
+  if (customOption) {
+    if (customOption.labels && typeof customOption.labels === "object") {
+      const preferred =
+        customOption.labels[targetLanguage] ??
+        customOption.labels[getDefaultLanguage()] ??
+        customOption.labels.pt;
+      if (preferred) {
+        return preferred;
+      }
+    }
+    if (customOption.label) {
+      return customOption.label;
+    }
+  }
+
+  return normalized;
+}
+
 function normalizeServiceAssignment(rawAssignment) {
   if (!rawAssignment) {
     return { active: false, services: [] };
@@ -4198,6 +4575,63 @@ function normalizeServiceAssignment(rawAssignment) {
   }
 
   return { active: true, services: normalized };
+}
+
+function parseBoolean(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (value == null) {
+    return false;
+  }
+
+  const normalized = normalizeString(String(value));
+  if (!normalized) {
+    return false;
+  }
+
+  return [
+    "true",
+    "sim",
+    "yes",
+    "ativo",
+    "activa",
+    "active",
+    "si",
+  ].includes(normalized);
+}
+
+function parseServiceList(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => sanitizeServiceId(entry))
+      .filter(Boolean);
+  }
+
+  const normalizedString = String(value)
+    .split(/[,;\n]+/)
+    .map((chunk) => sanitizeServiceId(chunk))
+    .filter(Boolean);
+
+  return Array.from(new Set(normalizedString));
+}
+
+function formatDateForSheet(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function buildServiceSignature(record, supplementalRecord, context = {}) {
@@ -4717,7 +5151,7 @@ function loadServiceAssignments() {
   }
 }
 
-function persistServiceAssignments() {
+function persistLocalServiceAssignments() {
   if (typeof localStorage === "undefined") {
     return;
   }
@@ -4738,6 +5172,614 @@ function persistServiceAssignments() {
     localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
     console.warn("Failed to persist service assignments:", error);
+  }
+}
+
+function persistServiceAssignments() {
+  persistLocalServiceAssignments();
+  scheduleServiceSheetSync();
+}
+
+function getServiceSheetConfig() {
+  return { ...state.serviceSheet.config };
+}
+
+function setServiceSheetConfig(newConfig = {}) {
+  const previous = state.serviceSheet.config;
+  const merged = {
+    ...previous,
+    ...newConfig,
+  };
+  state.serviceSheet.config = merged;
+  if (previous?.clientId !== merged.clientId) {
+    state.serviceSheet.token = null;
+    state.serviceSheet.tokenExpiresAt = 0;
+  }
+  saveServiceSheetConfig(merged);
+  updateServiceSyncUI();
+}
+
+function ensureServiceSyncElements() {
+  if (!isServiceManagerPage) {
+    return;
+  }
+
+  if (elements.serviceSyncContainer || !elements.serviceManagerSection) {
+    return;
+  }
+
+  const container = document.createElement("section");
+  container.className = "service-sync-banner";
+  container.id = "service-sync-banner";
+  container.hidden = true;
+
+  const header = document.createElement("div");
+  header.className = "service-sync-header";
+
+  const title = document.createElement("h3");
+  title.id = "service-sync-title";
+  header.appendChild(title);
+
+  const description = document.createElement("p");
+  description.id = "service-sync-description";
+  header.appendChild(description);
+
+  const actions = document.createElement("div");
+  actions.className = "service-sync-actions";
+
+  const connect = document.createElement("button");
+  connect.type = "button";
+  connect.id = "service-sync-connect";
+  connect.className = "service-sync-button primary";
+  connect.addEventListener("click", handleServiceSyncConnectClick);
+  actions.appendChild(connect);
+
+  const configure = document.createElement("button");
+  configure.type = "button";
+  configure.id = "service-sync-configure";
+  configure.className = "service-sync-button secondary";
+  configure.addEventListener("click", handleServiceSyncConfigureClick);
+  actions.appendChild(configure);
+
+  const status = document.createElement("p");
+  status.id = "service-sync-status";
+  status.className = "service-sync-status";
+  status.hidden = true;
+
+  container.appendChild(header);
+  container.appendChild(actions);
+  container.appendChild(status);
+
+  const target = elements.serviceManagerControls;
+  if (target && target.parentElement === elements.serviceManagerSection) {
+    elements.serviceManagerSection.insertBefore(container, target);
+  } else {
+    elements.serviceManagerSection.appendChild(container);
+  }
+
+  elements.serviceSyncContainer = container;
+  elements.serviceSyncTitle = title;
+  elements.serviceSyncDescription = description;
+  elements.serviceSyncStatus = status;
+  elements.serviceSyncConnect = connect;
+  elements.serviceSyncConfigure = configure;
+}
+
+function setServiceSyncStatus(
+  key,
+  replacements = {},
+  { isError = false } = {}
+) {
+  state.serviceSheet.statusKey = key ?? null;
+  state.serviceSheet.statusReplacements = replacements ?? {};
+  state.serviceSheet.statusIsError = Boolean(isError);
+  updateServiceSyncUI();
+}
+
+function updateServiceSyncUI() {
+  if (!isServiceManagerPage) {
+    return;
+  }
+
+  ensureServiceSyncElements();
+  const container = elements.serviceSyncContainer;
+  if (!container) {
+    return;
+  }
+
+  const canManage = canManageServices();
+  container.hidden = !canManage;
+  if (!canManage) {
+    return;
+  }
+
+  if (elements.serviceSyncTitle) {
+    elements.serviceSyncTitle.textContent = translate(
+      "serviceManager.sync.title"
+    );
+  }
+
+  if (elements.serviceSyncDescription) {
+    elements.serviceSyncDescription.textContent = translate(
+      "serviceManager.sync.description"
+    );
+  }
+
+  if (elements.serviceSyncConfigure) {
+    elements.serviceSyncConfigure.textContent = translate(
+      "serviceManager.sync.buttons.configure"
+    );
+  }
+
+  const config = getServiceSheetConfig();
+  let buttonKey = "serviceManager.sync.buttons.connect";
+  if (!config.clientId) {
+    buttonKey = "serviceManager.sync.buttons.authorize";
+  }
+  if (state.serviceSheet.syncing) {
+    buttonKey = "serviceManager.sync.buttons.syncing";
+  }
+
+  if (elements.serviceSyncConnect) {
+    elements.serviceSyncConnect.textContent = translate(buttonKey);
+    elements.serviceSyncConnect.disabled = Boolean(state.serviceSheet.syncing);
+  }
+
+  if (elements.serviceSyncStatus) {
+    if (state.serviceSheet.statusKey) {
+      elements.serviceSyncStatus.textContent = translate(
+        state.serviceSheet.statusKey,
+        state.serviceSheet.statusReplacements
+      );
+      elements.serviceSyncStatus.hidden = false;
+      elements.serviceSyncStatus.classList.toggle(
+        "error",
+        Boolean(state.serviceSheet.statusIsError)
+      );
+    } else {
+      elements.serviceSyncStatus.textContent = "";
+      elements.serviceSyncStatus.hidden = true;
+      elements.serviceSyncStatus.classList.remove("error");
+    }
+  }
+}
+
+function ensureServiceSheetConfig({ interactive = false } = {}) {
+  const config = getServiceSheetConfig();
+  let updated = false;
+
+  if (!config.tabName && interactive) {
+    const defaultTab =
+      config.tabName ?? SERVICE_SHEET_DEFAULT_TAB_NAMES[0] ?? "Servicos";
+    const input = window.prompt(
+      translate("serviceManager.sync.prompt.tabName"),
+      defaultTab
+    );
+    if (typeof input === "string" && input.trim()) {
+      config.tabName = input.trim();
+      updated = true;
+    }
+  }
+
+  if (!config.clientId && interactive) {
+    const input = window.prompt(
+      translate("serviceManager.sync.prompt.clientId"),
+      config.clientId ?? ""
+    );
+    if (typeof input === "string" && input.trim()) {
+      config.clientId = input.trim();
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    setServiceSheetConfig(config);
+  }
+
+  if (!config.clientId) {
+    setServiceSyncStatus(
+      "serviceManager.sync.status.missingClient",
+      {},
+      { isError: true }
+    );
+    return null;
+  }
+
+  if (!config.tabName) {
+    setServiceSyncStatus(
+      "serviceManager.sync.status.missingTab",
+      {},
+      { isError: true }
+    );
+    return null;
+  }
+
+  return config;
+}
+
+function scheduleServiceSheetSync({ immediate = false } = {}) {
+  if (!canManageServices()) {
+    return;
+  }
+
+  const config = getServiceSheetConfig();
+  if (!config.clientId || !config.tabName) {
+    if (!config.clientId) {
+      setServiceSyncStatus(
+        "serviceManager.sync.status.missingClient",
+        {},
+        { isError: true }
+      );
+    } else {
+      setServiceSyncStatus(
+        "serviceManager.sync.status.missingTab",
+        {},
+        { isError: true }
+      );
+    }
+    return;
+  }
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (state.serviceSheet.syncTimer) {
+    window.clearTimeout(state.serviceSheet.syncTimer);
+  }
+
+  const delay = immediate ? 0 : 1200;
+  state.serviceSheet.syncTimer = window.setTimeout(() => {
+    state.serviceSheet.syncTimer = null;
+    performServiceSheetSync().catch((error) => {
+      console.warn("Failed to sync services with spreadsheet:", error);
+      setServiceSyncStatus(
+        "serviceManager.sync.status.error",
+        {},
+        { isError: true }
+      );
+    });
+  }, delay);
+}
+
+function buildServiceSheetRows() {
+  const rows = [SERVICE_SHEET_HEADER.slice()];
+  const timestamp = new Date().toISOString();
+  const seen = new Set();
+
+  state.serviceAssignments.forEach((assignment, key) => {
+    if (!assignment?.active || !Array.isArray(assignment.services)) {
+      return;
+    }
+
+    const services = assignment.services
+      .map((serviceId) => sanitizeServiceId(serviceId))
+      .filter(Boolean);
+
+    if (!services.length) {
+      return;
+    }
+
+    const entry = findEntryByServiceKey(key);
+    const targetKey = entry?.serviceKey ?? key;
+    if (!targetKey || seen.has(targetKey)) {
+      return;
+    }
+
+    seen.add(targetKey);
+
+    const legacyKey = entry?.legacyServiceKey
+      ? entry.legacyServiceKey
+      : typeof key === "string"
+      ? key.split("|").slice(0, 3).join("|")
+      : "";
+
+    const birthDate =
+      entry?.birthDate instanceof Date &&
+      !Number.isNaN(entry.birthDate.getTime())
+        ? entry.birthDate
+        : null;
+
+    const row = [
+      targetKey,
+      legacyKey,
+      entry?.name ?? "",
+      entry?.phone ?? "",
+      birthDate ? formatDateForSheet(birthDate) : "",
+      services.join(","),
+      services
+        .map((serviceId) => getServiceLabelByLanguage(serviceId, "pt"))
+        .filter(Boolean)
+        .join(", "),
+      services
+        .map((serviceId) => getServiceLabelByLanguage(serviceId, "en"))
+        .filter(Boolean)
+        .join(", "),
+      services
+        .map((serviceId) => getServiceLabelByLanguage(serviceId, "es"))
+        .filter(Boolean)
+        .join(", "),
+      assignment.active ? "TRUE" : "FALSE",
+      state.activeUserName || getRoleLabel(state.accessRole) || "",
+      timestamp,
+    ];
+
+    rows.push(row);
+  });
+
+  return rows;
+}
+
+async function loadGoogleIdentityScript() {
+  if (state.serviceSheet.scriptPromise) {
+    return state.serviceSheet.scriptPromise;
+  }
+
+  state.serviceSheet.scriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = GOOGLE_IDENTITY_SCRIPT_URL;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google scripts."));
+    document.head.appendChild(script);
+  });
+
+  return state.serviceSheet.scriptPromise;
+}
+
+async function requestGoogleAccessToken({ prompt = false } = {}) {
+  const config = getServiceSheetConfig();
+  if (!config.clientId) {
+    throw new Error("Missing Google client id");
+  }
+
+  await loadGoogleIdentityScript();
+
+  if (!window.google?.accounts?.oauth2) {
+    throw new Error("Google identity services unavailable");
+  }
+
+  return new Promise((resolve, reject) => {
+    try {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: config.clientId,
+        scope: GOOGLE_SHEETS_SCOPES.join(" "),
+        callback: (response) => {
+          if (response.error) {
+            reject(response);
+            return;
+          }
+          state.serviceSheet.token = response.access_token;
+          const expiresIn = Number(response.expires_in ?? 0);
+          state.serviceSheet.tokenExpiresAt = Date.now() + expiresIn * 1000;
+          resolve(response.access_token);
+        },
+      });
+      state.serviceSheet.tokenClient = tokenClient;
+      tokenClient.requestAccessToken({ prompt: prompt ? "consent" : "" });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function getGoogleAccessToken({ prompt = false } = {}) {
+  if (
+    state.serviceSheet.token &&
+    Date.now() < state.serviceSheet.tokenExpiresAt - 60_000
+  ) {
+    return state.serviceSheet.token;
+  }
+
+  try {
+    return await requestGoogleAccessToken({ prompt });
+  } catch (error) {
+    const needsPrompt =
+      error?.error === "consent_required" ||
+      error?.error === "interaction_required" ||
+      prompt;
+    if (!needsPrompt) {
+      return requestGoogleAccessToken({ prompt: true });
+    }
+    throw error;
+  }
+}
+
+async function ensureServiceSheetExists(sheetId, tabName, token) {
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties(title)`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Google Sheets metadata request failed (${response.status})`);
+  }
+
+  const payload = await response.json();
+  const sheets = Array.isArray(payload?.sheets) ? payload.sheets : [];
+  const exists = sheets.some(
+    (sheet) => sheet?.properties?.title === tabName
+  );
+
+  if (exists) {
+    return;
+  }
+
+  const batchResponse = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            addSheet: {
+              properties: {
+                title: tabName,
+              },
+            },
+          },
+        ],
+      }),
+    }
+  );
+
+  if (!batchResponse.ok) {
+    throw new Error(
+      `Unable to create sheet tab (${batchResponse.status})`
+    );
+  }
+}
+
+async function clearServiceSheetRange(sheetId, tabName, token) {
+  const range = `${tabName}!A1:Z`;
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
+      range
+    )}:clear`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Unable to clear range (${response.status})`);
+  }
+}
+
+async function updateServiceSheetValues(sheetId, tabName, rows, token) {
+  const range = `${tabName}!A1`;
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
+      range
+    )}?valueInputOption=RAW`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        range: `${tabName}!A1`,
+        majorDimension: "ROWS",
+        values: rows,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Unable to update values (${response.status})`);
+  }
+}
+
+async function performServiceSheetSync({ interactive = false } = {}) {
+  if (!canManageServices()) {
+    return;
+  }
+
+  const config = interactive
+    ? ensureServiceSheetConfig({ interactive: true })
+    : ensureServiceSheetConfig();
+
+  if (!config) {
+    return;
+  }
+
+  if (state.serviceSheet.syncing) {
+    return;
+  }
+
+  const rows = buildServiceSheetRows();
+
+  try {
+    state.serviceSheet.syncing = true;
+    updateServiceSyncUI();
+    setServiceSyncStatus("serviceManager.sync.status.syncing");
+
+    const token = await getGoogleAccessToken({ prompt: interactive });
+    if (!token) {
+      setServiceSyncStatus(
+        "serviceManager.sync.status.unauthorized",
+        {},
+        { isError: true }
+      );
+      return;
+    }
+
+    await ensureServiceSheetExists(config.sheetId, config.tabName, token);
+    await clearServiceSheetRange(config.sheetId, config.tabName, token);
+    await updateServiceSheetValues(config.sheetId, config.tabName, rows, token);
+    setServiceSyncStatus("serviceManager.sync.status.success");
+  } catch (error) {
+    console.warn("Service sheet sync failed:", error);
+    const messageKey =
+      error?.status === 401 || error?.code === 401
+        ? "serviceManager.sync.status.unauthorized"
+        : "serviceManager.sync.status.error";
+    setServiceSyncStatus(messageKey, {}, { isError: true });
+  } finally {
+    state.serviceSheet.syncing = false;
+    updateServiceSyncUI();
+  }
+}
+
+function handleServiceSyncConnectClick() {
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    return;
+  }
+
+  performServiceSheetSync({ interactive: true });
+}
+
+function handleServiceSyncConfigureClick() {
+  if (!canManageServices()) {
+    setStatusFromKey("serviceManager.restricted", {}, true);
+    return;
+  }
+
+  const current = getServiceSheetConfig();
+  const defaultTab =
+    current.tabName ?? SERVICE_SHEET_DEFAULT_TAB_NAMES[0] ?? "Servicos";
+  const tabName = window.prompt(
+    translate("serviceManager.sync.prompt.tabName"),
+    defaultTab
+  );
+  const configPatch = {};
+  if (typeof tabName === "string" && tabName.trim()) {
+    configPatch.tabName = tabName.trim();
+  }
+
+  const clientId = window.prompt(
+    translate("serviceManager.sync.prompt.clientId"),
+    current.clientId ?? ""
+  );
+  if (typeof clientId === "string" && clientId.trim()) {
+    configPatch.clientId = clientId.trim();
+  }
+
+  if (Object.keys(configPatch).length) {
+    setServiceSheetConfig(configPatch);
+  } else {
+    updateServiceSyncUI();
+  }
+
+  const ensured = ensureServiceSheetConfig();
+  if (ensured) {
+    setServiceSyncStatus("serviceManager.sync.status.ready");
   }
 }
 
@@ -7074,6 +8116,8 @@ function renderServiceManager() {
   if (!isServiceManagerPage) {
     return;
   }
+
+  updateServiceSyncUI();
 
   const list = elements.serviceManagerList;
   const empty = elements.serviceManagerEmpty;
