@@ -1,5 +1,5 @@
-const SHEET_ID = "1UrFXyGm4r2yo4UlSyw_0jGcmuaeMJqEkhjncXKyqLSc";
-const SUPPLEMENTAL_SHEET_ID = SHEET_ID;
+const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
+const SUPPLEMENTAL_SHEET_ID = "1UrFXyGm4r2yo4UlSyw_0jGcmuaeMJqEkhjncXKyqLSc";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
