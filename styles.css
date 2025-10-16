@@ -2243,6 +2243,139 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   background: rgba(248, 113, 113, 0.2);
 }
 
+.service-sync {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(16, 24, 40, 0.1);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.service-sync[hidden] {
+  display: none !important;
+}
+
+.service-sync-header h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.service-sync-header p {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.service-sync-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.service-sync-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.service-sync-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.service-sync-field label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.service-sync-field input {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-sync-field input:focus-visible {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
+  outline: none;
+}
+
+.service-sync-field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.service-sync-feedback {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  min-height: 1.2rem;
+}
+
+.service-sync-feedback.error {
+  color: var(--danger-color);
+}
+
+.service-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.service-sync-actions button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-sync-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.service-sync-actions #service-sync-save {
+  background: var(--primary-color);
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.25);
+}
+
+.service-sync-actions #service-sync-save:hover,
+.service-sync-actions #service-sync-save:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+}
+
+.service-sync-actions #service-sync-clear {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text-primary);
+}
+
+.service-sync-actions #service-sync-refresh {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+}
+
+.service-sync-actions #service-sync-refresh:hover,
+.service-sync-actions #service-sync-refresh:focus-visible {
+  border-color: var(--primary-color);
+  background: rgba(79, 70, 229, 0.08);
+}
+
 .service-manager-grid {
   display: grid;
   gap: 1.25rem;
@@ -2555,6 +2688,15 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 
   .service-assignment-actions {
     justify-content: center;
+  }
+
+  .service-sync-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-sync-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

@@ -9,6 +9,12 @@ const SERVICE_FILTER_UNASSIGNED = "unassigned";
 const DEFAULT_SERVICE_OPTIONS = [];
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
+const SERVICE_SYNC_CONFIG_STORAGE_KEY = "igcolina-service-sync-config";
+const SERVICE_SYNC_SECRET_STORAGE_KEY = "igcolina-service-sync-secret";
+const SERVICE_SYNC_DEFAULT_BRANCH = "main";
+const SERVICE_SYNC_DEFAULT_PATH = "data/service-assignments.json";
+const SERVICE_SYNC_DEBOUNCE_MS = 2_000;
+const SERVICE_SYNC_ACCEPT_HEADER = "application/vnd.github+json";
 const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_ALL,
   SERVICE_FILTER_UNASSIGNED,
@@ -511,6 +517,32 @@ const TRANSLATIONS = {
           es: "Espanhol",
         },
       },
+      sync: {
+        title: "Sincronizar atribuições",
+        description:
+          "Defina o repositório compartilhado para manter os serviços atualizados em todos os dispositivos.",
+        ownerLabel: "Dono do repositório",
+        repoLabel: "Repositório",
+        branchLabel: "Branch",
+        pathLabel: "Caminho do arquivo",
+        tokenLabel: "Token do GitHub",
+        tokenPlaceholder: "Informe o token com acesso de escrita",
+        tokenPlaceholderSaved: "Token armazenado — deixe em branco para manter",
+        save: "Salvar configuração",
+        clear: "Limpar dados",
+        refresh: "Atualizar agora",
+        statusSaved: "Configuração salva. Buscando dados compartilhados...",
+        statusCleared: "Sincronização removida deste dispositivo.",
+        statusInvalid: "Informe dono e repositório para sincronizar.",
+        statusFetching: "Carregando atribuições compartilhadas...",
+        statusFetched: "Atribuições sincronizadas com sucesso.",
+        statusSyncing: "Enviando atualizações para o repositório...",
+        statusSynced: "Serviços atualizados no repositório.",
+        statusUnauthorized:
+          "Não foi possível acessar o repositório. Confira o token e as permissões.",
+        statusError:
+          "Falha na sincronização: {error}",
+      },
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
         "Atribuição de serviços disponível apenas para o perfil Serviços.",
@@ -990,6 +1022,31 @@ const TRANSLATIONS = {
           en: "English",
           es: "Spanish",
         },
+      },
+      sync: {
+        title: "Sync assignments",
+        description:
+          "Configure the shared repository so every device sees the latest service assignments.",
+        ownerLabel: "Repository owner",
+        repoLabel: "Repository",
+        branchLabel: "Branch",
+        pathLabel: "File path",
+        tokenLabel: "GitHub token",
+        tokenPlaceholder: "Enter a token with commit access",
+        tokenPlaceholderSaved: "Token saved — leave blank to keep it",
+        save: "Save settings",
+        clear: "Clear data",
+        refresh: "Fetch now",
+        statusSaved: "Settings saved. Pulling shared assignments...",
+        statusCleared: "Sync removed from this device.",
+        statusInvalid: "Provide the owner and repository to sync.",
+        statusFetching: "Loading shared assignments...",
+        statusFetched: "Assignments synchronized successfully.",
+        statusSyncing: "Uploading updates to the repository...",
+        statusSynced: "Services updated in the repository.",
+        statusUnauthorized:
+          "We couldn't access the repository. Check the token and permissions.",
+        statusError: "Sync failed: {error}",
       },
       empty: "No members found for the selected filters.",
       restricted:
@@ -1476,6 +1533,32 @@ const TRANSLATIONS = {
           es: "Español",
         },
       },
+      sync: {
+        title: "Sincronizar asignaciones",
+        description:
+          "Configura el repositorio compartido para que todos los dispositivos vean las asignaciones más recientes.",
+        ownerLabel: "Propietario del repositorio",
+        repoLabel: "Repositorio",
+        branchLabel: "Branch",
+        pathLabel: "Ruta del archivo",
+        tokenLabel: "Token de GitHub",
+        tokenPlaceholder: "Ingresa un token con permiso de escritura",
+        tokenPlaceholderSaved: "Token guardado — deja en blanco para mantenerlo",
+        save: "Guardar configuración",
+        clear: "Limpiar datos",
+        refresh: "Actualizar ahora",
+        statusSaved:
+          "Configuración guardada. Obteniendo asignaciones compartidas...",
+        statusCleared: "Sincronización eliminada de este dispositivo.",
+        statusInvalid: "Informa el propietario y el repositorio para sincronizar.",
+        statusFetching: "Cargando asignaciones compartidas...",
+        statusFetched: "Asignaciones sincronizadas correctamente.",
+        statusSyncing: "Enviando actualizaciones al repositorio...",
+        statusSynced: "Servicios actualizados en el repositorio.",
+        statusUnauthorized:
+          "No pudimos acceder al repositorio. Verifica el token y los permisos.",
+        statusError: "Error en la sincronización: {error}",
+      },
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
         "La asignación de servicios está disponible solo para el perfil Servicios.",
@@ -1725,6 +1808,24 @@ const elements = {
   ),
   serviceManagerCustomList: document.getElementById("service-manager-custom-list"),
   serviceManagerCustomEmpty: document.getElementById("service-manager-custom-empty"),
+  serviceSyncSection: document.getElementById("service-sync"),
+  serviceSyncForm: document.getElementById("service-sync-form"),
+  serviceSyncTitle: document.getElementById("service-sync-title"),
+  serviceSyncDescription: document.getElementById("service-sync-description"),
+  serviceSyncOwnerLabel: document.getElementById("service-sync-owner-label"),
+  serviceSyncOwner: document.getElementById("service-sync-owner"),
+  serviceSyncRepoLabel: document.getElementById("service-sync-repo-label"),
+  serviceSyncRepo: document.getElementById("service-sync-repo"),
+  serviceSyncBranchLabel: document.getElementById("service-sync-branch-label"),
+  serviceSyncBranch: document.getElementById("service-sync-branch"),
+  serviceSyncPathLabel: document.getElementById("service-sync-path-label"),
+  serviceSyncPath: document.getElementById("service-sync-path"),
+  serviceSyncTokenLabel: document.getElementById("service-sync-token-label"),
+  serviceSyncToken: document.getElementById("service-sync-token"),
+  serviceSyncFeedback: document.getElementById("service-sync-feedback"),
+  serviceSyncSave: document.getElementById("service-sync-save"),
+  serviceSyncClear: document.getElementById("service-sync-clear"),
+  serviceSyncRefresh: document.getElementById("service-sync-refresh"),
   serviceAssignmentModal: document.getElementById("service-assignment-modal"),
   serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
   serviceAssignmentTitle: document.getElementById("service-assignment-title"),
@@ -1838,6 +1939,125 @@ const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
   ].map((label) => normalizeColumnLabel(label))
 );
 
+function getDefaultServiceSyncConfig() {
+  return {
+    owner: "",
+    repo: "",
+    branch: SERVICE_SYNC_DEFAULT_BRANCH,
+    path: SERVICE_SYNC_DEFAULT_PATH,
+  };
+}
+
+function sanitizeServiceSyncConfig(config) {
+  if (!config || typeof config !== "object") {
+    return getDefaultServiceSyncConfig();
+  }
+
+  const toTrimmedString = (value) =>
+    typeof value === "string" ? value.trim() : "";
+
+  const owner = toTrimmedString(config.owner);
+  const repo = toTrimmedString(config.repo);
+  const branch = toTrimmedString(config.branch) || SERVICE_SYNC_DEFAULT_BRANCH;
+  const path = toTrimmedString(config.path) || SERVICE_SYNC_DEFAULT_PATH;
+
+  return { owner, repo, branch, path };
+}
+
+function getStoredServiceSyncConfig() {
+  if (typeof localStorage === "undefined") {
+    return getDefaultServiceSyncConfig();
+  }
+
+  try {
+    const stored = localStorage.getItem(SERVICE_SYNC_CONFIG_STORAGE_KEY);
+    if (!stored) {
+      return getDefaultServiceSyncConfig();
+    }
+    const parsed = JSON.parse(stored);
+    return sanitizeServiceSyncConfig(parsed);
+  } catch (error) {
+    console.warn("Failed to read service sync config:", error);
+    return getDefaultServiceSyncConfig();
+  }
+}
+
+function safeDecodeBase64(value) {
+  if (!value) return "";
+  try {
+    if (typeof atob === "function") {
+      return atob(value);
+    }
+    return Buffer.from(value, "base64").toString("utf8");
+  } catch (error) {
+    console.warn("Failed to decode base64 string:", error);
+    return "";
+  }
+}
+
+function safeEncodeBase64(value) {
+  const stringValue = typeof value === "string" ? value : String(value ?? "");
+  try {
+    if (typeof btoa === "function") {
+      return btoa(stringValue);
+    }
+    return Buffer.from(stringValue, "utf8").toString("base64");
+  } catch (error) {
+    console.warn("Failed to encode base64 string:", error);
+    return stringValue;
+  }
+}
+
+function getStoredServiceSyncSecret() {
+  if (typeof localStorage === "undefined") {
+    return "";
+  }
+
+  try {
+    const stored = localStorage.getItem(SERVICE_SYNC_SECRET_STORAGE_KEY);
+    if (!stored) {
+      return "";
+    }
+    return safeDecodeBase64(stored) || "";
+  } catch (error) {
+    console.warn("Failed to read service sync secret:", error);
+    return "";
+  }
+}
+
+function persistServiceSyncConfig(config) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const sanitized = sanitizeServiceSyncConfig(config);
+    localStorage.setItem(
+      SERVICE_SYNC_CONFIG_STORAGE_KEY,
+      JSON.stringify(sanitized)
+    );
+  } catch (error) {
+    console.warn("Failed to persist service sync config:", error);
+  }
+}
+
+function persistServiceSyncSecret(secret) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  try {
+    if (!secret) {
+      localStorage.removeItem(SERVICE_SYNC_SECRET_STORAGE_KEY);
+      return;
+    }
+    const encoded = safeEncodeBase64(secret);
+    localStorage.setItem(SERVICE_SYNC_SECRET_STORAGE_KEY, encoded);
+  } catch (error) {
+    console.warn("Failed to persist service sync secret:", error);
+  }
+}
+
 const state = {
   records: [],
   columns: [],
@@ -1887,6 +2107,18 @@ const state = {
     entries: [],
     json: "",
     updatedAt: null,
+  },
+  serviceSync: {
+    config: getStoredServiceSyncConfig(),
+    secret: getStoredServiceSyncSecret(),
+    remoteSha: null,
+    syncing: false,
+    refreshing: false,
+    pendingUpload: false,
+    timer: null,
+    lastStatus: null,
+    lastReplacements: {},
+    lastIsError: false,
   },
   assistant: {
     greeted: false,
@@ -3173,6 +3405,7 @@ function applyAccessRestrictions() {
     renderServiceManager();
   }
 
+  updateServiceSyncVisibility();
   updateUserProfileUI();
   updateBirthdays();
   redirectToServiceManagerIfNeeded();
@@ -5094,7 +5327,48 @@ function deleteCustomService(optionId) {
   return true;
 }
 
-function loadServiceAssignments() {
+function createServiceAssignmentMapFromObject(object) {
+  const map = new Map();
+  if (!object || typeof object !== "object") {
+    return map;
+  }
+
+  Object.entries(object).forEach(([key, value]) => {
+    if (typeof key !== "string" || !key) {
+      return;
+    }
+    const normalized = normalizeServiceAssignment(value);
+    if (!normalized.active || !normalized.services.length) {
+      return;
+    }
+    map.set(key, normalized);
+  });
+
+  return map;
+}
+
+function buildServiceAssignmentPayload(map = state.serviceAssignments) {
+  const payload = {};
+  if (!(map instanceof Map)) {
+    return payload;
+  }
+
+  map.forEach((assignment, key) => {
+    if (!key) return;
+    const services = Array.isArray(assignment?.services)
+      ? assignment.services.filter((serviceId) => sanitizeServiceId(serviceId))
+      : [];
+    payload[key] = {
+      active: Boolean(assignment?.active) && services.length > 0,
+      services,
+      serviceId: services[0] ?? "",
+    };
+  });
+
+  return payload;
+}
+
+function loadLocalServiceAssignments() {
   if (typeof localStorage === "undefined") {
     state.serviceAssignments = new Map();
     return;
@@ -5108,50 +5382,321 @@ function loadServiceAssignments() {
     }
 
     const parsed = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object") {
-      state.serviceAssignments = new Map();
-      return;
-    }
-
-    const map = new Map();
-    Object.entries(parsed).forEach(([key, value]) => {
-      if (typeof key !== "string" || !key) {
-        return;
-      }
-      const normalized = normalizeServiceAssignment(value);
-      if (!normalized.active || !normalized.services.length) {
-        return;
-      }
-      map.set(key, normalized);
-    });
-    state.serviceAssignments = map;
+    state.serviceAssignments = createServiceAssignmentMapFromObject(parsed);
   } catch (error) {
     console.warn("Failed to load service assignments:", error);
     state.serviceAssignments = new Map();
   }
 }
 
-function persistServiceAssignments() {
+function persistServiceAssignments({ skipRemote = false } = {}) {
   if (typeof localStorage === "undefined") {
     return;
   }
 
   try {
-    const payload = {};
-    state.serviceAssignments.forEach((assignment, key) => {
-      if (!key) return;
-      const services = Array.isArray(assignment?.services)
-        ? assignment.services.filter((serviceId) => sanitizeServiceId(serviceId))
-        : [];
-      payload[key] = {
-        active: Boolean(assignment?.active) && services.length > 0,
-        services,
-        serviceId: services[0] ?? "",
-      };
-    });
+    const payload = buildServiceAssignmentPayload();
     localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(payload));
+    if (!skipRemote) {
+      scheduleServiceSync();
+    }
   } catch (error) {
     console.warn("Failed to persist service assignments:", error);
+  }
+}
+
+function getServiceSyncConfig() {
+  const config = state.serviceSync?.config;
+  return sanitizeServiceSyncConfig(config);
+}
+
+function updateServiceSyncConfig(config) {
+  const sanitized = sanitizeServiceSyncConfig(config);
+  state.serviceSync = {
+    ...state.serviceSync,
+    config: sanitized,
+  };
+  persistServiceSyncConfig(sanitized);
+}
+
+function updateServiceSyncSecret(secret) {
+  const trimmed = typeof secret === "string" ? secret.trim() : "";
+  state.serviceSync = {
+    ...state.serviceSync,
+    secret: trimmed,
+  };
+  persistServiceSyncSecret(trimmed);
+}
+
+function hasServiceSyncRepository(config = getServiceSyncConfig()) {
+  return Boolean(
+    config.owner &&
+    config.repo &&
+    config.branch &&
+    config.path
+  );
+}
+
+function hasServiceSyncCredentials() {
+  return hasServiceSyncRepository() && Boolean(state.serviceSync?.secret);
+}
+
+function encodeServiceSyncPath(path) {
+  if (!path) return "";
+  return path
+    .split("/")
+    .filter((segment) => segment)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
+function buildServiceSyncContentsUrl(config = getServiceSyncConfig()) {
+  const { owner, repo, branch, path } = config;
+  if (!owner || !repo || !path) {
+    return "";
+  }
+  const encodedPath = encodeServiceSyncPath(path);
+  const base = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}`;
+  return branch ? `${base}?ref=${encodeURIComponent(branch)}` : base;
+}
+
+function getServiceSyncHeaders(includeAuth = true) {
+  const headers = { Accept: SERVICE_SYNC_ACCEPT_HEADER };
+  if (includeAuth && state.serviceSync?.secret) {
+    headers.Authorization = `Bearer ${state.serviceSync.secret}`;
+  }
+  return headers;
+}
+
+async function fetchServiceSyncFile({ parseContent = true, silent = false } = {}) {
+  if (!hasServiceSyncRepository()) {
+    return { sha: null, assignments: new Map(), exists: false };
+  }
+
+  const url = buildServiceSyncContentsUrl();
+  if (!url) {
+    return { sha: null, assignments: new Map(), exists: false };
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers: getServiceSyncHeaders(true),
+      cache: "no-store",
+    });
+
+    if (response.status === 404) {
+      return { sha: null, assignments: new Map(), exists: false };
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        `Service sync request failed (${response.status} ${response.statusText})`
+      );
+      error.status = response.status;
+      throw error;
+    }
+
+    const data = await response.json();
+    const sha = data?.sha ?? null;
+
+    if (!parseContent) {
+      return { sha, assignments: null, exists: true };
+    }
+
+    let rawContent = "{}";
+    if (data && typeof data.content === "string") {
+      rawContent = safeDecodeBase64(data.content.replace(/\n/g, "")) || "{}";
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch (error) {
+      console.warn("Failed to parse remote service assignments:", error);
+      parsed = {};
+    }
+
+    return {
+      sha,
+      assignments: createServiceAssignmentMapFromObject(parsed),
+      exists: true,
+    };
+  } catch (error) {
+    if (!silent) {
+      console.warn("Unable to fetch remote service assignments:", error);
+    }
+    throw error;
+  }
+}
+
+function setServiceSyncStatus(key, replacements = {}, isError = false) {
+  const normalizedReplacements =
+    replacements && typeof replacements === "object"
+      ? { ...replacements }
+      : {};
+  const message = key ? translate(key, replacements) : "";
+  state.serviceSync = {
+    ...state.serviceSync,
+    lastStatus: key,
+    lastReplacements: normalizedReplacements,
+    lastIsError: Boolean(isError),
+  };
+  if (elements.serviceSyncFeedback) {
+    elements.serviceSyncFeedback.textContent = message;
+    elements.serviceSyncFeedback.classList.toggle("error", Boolean(isError));
+  }
+}
+
+async function refreshRemoteServiceAssignments({ silent = false } = {}) {
+  if (state.serviceSync?.refreshing) {
+    return false;
+  }
+
+  if (!hasServiceSyncRepository()) {
+    return false;
+  }
+
+  state.serviceSync.refreshing = true;
+  if (!silent) {
+    setServiceSyncStatus("serviceManager.sync.statusFetching");
+  }
+
+  try {
+    const result = await fetchServiceSyncFile({ parseContent: true, silent });
+    state.serviceSync.remoteSha = result.sha;
+
+    if (result.assignments) {
+      state.serviceAssignments = result.assignments;
+      persistServiceAssignments({ skipRemote: true });
+      applyServiceAssignmentsToEntries();
+      recalculateServiceSummaries();
+      if (isServiceManagerPage) {
+        renderServiceManager();
+      } else if (isDashboardPage || isCategoryPage) {
+        renderCategory(state.activeCategory);
+      }
+      refreshActiveServiceInterfaces({ preserveSelection: true });
+    }
+
+    if (!silent) {
+      setServiceSyncStatus("serviceManager.sync.statusFetched");
+    }
+    return true;
+  } catch (error) {
+    if (!silent) {
+      const replacements = { error: error?.message ?? "" };
+      const unauthorized = error?.status === 401 || error?.status === 403;
+      const key = unauthorized
+        ? "serviceManager.sync.statusUnauthorized"
+        : "serviceManager.sync.statusError";
+      setServiceSyncStatus(key, replacements, true);
+    }
+    return false;
+  } finally {
+    state.serviceSync.refreshing = false;
+  }
+}
+
+function clearServiceSyncTimer() {
+  if (state.serviceSync?.timer) {
+    clearTimeout(state.serviceSync.timer);
+    state.serviceSync.timer = null;
+  }
+}
+
+function scheduleServiceSync() {
+  if (!hasServiceSyncCredentials()) {
+    return;
+  }
+
+  clearServiceSyncTimer();
+  state.serviceSync.pendingUpload = true;
+  state.serviceSync.timer = setTimeout(() => {
+    state.serviceSync.timer = null;
+    syncServiceAssignmentsToRemote();
+  }, SERVICE_SYNC_DEBOUNCE_MS);
+}
+
+async function syncServiceAssignmentsToRemote({ silent = false } = {}) {
+  if (!hasServiceSyncCredentials()) {
+    return false;
+  }
+
+  if (state.serviceSync?.syncing) {
+    state.serviceSync.pendingUpload = true;
+    return false;
+  }
+
+  state.serviceSync.syncing = true;
+  state.serviceSync.pendingUpload = false;
+  if (!silent) {
+    setServiceSyncStatus("serviceManager.sync.statusSyncing");
+  }
+
+  try {
+    if (!state.serviceSync.remoteSha) {
+      try {
+        const metadata = await fetchServiceSyncFile({
+          parseContent: false,
+          silent: true,
+        });
+        state.serviceSync.remoteSha = metadata.sha;
+      } catch (error) {
+        if (error?.status !== 404) {
+          throw error;
+        }
+      }
+    }
+
+    const payload = buildServiceAssignmentPayload();
+    const content = JSON.stringify(payload, null, 2);
+    const body = {
+      message: "Atualiza atribuições de serviços",
+      content: safeEncodeBase64(content),
+      branch: getServiceSyncConfig().branch,
+    };
+    if (state.serviceSync.remoteSha) {
+      body.sha = state.serviceSync.remoteSha;
+    }
+
+    const url = buildServiceSyncContentsUrl();
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        ...getServiceSyncHeaders(true),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const error = new Error(
+        `Service sync upload failed (${response.status} ${response.statusText})`
+      );
+      error.status = response.status;
+      throw error;
+    }
+
+    const data = await response.json();
+    state.serviceSync.remoteSha = data?.content?.sha ?? null;
+    if (!silent) {
+      setServiceSyncStatus("serviceManager.sync.statusSynced");
+    }
+    return true;
+  } catch (error) {
+    const replacements = { error: error?.message ?? "" };
+    const unauthorized = error?.status === 401 || error?.status === 403;
+    const key = unauthorized
+      ? "serviceManager.sync.statusUnauthorized"
+      : "serviceManager.sync.statusError";
+    setServiceSyncStatus(key, replacements, true);
+    console.warn("Failed to sync service assignments:", error);
+    return false;
+  } finally {
+    state.serviceSync.syncing = false;
+    if (state.serviceSync.pendingUpload) {
+      scheduleServiceSync();
+    }
   }
 }
 
@@ -5244,11 +5789,33 @@ function recalculateServiceSummaries() {
 }
 
 function initializeServiceAssignments() {
-  loadServiceAssignments();
+  loadLocalServiceAssignments();
+  refreshRemoteServiceAssignments({ silent: true });
 }
 
 function initializeCustomServices() {
   loadCustomServices();
+}
+
+function initializeServiceSync() {
+  applyServiceSyncTranslations();
+  populateServiceSyncForm();
+  updateServiceSyncVisibility();
+
+  if (elements.serviceSyncForm) {
+    elements.serviceSyncForm.addEventListener("submit", (event) => {
+      handleServiceSyncSubmit(event);
+    });
+  }
+  if (elements.serviceSyncClear) {
+    elements.serviceSyncClear.addEventListener("click", handleServiceSyncClear);
+  }
+  if (elements.serviceSyncRefresh) {
+    elements.serviceSyncRefresh.addEventListener(
+      "click",
+      handleServiceSyncRefresh
+    );
+  }
 }
 
 function matchSupplementalRecord(record, birthDate) {
@@ -7429,6 +7996,195 @@ function renderCustomServiceList() {
   });
 }
 
+function populateServiceSyncForm() {
+  const form = elements.serviceSyncForm;
+  if (!form) {
+    return;
+  }
+
+  const config = getServiceSyncConfig();
+
+  if (elements.serviceSyncOwner) {
+    elements.serviceSyncOwner.value = config.owner ?? "";
+  }
+  if (elements.serviceSyncRepo) {
+    elements.serviceSyncRepo.value = config.repo ?? "";
+  }
+  if (elements.serviceSyncBranch) {
+    elements.serviceSyncBranch.value = config.branch ?? "";
+  }
+  if (elements.serviceSyncPath) {
+    elements.serviceSyncPath.value = config.path ?? "";
+  }
+  if (elements.serviceSyncToken) {
+    elements.serviceSyncToken.value = "";
+    const key = state.serviceSync?.secret
+      ? "serviceManager.sync.tokenPlaceholderSaved"
+      : "serviceManager.sync.tokenPlaceholder";
+    elements.serviceSyncToken.placeholder = translate(key);
+  }
+}
+
+function applyServiceSyncTranslations() {
+  if (!elements.serviceSyncSection) {
+    return;
+  }
+
+  if (elements.serviceSyncTitle) {
+    elements.serviceSyncTitle.textContent = translate("serviceManager.sync.title");
+  }
+  if (elements.serviceSyncDescription) {
+    elements.serviceSyncDescription.textContent = translate(
+      "serviceManager.sync.description"
+    );
+  }
+  if (elements.serviceSyncOwnerLabel) {
+    elements.serviceSyncOwnerLabel.textContent = translate(
+      "serviceManager.sync.ownerLabel"
+    );
+  }
+  if (elements.serviceSyncRepoLabel) {
+    elements.serviceSyncRepoLabel.textContent = translate(
+      "serviceManager.sync.repoLabel"
+    );
+  }
+  if (elements.serviceSyncBranchLabel) {
+    elements.serviceSyncBranchLabel.textContent = translate(
+      "serviceManager.sync.branchLabel"
+    );
+  }
+  if (elements.serviceSyncPathLabel) {
+    elements.serviceSyncPathLabel.textContent = translate(
+      "serviceManager.sync.pathLabel"
+    );
+  }
+  if (elements.serviceSyncTokenLabel) {
+    elements.serviceSyncTokenLabel.textContent = translate(
+      "serviceManager.sync.tokenLabel"
+    );
+  }
+  if (elements.serviceSyncToken) {
+    const key = state.serviceSync?.secret
+      ? "serviceManager.sync.tokenPlaceholderSaved"
+      : "serviceManager.sync.tokenPlaceholder";
+    elements.serviceSyncToken.placeholder = translate(key);
+  }
+  if (elements.serviceSyncSave) {
+    elements.serviceSyncSave.textContent = translate("serviceManager.sync.save");
+  }
+  if (elements.serviceSyncClear) {
+    elements.serviceSyncClear.textContent = translate(
+      "serviceManager.sync.clear"
+    );
+  }
+  if (elements.serviceSyncRefresh) {
+    elements.serviceSyncRefresh.textContent = translate(
+      "serviceManager.sync.refresh"
+    );
+  }
+  if (elements.serviceSyncFeedback && state.serviceSync?.lastStatus) {
+    const key = state.serviceSync.lastStatus;
+    const replacements =
+      state.serviceSync.lastReplacements &&
+      typeof state.serviceSync.lastReplacements === "object"
+        ? state.serviceSync.lastReplacements
+        : {};
+    elements.serviceSyncFeedback.textContent = translate(key, replacements);
+    elements.serviceSyncFeedback.classList.toggle(
+      "error",
+      Boolean(state.serviceSync.lastIsError)
+    );
+  } else if (elements.serviceSyncFeedback) {
+    elements.serviceSyncFeedback.textContent = "";
+    elements.serviceSyncFeedback.classList.remove("error");
+  }
+}
+
+function updateServiceSyncVisibility() {
+  const section = elements.serviceSyncSection;
+  if (!section) {
+    return;
+  }
+
+  const canManage = Boolean(state.accessRole) && canManageServices();
+  section.hidden = !canManage;
+
+  const controls = [
+    elements.serviceSyncOwner,
+    elements.serviceSyncRepo,
+    elements.serviceSyncBranch,
+    elements.serviceSyncPath,
+    elements.serviceSyncToken,
+    elements.serviceSyncSave,
+    elements.serviceSyncClear,
+    elements.serviceSyncRefresh,
+  ];
+
+  controls.forEach((control) => {
+    if (!control) return;
+    control.disabled = !canManage;
+  });
+}
+
+async function handleServiceSyncSubmit(event) {
+  event.preventDefault();
+
+  if (!canManageServices()) {
+    setServiceSyncStatus("serviceManager.restricted", {}, true);
+    return;
+  }
+
+  const owner = elements.serviceSyncOwner?.value?.trim() ?? "";
+  const repo = elements.serviceSyncRepo?.value?.trim() ?? "";
+  const branch = elements.serviceSyncBranch?.value?.trim() ?? "";
+  const path = elements.serviceSyncPath?.value?.trim() ?? "";
+  const token = elements.serviceSyncToken?.value?.trim() ?? "";
+
+  if (!owner || !repo) {
+    setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
+    (elements.serviceSyncOwner || elements.serviceSyncRepo)?.focus?.();
+    return;
+  }
+
+  updateServiceSyncConfig({ owner, repo, branch, path });
+  if (token) {
+    updateServiceSyncSecret(token);
+  }
+
+  populateServiceSyncForm();
+  applyServiceSyncTranslations();
+  setServiceSyncStatus("serviceManager.sync.statusSaved");
+  await refreshRemoteServiceAssignments({ silent: false });
+}
+
+function handleServiceSyncClear(event) {
+  event.preventDefault();
+
+  if (!canManageServices()) {
+    setServiceSyncStatus("serviceManager.restricted", {}, true);
+    return;
+  }
+
+  updateServiceSyncConfig(getDefaultServiceSyncConfig());
+  updateServiceSyncSecret("");
+  state.serviceSync.remoteSha = null;
+  clearServiceSyncTimer();
+  populateServiceSyncForm();
+  applyServiceSyncTranslations();
+  setServiceSyncStatus("serviceManager.sync.statusCleared");
+}
+
+async function handleServiceSyncRefresh(event) {
+  event.preventDefault();
+
+  if (!hasServiceSyncRepository()) {
+    setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
+    return;
+  }
+
+  await refreshRemoteServiceAssignments({ silent: false });
+}
+
 function handleCustomServiceListClick(event) {
   if (!event || !event.target) {
     return;
@@ -7488,6 +8244,9 @@ function renderServiceManager() {
   if (!isServiceManagerPage) {
     return;
   }
+
+  applyServiceSyncTranslations();
+  updateServiceSyncVisibility();
 
   const list = elements.serviceManagerList;
   const empty = elements.serviceManagerEmpty;
@@ -8695,6 +9454,7 @@ setupUserProfileEvents();
 setupAssistant();
 initializeCustomServices();
 initializeServiceAssignments();
+initializeServiceSync();
 
 async function bootstrap() {
   await initializeAccessControl();

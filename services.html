@@ -236,6 +236,88 @@
           </p>
           <ul class="service-manager-custom-list" id="service-manager-custom-list"></ul>
         </section>
+        <section class="service-sync" id="service-sync" hidden>
+          <header class="service-sync-header">
+            <h3 id="service-sync-title">Sincronizar atribuições</h3>
+            <p id="service-sync-description">
+              Configure o repositório compartilhado para manter os serviços atualizados.
+            </p>
+          </header>
+          <form class="service-sync-form" id="service-sync-form">
+            <div class="service-sync-grid">
+              <div class="service-sync-field">
+                <label for="service-sync-owner" id="service-sync-owner-label"
+                  >Dono do repositório</label
+                >
+                <input
+                  type="text"
+                  id="service-sync-owner"
+                  name="service-sync-owner"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="service-sync-field">
+                <label for="service-sync-repo" id="service-sync-repo-label"
+                  >Repositório</label
+                >
+                <input
+                  type="text"
+                  id="service-sync-repo"
+                  name="service-sync-repo"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+            <div class="service-sync-grid">
+              <div class="service-sync-field">
+                <label for="service-sync-branch" id="service-sync-branch-label"
+                  >Branch</label
+                >
+                <input
+                  type="text"
+                  id="service-sync-branch"
+                  name="service-sync-branch"
+                  autocomplete="off"
+                  value="main"
+                />
+              </div>
+              <div class="service-sync-field">
+                <label for="service-sync-path" id="service-sync-path-label"
+                  >Caminho do arquivo</label
+                >
+                <input
+                  type="text"
+                  id="service-sync-path"
+                  name="service-sync-path"
+                  autocomplete="off"
+                  value="data/service-assignments.json"
+                />
+              </div>
+            </div>
+            <div class="service-sync-field">
+              <label for="service-sync-token" id="service-sync-token-label"
+                >Token do GitHub</label
+              >
+              <input
+                type="password"
+                id="service-sync-token"
+                name="service-sync-token"
+                autocomplete="off"
+                placeholder="Informe o token com acesso de escrita"
+              />
+            </div>
+            <p class="service-sync-feedback" id="service-sync-feedback" role="status"></p>
+            <div class="service-sync-actions">
+              <button type="submit" id="service-sync-save">Salvar configuração</button>
+              <button type="button" class="secondary" id="service-sync-clear">
+                Limpar dados
+              </button>
+              <button type="button" class="ghost" id="service-sync-refresh">
+                Atualizar agora
+              </button>
+            </div>
+          </form>
+        </section>
         <section class="service-summary" id="service-summary" hidden aria-live="polite">
           <header class="service-summary-header">
             <h3 id="service-summary-title">Serviços disponíveis</h3>
