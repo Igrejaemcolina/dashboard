@@ -133,9 +133,22 @@
               Defina se o irmão serve na vida da igreja e escolha a frente de atuação.
             </p>
           </div>
-          <button type="button" class="service-manager-back" id="service-manager-back">
-            ← Voltar ao painel principal
-          </button>
+          <div class="service-manager-actions">
+            <button
+              type="button"
+              class="service-manager-tutorial"
+              id="service-manager-tutorial"
+            >
+              Tutorial de uso
+            </button>
+            <button
+              type="button"
+              class="service-manager-back"
+              id="service-manager-back"
+            >
+              ← Voltar ao painel principal
+            </button>
+          </div>
         </div>
         <p class="service-manager-notice" id="service-manager-notice" hidden>
           Atribuição de serviços disponível apenas para o perfil Serviços.
@@ -402,6 +415,60 @@
             </button>
           </div>
         </form>
+    </div>
+  </div>
+
+    <div
+      class="service-tutorial-modal"
+      id="service-tutorial-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="service-tutorial-title"
+      hidden
+    >
+      <div
+        class="service-tutorial-dialog"
+        id="service-tutorial-dialog"
+        role="document"
+      >
+        <button
+          type="button"
+          class="service-tutorial-close"
+          id="service-tutorial-close"
+          aria-label="Fechar tutorial de uso"
+        >
+          ×
+        </button>
+        <header class="service-tutorial-header">
+          <h2 id="service-tutorial-title">Como usar o gerenciador</h2>
+          <p id="service-tutorial-description">
+            Aprenda a configurar a sincronização e a atualizar as atribuições em poucos passos.
+          </p>
+        </header>
+        <ol class="service-tutorial-steps" id="service-tutorial-steps">
+          <li>
+            Abra o gerenciador com o perfil Serviços e confirme que os irmãos aparecem na lista.
+          </li>
+          <li>
+            Configure a sincronização informando o repositório compartilhado e salve os dados.
+          </li>
+          <li>
+            Clique no card de um irmão para abrir o painel, marque as frentes e salve as alterações.
+          </li>
+          <li>
+            Use o botão de atualização para buscar alterações recentes feitas por outros dispositivos.
+          </li>
+        </ol>
+        <footer class="service-tutorial-footer">
+          <button
+            type="button"
+            class="service-tutorial-dismiss"
+            id="service-tutorial-dismiss"
+          >
+            Entendi
+          </button>
+        </footer>
       </div>
     </div>
 

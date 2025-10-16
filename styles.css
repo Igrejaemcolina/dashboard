@@ -1918,11 +1918,19 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   gap: 1.75rem;
 }
 
+
 .service-manager-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.service-manager-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -1936,6 +1944,45 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   font-size: 0.95rem;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.service-manager-tutorial {
+  border: 1px solid rgba(129, 140, 248, 0.55);
+  background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.32),
+      rgba(124, 58, 237, 0.22)
+    ),
+    rgba(15, 23, 42, 0.75);
+  color: var(--text-primary);
+  padding: 0.55rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 18px 32px rgba(30, 64, 175, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.service-manager-tutorial::before {
+  content: "";
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 0.65rem rgba(56, 189, 248, 0.7);
+}
+
+.service-manager-tutorial:hover,
+.service-manager-tutorial:focus-visible {
+  border-color: rgba(165, 180, 252, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 24px 44px rgba(30, 64, 175, 0.45);
+  outline: none;
 }
 
 .service-manager-back:hover,
@@ -2244,15 +2291,37 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 }
 
 .service-sync {
+  position: relative;
   margin-top: 2rem;
-  padding: 1.5rem;
-  border: 1px solid rgba(16, 24, 40, 0.1);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 1.75rem;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 1.15rem;
+  background: linear-gradient(
+      135deg,
+      rgba(30, 64, 175, 0.32),
+      rgba(17, 94, 89, 0.18)
+    ),
+    rgba(15, 23, 42, 0.92);
+  box-shadow: 0 28px 48px rgba(8, 47, 73, 0.45);
+  backdrop-filter: blur(18px);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.service-sync::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at top right,
+    rgba(56, 189, 248, 0.18),
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: -1;
 }
 
 .service-sync[hidden] {
@@ -2290,6 +2359,7 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   gap: 0.5rem;
 }
 
+
 .service-sync-field label {
   font-weight: 600;
   color: var(--text-primary);
@@ -2297,17 +2367,23 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 
 .service-sync-field input {
   padding: 0.75rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: rgba(255, 255, 255, 0.85);
+  border-radius: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.72);
   color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.service-sync-field input::placeholder {
+  color: rgba(226, 232, 240, 0.65);
 }
 
 .service-sync-field input:focus-visible {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
+  border-color: rgba(56, 189, 248, 0.85);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
   outline: none;
+  background: rgba(15, 23, 42, 0.9);
 }
 
 .service-sync-field input:disabled {
@@ -2318,7 +2394,7 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 .service-sync-feedback {
   margin: 0;
   font-size: 0.95rem;
-  color: var(--text-muted);
+  color: rgba(226, 232, 240, 0.9);
   min-height: 1.2rem;
 }
 
@@ -2333,12 +2409,12 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 }
 
 .service-sync-actions button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.55rem;
   border-radius: 999px;
-  border: none;
-  font-weight: 600;
+  border: 1px solid transparent;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .service-sync-actions button:disabled {
@@ -2348,32 +2424,35 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 }
 
 .service-sync-actions #service-sync-save {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, #4f46e5, #0ea5e9);
   color: #fff;
-  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 18px 32px rgba(14, 116, 144, 0.45);
 }
 
 .service-sync-actions #service-sync-save:hover,
 .service-sync-actions #service-sync-save:focus-visible {
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 24px 40px rgba(14, 116, 144, 0.55);
+  outline: none;
 }
 
 .service-sync-actions #service-sync-clear {
-  background: rgba(15, 23, 42, 0.05);
+  background: rgba(15, 23, 42, 0.6);
   color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 .service-sync-actions #service-sync-refresh {
-  background: transparent;
-  color: var(--primary-color);
-  border: 1px solid rgba(79, 70, 229, 0.2);
+  background: rgba(8, 47, 73, 0.4);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.45);
 }
 
 .service-sync-actions #service-sync-refresh:hover,
 .service-sync-actions #service-sync-refresh:focus-visible {
-  border-color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(56, 189, 248, 0.75);
+  background: rgba(8, 47, 73, 0.6);
+  outline: none;
 }
 
 .service-manager-grid {
@@ -2504,6 +2583,125 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 .service-assignment-close:focus-visible {
   background: rgba(56, 189, 248, 0.2);
   transform: rotate(90deg);
+  outline: none;
+}
+
+.service-tutorial-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  z-index: 1150;
+}
+
+.service-tutorial-modal[hidden] {
+  display: none;
+}
+
+.service-tutorial-dialog {
+  position: relative;
+  width: min(520px, 100%);
+  border-radius: 1.35rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: linear-gradient(
+      145deg,
+      rgba(30, 64, 175, 0.28),
+      rgba(124, 58, 237, 0.18)
+    ),
+    rgba(15, 23, 42, 0.95);
+  box-shadow: 0 30px 48px rgba(8, 47, 73, 0.5);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.service-tutorial-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border: none;
+  background: rgba(15, 23, 42, 0.6);
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 1.4rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.service-tutorial-close:hover,
+.service-tutorial-close:focus-visible {
+  transform: rotate(90deg);
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  outline: none;
+}
+
+.service-tutorial-header h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.4vw, 1.75rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.service-tutorial-header p {
+  margin: 0.35rem 0 0;
+  color: rgba(226, 232, 240, 0.8);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.service-tutorial-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 0.98rem;
+  counter-reset: tutorial-step;
+}
+
+.service-tutorial-steps li {
+  position: relative;
+  padding-left: 0.4rem;
+  line-height: 1.6;
+  list-style: decimal;
+}
+
+.service-tutorial-steps li::marker {
+  color: rgba(96, 165, 250, 0.95);
+  font-weight: 700;
+}
+
+.service-tutorial-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.service-tutorial-dismiss {
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: rgba(37, 99, 235, 0.35);
+  color: #e0f2fe;
+  padding: 0.55rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.service-tutorial-dismiss:hover,
+.service-tutorial-dismiss:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.65);
+  box-shadow: 0 18px 32px rgba(37, 99, 235, 0.45);
   outline: none;
 }
 

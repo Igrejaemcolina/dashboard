@@ -468,6 +468,20 @@ const TRANSLATIONS = {
         active: "Servindo",
         unassigned: "N.Serviço",
       },
+      tutorialButton: "Tutorial de uso",
+      tutorial: {
+        title: "Como usar o gerenciador de serviços",
+        description:
+          "Veja como configurar a sincronização e atualizar os ministérios em qualquer dispositivo.",
+        steps: [
+          "Acesse o gerenciador com o perfil Serviços e confirme se os irmãos aparecem na lista.",
+          "Preencha os dados do repositório compartilhado para ativar a sincronização e salve a configuração.",
+          "Clique no card de um irmão, selecione as frentes em que ele serve e salve as alterações.",
+          "Use o botão Atualizar agora para buscar mudanças feitas por outros dispositivos.",
+        ],
+        dismiss: "Entendi",
+        closeLabel: "Fechar tutorial de uso",
+      },
       add: {
         title: "Cadastrar novo serviço",
         label: "Nome do serviço (Português)",
@@ -974,6 +988,20 @@ const TRANSLATIONS = {
         all: "All records",
         active: "Serving",
         unassigned: "No service",
+      },
+      tutorialButton: "How to use",
+      tutorial: {
+        title: "How to use the services manager",
+        description:
+          "Follow these steps to configure sync and keep every device up to date.",
+        steps: [
+          "Open the manager with the Services profile and confirm the member list is visible.",
+          "Fill in the shared repository details to enable synchronization and save the settings.",
+          "Select a member card, choose the ministries that apply, and save the changes.",
+          "Use the Fetch now button to pull updates made from other devices.",
+        ],
+        dismiss: "Got it",
+        closeLabel: "Close usage tutorial",
       },
       add: {
         title: "Add new service",
@@ -1484,6 +1512,20 @@ const TRANSLATIONS = {
         active: "Sirviendo",
         unassigned: "Sin servicio",
       },
+      tutorialButton: "Cómo usar",
+      tutorial: {
+        title: "Cómo usar el gestor de servicios",
+        description:
+          "Sigue estos pasos para configurar la sincronización y mantener todo actualizado.",
+        steps: [
+          "Abre el gestor con el perfil Servicios y confirma que la lista de hermanos esté visible.",
+          "Completa los datos del repositorio compartido para activar la sincronización y guarda la configuración.",
+          "Selecciona la tarjeta de un hermano, marca los ministerios correspondientes y guarda los cambios.",
+          "Utiliza el botón Actualizar ahora para traer los cambios hechos en otros dispositivos.",
+        ],
+        dismiss: "Listo",
+        closeLabel: "Cerrar tutorial de uso",
+      },
       add: {
         title: "Agregar nuevo servicio",
         label: "Nombre del servicio (Portugués)",
@@ -1800,6 +1842,7 @@ const elements = {
   serviceManagerList: document.getElementById("service-manager-list"),
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
+  serviceManagerTutorial: document.getElementById("service-manager-tutorial"),
   serviceManagerNotice: document.getElementById("service-manager-notice"),
   serviceManagerCustomSection: document.getElementById("service-manager-custom"),
   serviceManagerCustomTitle: document.getElementById("service-manager-custom-title"),
@@ -1826,6 +1869,13 @@ const elements = {
   serviceSyncSave: document.getElementById("service-sync-save"),
   serviceSyncClear: document.getElementById("service-sync-clear"),
   serviceSyncRefresh: document.getElementById("service-sync-refresh"),
+  serviceTutorialModal: document.getElementById("service-tutorial-modal"),
+  serviceTutorialDialog: document.getElementById("service-tutorial-dialog"),
+  serviceTutorialClose: document.getElementById("service-tutorial-close"),
+  serviceTutorialDismiss: document.getElementById("service-tutorial-dismiss"),
+  serviceTutorialTitle: document.getElementById("service-tutorial-title"),
+  serviceTutorialDescription: document.getElementById("service-tutorial-description"),
+  serviceTutorialSteps: document.getElementById("service-tutorial-steps"),
   serviceAssignmentModal: document.getElementById("service-assignment-modal"),
   serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
   serviceAssignmentTitle: document.getElementById("service-assignment-title"),
@@ -2096,6 +2146,7 @@ const state = {
   activeDetailEntry: null,
   activeServiceModalEntry: null,
   activeServiceModalTrigger: null,
+  activeServiceTutorialTrigger: null,
   editingServiceId: null,
   roleCredentials: cloneRoleCredentials(),
   profileModal: {
@@ -2677,6 +2728,11 @@ function applyLanguage(options = {}) {
   if (elements.serviceManagerFilterLabel) {
     elements.serviceManagerFilterLabel.textContent = translate(
       "serviceManager.filterLabel"
+    );
+  }
+  if (elements.serviceManagerTutorial) {
+    elements.serviceManagerTutorial.textContent = translate(
+      "serviceManager.tutorialButton"
     );
   }
   if (elements.serviceManagerEmpty) {
@@ -3577,10 +3633,20 @@ function refreshBodyScrollLock() {
   const parentOpen = Boolean(elements.parentChoice && !elements.parentChoice.hidden);
   const passwordOpen = Boolean(elements.passwordModal && !elements.passwordModal.hidden);
   const profileOpen = Boolean(elements.profileModal && !elements.profileModal.hidden);
+  const tutorialOpen = Boolean(
+    elements.serviceTutorialModal && !elements.serviceTutorialModal.hidden
+  );
   const assistantOpen = Boolean(
     elements.assistantPanel && !elements.assistantPanel.hidden
   );
-  if (detailOpen || assignmentOpen || parentOpen || passwordOpen || profileOpen) {
+  if (
+    detailOpen ||
+    assignmentOpen ||
+    parentOpen ||
+    passwordOpen ||
+    profileOpen ||
+    tutorialOpen
+  ) {
     document.body.style.overflow = "hidden";
   } else if (!assistantOpen) {
     document.body.style.overflow = "";
@@ -5544,6 +5610,56 @@ function setServiceSyncStatus(key, replacements = {}, isError = false) {
   if (elements.serviceSyncFeedback) {
     elements.serviceSyncFeedback.textContent = message;
     elements.serviceSyncFeedback.classList.toggle("error", Boolean(isError));
+  }
+}
+
+function renderServiceTutorialContent() {
+  if (!elements.serviceTutorialModal) {
+    return;
+  }
+
+  if (elements.serviceTutorialTitle) {
+    elements.serviceTutorialTitle.textContent = translate(
+      "serviceManager.tutorial.title"
+    );
+  }
+
+  if (elements.serviceTutorialDescription) {
+    elements.serviceTutorialDescription.textContent = translate(
+      "serviceManager.tutorial.description"
+    );
+  }
+
+  if (elements.serviceTutorialClose) {
+    const closeLabel = translate("serviceManager.tutorial.closeLabel");
+    if (closeLabel) {
+      elements.serviceTutorialClose.setAttribute("aria-label", closeLabel);
+    }
+  }
+
+  if (elements.serviceTutorialDismiss) {
+    elements.serviceTutorialDismiss.textContent = translate(
+      "serviceManager.tutorial.dismiss"
+    );
+  }
+
+  if (elements.serviceTutorialSteps) {
+    const container = elements.serviceTutorialSteps;
+    container.innerHTML = "";
+    const steps = translate("serviceManager.tutorial.steps");
+    const items = Array.isArray(steps)
+      ? steps
+      : typeof steps === "string"
+      ? [steps]
+      : [];
+    for (const step of items) {
+      if (typeof step !== "string" || !step.trim()) {
+        continue;
+      }
+      const item = document.createElement("li");
+      item.textContent = step.trim();
+      container.appendChild(item);
+    }
   }
 }
 
@@ -7693,6 +7809,67 @@ function closeServiceAssignmentModal() {
   }
 }
 
+function openServiceTutorialModal(trigger = null) {
+  if (!elements.serviceTutorialModal) {
+    return;
+  }
+
+  renderServiceTutorialContent();
+  closeModal();
+  closeServiceAssignmentModal();
+
+  const activeElement = trigger ?? document.activeElement;
+  state.activeServiceTutorialTrigger =
+    activeElement && document.contains(activeElement)
+      ? activeElement
+      : elements.serviceManagerTutorial;
+
+  elements.serviceTutorialModal.hidden = false;
+  elements.serviceTutorialModal.setAttribute("aria-hidden", "false");
+  refreshBodyScrollLock();
+
+  setTimeout(() => {
+    const focusTarget =
+      elements.serviceTutorialDismiss || elements.serviceTutorialClose;
+    if (focusTarget && typeof focusTarget.focus === "function") {
+      try {
+        focusTarget.focus();
+      } catch (error) {
+        // Ignore focus errors
+      }
+    }
+  }, 0);
+}
+
+function closeServiceTutorialModal() {
+  if (!elements.serviceTutorialModal) {
+    return;
+  }
+
+  if (elements.serviceTutorialModal.hidden) {
+    state.activeServiceTutorialTrigger = null;
+    return;
+  }
+
+  elements.serviceTutorialModal.hidden = true;
+  elements.serviceTutorialModal.setAttribute("aria-hidden", "true");
+  refreshBodyScrollLock();
+
+  const trigger = state.activeServiceTutorialTrigger;
+  state.activeServiceTutorialTrigger = null;
+  const fallback = elements.serviceManagerTutorial;
+  const focusTarget =
+    trigger && document.contains(trigger) ? trigger : fallback;
+
+  if (focusTarget && typeof focusTarget.focus === "function") {
+    try {
+      focusTarget.focus();
+    } catch (error) {
+      // Ignore focus errors
+    }
+  }
+}
+
 function handleServiceAssignmentOptionsChange(event) {
   if (!event || !event.target) {
     return;
@@ -8082,6 +8259,7 @@ function applyServiceSyncTranslations() {
       "serviceManager.sync.refresh"
     );
   }
+  renderServiceTutorialContent();
   if (elements.serviceSyncFeedback && state.serviceSync?.lastStatus) {
     const key = state.serviceSync.lastStatus;
     const replacements =
@@ -9224,6 +9402,14 @@ function handleDocumentClick(event) {
   }
 
   if (
+    elements.serviceTutorialModal &&
+    !elements.serviceTutorialModal.hidden &&
+    event.target === elements.serviceTutorialModal
+  ) {
+    closeServiceTutorialModal();
+  }
+
+  if (
     elements.assistantPanel &&
     !elements.assistantPanel.hidden &&
     !elements.assistantPanel.contains(event.target) &&
@@ -9291,6 +9477,24 @@ function setupEventListeners() {
     elements.serviceManagerBack.addEventListener("click", () => {
       window.location.assign("index.html");
     });
+  }
+
+  if (elements.serviceManagerTutorial) {
+    elements.serviceManagerTutorial.addEventListener("click", () => {
+      openServiceTutorialModal(elements.serviceManagerTutorial);
+    });
+  }
+  if (elements.serviceTutorialClose) {
+    elements.serviceTutorialClose.addEventListener(
+      "click",
+      closeServiceTutorialModal
+    );
+  }
+  if (elements.serviceTutorialDismiss) {
+    elements.serviceTutorialDismiss.addEventListener(
+      "click",
+      closeServiceTutorialModal
+    );
   }
 
   if (elements.serviceManagerAddForm) {
@@ -9387,6 +9591,7 @@ function setupEventListeners() {
     if (event.key === "Escape") {
       closeModal();
       closeServiceAssignmentModal();
+      closeServiceTutorialModal();
       closeUserMenu();
       closeAssistant();
       closeParentChoice();
