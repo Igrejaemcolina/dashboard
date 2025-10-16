@@ -1,5 +1,5 @@
 const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
-const SUPPLEMENTAL_SHEET_ID = "1UrFXyGm4r2yo4UlSyw_0jGcmuaeMJqEkhjncXKyqLSc";
+const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
@@ -11,24 +11,6 @@ const DEFAULT_SERVICE_OPTIONS = [];
 const DEFAULT_SERVICE_OPTION_IDS = new Set();
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
-const SERVICE_SHEET_CONFIG_STORAGE_KEY = "igcolina-service-sheet-config";
-const SERVICE_SHEET_DEFAULT_TAB_NAMES = ["Serviços", "Servicos", "Services"];
-const GOOGLE_IDENTITY_SCRIPT_URL = "https://accounts.google.com/gsi/client";
-const GOOGLE_SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
-const SERVICE_SHEET_HEADER = [
-  "Service Key",
-  "Legacy Key",
-  "Nome",
-  "Telefone",
-  "Data de nascimento",
-  "Serviços (IDs)",
-  "Serviços (Português)",
-  "Serviços (Inglês)",
-  "Serviços (Espanhol)",
-  "Ativo",
-  "Atualizado por",
-  "Atualizado em",
-];
 const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_ALL,
   SERVICE_FILTER_UNASSIGNED,
@@ -1858,28 +1840,10 @@ const elements = {
   serviceManagerDescription: document.getElementById("service-manager-description"),
   serviceManagerFilterLabel: document.getElementById("service-manager-filter-label"),
   serviceManagerFilter: document.getElementById("service-manager-filter"),
-  serviceManagerAddForm: document.getElementById("service-manager-add-form"),
-  serviceManagerAddTitle: document.getElementById("service-manager-add-title"),
-  serviceManagerAddLabel: document.getElementById("service-manager-add-label"),
-  serviceManagerAddInput: document.getElementById("service-manager-add-input"),
-  serviceManagerAddLabelEn: document.getElementById("service-manager-add-label-en"),
-  serviceManagerAddInputEn: document.getElementById("service-manager-add-input-en"),
-  serviceManagerAddLabelEs: document.getElementById("service-manager-add-label-es"),
-  serviceManagerAddInputEs: document.getElementById("service-manager-add-input-es"),
-  serviceManagerAddButton: document.getElementById("service-manager-add-button"),
-  serviceManagerAddCancel: document.getElementById("service-manager-add-cancel"),
-  serviceManagerAddHint: document.getElementById("service-manager-add-hint"),
   serviceManagerList: document.getElementById("service-manager-list"),
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
   serviceManagerNotice: document.getElementById("service-manager-notice"),
-  serviceManagerCustomSection: document.getElementById("service-manager-custom"),
-  serviceManagerCustomTitle: document.getElementById("service-manager-custom-title"),
-  serviceManagerCustomDescription: document.getElementById(
-    "service-manager-custom-description"
-  ),
-  serviceManagerCustomList: document.getElementById("service-manager-custom-list"),
-  serviceManagerCustomEmpty: document.getElementById("service-manager-custom-empty"),
   serviceAssignmentModal: document.getElementById("service-assignment-modal"),
   serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
   serviceAssignmentTitle: document.getElementById("service-assignment-title"),
@@ -1895,12 +1859,6 @@ const elements = {
   serviceAssignmentCancel: document.getElementById("service-assignment-cancel"),
   serviceAssignmentSave: document.getElementById("service-assignment-save"),
   serviceAssignmentClose: document.getElementById("service-assignment-close"),
-  serviceSyncContainer: null,
-  serviceSyncTitle: null,
-  serviceSyncDescription: null,
-  serviceSyncStatus: null,
-  serviceSyncConnect: null,
-  serviceSyncConfigure: null,
 };
 
 const CATEGORY_CONFIG = [
@@ -2000,49 +1958,16 @@ const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
 );
 
 const DEFAULT_SERVICE_SHEET_CONFIG = {
-  sheetId: SUPPLEMENTAL_SHEET_ID,
-  tabName: SERVICE_SHEET_DEFAULT_TAB_NAMES[0] ?? null,
+  sheetId: "",
+  tabName: "",
   clientId: "",
 };
 
 function loadServiceSheetConfig() {
-  if (typeof localStorage === "undefined") {
-    return { ...DEFAULT_SERVICE_SHEET_CONFIG };
-  }
-
-  try {
-    const stored = localStorage.getItem(SERVICE_SHEET_CONFIG_STORAGE_KEY);
-    if (!stored) {
-      return { ...DEFAULT_SERVICE_SHEET_CONFIG };
-    }
-    const parsed = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object") {
-      return { ...DEFAULT_SERVICE_SHEET_CONFIG };
-    }
-    return {
-      ...DEFAULT_SERVICE_SHEET_CONFIG,
-      ...parsed,
-    };
-  } catch (error) {
-    console.warn("Failed to load service sheet config:", error);
-    return { ...DEFAULT_SERVICE_SHEET_CONFIG };
-  }
+  return { ...DEFAULT_SERVICE_SHEET_CONFIG };
 }
 
-function saveServiceSheetConfig(config) {
-  if (typeof localStorage === "undefined") {
-    return;
-  }
-
-  try {
-    localStorage.setItem(
-      SERVICE_SHEET_CONFIG_STORAGE_KEY,
-      JSON.stringify(config)
-    );
-  } catch (error) {
-    console.warn("Failed to persist service sheet config:", error);
-  }
-}
+function saveServiceSheetConfig() {}
 
 const state = {
   records: [],
@@ -2095,15 +2020,6 @@ const state = {
     columns: [],
     records: [],
     config: loadServiceSheetConfig(),
-    syncTimer: null,
-    syncing: false,
-    statusKey: null,
-    statusReplacements: {},
-    statusIsError: false,
-    scriptPromise: null,
-    tokenClient: null,
-    token: null,
-    tokenExpiresAt: 0,
   },
 };
 
@@ -2665,59 +2581,6 @@ function applyLanguage(options = {}) {
       "serviceManager.restricted"
     );
   }
-  if (elements.serviceManagerAddTitle) {
-    elements.serviceManagerAddTitle.textContent = state.editingServiceId
-      ? translate("serviceManager.edit.title", {
-          name: translateServiceName(state.editingServiceId),
-        })
-      : translate("serviceManager.add.title");
-  }
-  if (elements.serviceManagerAddLabel) {
-    elements.serviceManagerAddLabel.textContent = translate(
-      "serviceManager.add.label"
-    );
-  }
-  if (elements.serviceManagerAddInput) {
-    elements.serviceManagerAddInput.placeholder = translate(
-      "serviceManager.add.placeholder"
-    );
-  }
-  if (elements.serviceManagerAddLabelEn) {
-    elements.serviceManagerAddLabelEn.textContent = translate(
-      "serviceManager.add.labelEn"
-    );
-  }
-  if (elements.serviceManagerAddInputEn) {
-    elements.serviceManagerAddInputEn.placeholder = translate(
-      "serviceManager.add.placeholderEn"
-    );
-  }
-  if (elements.serviceManagerAddLabelEs) {
-    elements.serviceManagerAddLabelEs.textContent = translate(
-      "serviceManager.add.labelEs"
-    );
-  }
-  if (elements.serviceManagerAddInputEs) {
-    elements.serviceManagerAddInputEs.placeholder = translate(
-      "serviceManager.add.placeholderEs"
-    );
-  }
-  if (elements.serviceManagerAddButton) {
-    elements.serviceManagerAddButton.textContent = state.editingServiceId
-      ? translate("serviceManager.edit.button")
-      : translate("serviceManager.add.button");
-  }
-  if (elements.serviceManagerAddCancel) {
-    elements.serviceManagerAddCancel.textContent = translate(
-      "serviceManager.edit.cancelButton"
-    );
-  }
-  if (elements.serviceManagerAddHint) {
-    elements.serviceManagerAddHint.textContent = translate(
-      "serviceManager.add.helper"
-    );
-  }
-  renderCustomServiceList();
   renderProfileRoleOptions();
 
   if (elements.passwordModalTitle) {
@@ -5344,7 +5207,6 @@ function persistLocalServiceAssignments() {
 
 function persistServiceAssignments() {
   persistLocalServiceAssignments();
-  scheduleServiceSheetSync();
 }
 
 function getServiceSheetConfig() {
@@ -5352,603 +5214,52 @@ function getServiceSheetConfig() {
 }
 
 function setServiceSheetConfig(newConfig = {}) {
-  const previous = state.serviceSheet.config;
-  const merged = {
-    ...previous,
+  state.serviceSheet.config = {
+    ...state.serviceSheet.config,
     ...newConfig,
   };
-  state.serviceSheet.config = merged;
-  if (previous?.clientId !== merged.clientId) {
-    state.serviceSheet.token = null;
-    state.serviceSheet.tokenExpiresAt = 0;
-  }
-  saveServiceSheetConfig(merged);
-  updateServiceSyncUI();
+  saveServiceSheetConfig(state.serviceSheet.config);
 }
 
-function ensureServiceSyncElements() {
-  if (!isServiceManagerPage) {
-    return;
-  }
+function ensureServiceSyncElements() {}
 
-  if (elements.serviceSyncContainer || !elements.serviceManagerSection) {
-    return;
-  }
+function setServiceSyncStatus() {}
 
-  const container = document.createElement("section");
-  container.className = "service-sync-banner";
-  container.id = "service-sync-banner";
-  container.hidden = true;
+function updateServiceSyncUI() {}
 
-  const header = document.createElement("div");
-  header.className = "service-sync-header";
-
-  const title = document.createElement("h3");
-  title.id = "service-sync-title";
-  header.appendChild(title);
-
-  const description = document.createElement("p");
-  description.id = "service-sync-description";
-  header.appendChild(description);
-
-  const actions = document.createElement("div");
-  actions.className = "service-sync-actions";
-
-  const connect = document.createElement("button");
-  connect.type = "button";
-  connect.id = "service-sync-connect";
-  connect.className = "service-sync-button primary";
-  connect.addEventListener("click", handleServiceSyncConnectClick);
-  actions.appendChild(connect);
-
-  const configure = document.createElement("button");
-  configure.type = "button";
-  configure.id = "service-sync-configure";
-  configure.className = "service-sync-button secondary";
-  configure.addEventListener("click", handleServiceSyncConfigureClick);
-  actions.appendChild(configure);
-
-  const status = document.createElement("p");
-  status.id = "service-sync-status";
-  status.className = "service-sync-status";
-  status.hidden = true;
-
-  container.appendChild(header);
-  container.appendChild(actions);
-  container.appendChild(status);
-
-  const target = elements.serviceManagerControls;
-  if (target && target.parentElement === elements.serviceManagerSection) {
-    elements.serviceManagerSection.insertBefore(container, target);
-  } else {
-    elements.serviceManagerSection.appendChild(container);
-  }
-
-  elements.serviceSyncContainer = container;
-  elements.serviceSyncTitle = title;
-  elements.serviceSyncDescription = description;
-  elements.serviceSyncStatus = status;
-  elements.serviceSyncConnect = connect;
-  elements.serviceSyncConfigure = configure;
+function ensureServiceSheetConfig() {
+  return null;
 }
 
-function setServiceSyncStatus(
-  key,
-  replacements = {},
-  { isError = false } = {}
-) {
-  state.serviceSheet.statusKey = key ?? null;
-  state.serviceSheet.statusReplacements = replacements ?? {};
-  state.serviceSheet.statusIsError = Boolean(isError);
-  updateServiceSyncUI();
-}
-
-function updateServiceSyncUI() {
-  if (!isServiceManagerPage) {
-    return;
-  }
-
-  ensureServiceSyncElements();
-  const container = elements.serviceSyncContainer;
-  if (!container) {
-    return;
-  }
-
-  const canManage = canManageServices();
-  container.hidden = !canManage;
-  if (!canManage) {
-    return;
-  }
-
-  if (elements.serviceSyncTitle) {
-    elements.serviceSyncTitle.textContent = translate(
-      "serviceManager.sync.title"
-    );
-  }
-
-  if (elements.serviceSyncDescription) {
-    elements.serviceSyncDescription.textContent = translate(
-      "serviceManager.sync.description"
-    );
-  }
-
-  if (elements.serviceSyncConfigure) {
-    elements.serviceSyncConfigure.textContent = translate(
-      "serviceManager.sync.buttons.configure"
-    );
-  }
-
-  const config = getServiceSheetConfig();
-  let buttonKey = "serviceManager.sync.buttons.connect";
-  if (!config.clientId) {
-    buttonKey = "serviceManager.sync.buttons.authorize";
-  }
-  if (state.serviceSheet.syncing) {
-    buttonKey = "serviceManager.sync.buttons.syncing";
-  }
-
-  if (elements.serviceSyncConnect) {
-    elements.serviceSyncConnect.textContent = translate(buttonKey);
-    elements.serviceSyncConnect.disabled = Boolean(state.serviceSheet.syncing);
-  }
-
-  if (elements.serviceSyncStatus) {
-    if (state.serviceSheet.statusKey) {
-      elements.serviceSyncStatus.textContent = translate(
-        state.serviceSheet.statusKey,
-        state.serviceSheet.statusReplacements
-      );
-      elements.serviceSyncStatus.hidden = false;
-      elements.serviceSyncStatus.classList.toggle(
-        "error",
-        Boolean(state.serviceSheet.statusIsError)
-      );
-    } else {
-      elements.serviceSyncStatus.textContent = "";
-      elements.serviceSyncStatus.hidden = true;
-      elements.serviceSyncStatus.classList.remove("error");
-    }
-  }
-}
-
-function ensureServiceSheetConfig({ interactive = false } = {}) {
-  const config = getServiceSheetConfig();
-  let updated = false;
-
-  if (!config.tabName && interactive) {
-    const defaultTab =
-      config.tabName ?? SERVICE_SHEET_DEFAULT_TAB_NAMES[0] ?? "Servicos";
-    const input = window.prompt(
-      translate("serviceManager.sync.prompt.tabName"),
-      defaultTab
-    );
-    if (typeof input === "string" && input.trim()) {
-      config.tabName = input.trim();
-      updated = true;
-    }
-  }
-
-  if (!config.clientId && interactive) {
-    const input = window.prompt(
-      translate("serviceManager.sync.prompt.clientId"),
-      config.clientId ?? ""
-    );
-    if (typeof input === "string" && input.trim()) {
-      config.clientId = input.trim();
-      updated = true;
-    }
-  }
-
-  if (updated) {
-    setServiceSheetConfig(config);
-  }
-
-  if (!config.clientId) {
-    setServiceSyncStatus(
-      "serviceManager.sync.status.missingClient",
-      {},
-      { isError: true }
-    );
-    return null;
-  }
-
-  if (!config.tabName) {
-    setServiceSyncStatus(
-      "serviceManager.sync.status.missingTab",
-      {},
-      { isError: true }
-    );
-    return null;
-  }
-
-  return config;
-}
-
-function scheduleServiceSheetSync({ immediate = false } = {}) {
-  if (!canManageServices()) {
-    return;
-  }
-
-  const config = getServiceSheetConfig();
-  if (!config.clientId || !config.tabName) {
-    if (!config.clientId) {
-      setServiceSyncStatus(
-        "serviceManager.sync.status.missingClient",
-        {},
-        { isError: true }
-      );
-    } else {
-      setServiceSyncStatus(
-        "serviceManager.sync.status.missingTab",
-        {},
-        { isError: true }
-      );
-    }
-    return;
-  }
-
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (state.serviceSheet.syncTimer) {
-    window.clearTimeout(state.serviceSheet.syncTimer);
-  }
-
-  const delay = immediate ? 0 : 1200;
-  state.serviceSheet.syncTimer = window.setTimeout(() => {
-    state.serviceSheet.syncTimer = null;
-    performServiceSheetSync().catch((error) => {
-      console.warn("Failed to sync services with spreadsheet:", error);
-      setServiceSyncStatus(
-        "serviceManager.sync.status.error",
-        {},
-        { isError: true }
-      );
-    });
-  }, delay);
-}
+function scheduleServiceSheetSync() {}
 
 function buildServiceSheetRows() {
-  const rows = [SERVICE_SHEET_HEADER.slice()];
-  const timestamp = new Date().toISOString();
-  const seen = new Set();
-
-  state.serviceAssignments.forEach((assignment, key) => {
-    if (!assignment?.active || !Array.isArray(assignment.services)) {
-      return;
-    }
-
-    const services = assignment.services
-      .map((serviceId) => sanitizeServiceId(serviceId))
-      .filter(Boolean);
-
-    if (!services.length) {
-      return;
-    }
-
-    const entry = findEntryByServiceKey(key);
-    const targetKey = entry?.serviceKey ?? key;
-    if (!targetKey || seen.has(targetKey)) {
-      return;
-    }
-
-    seen.add(targetKey);
-
-    const legacyKey = entry?.legacyServiceKey
-      ? entry.legacyServiceKey
-      : typeof key === "string"
-      ? key.split("|").slice(0, 3).join("|")
-      : "";
-
-    const birthDate =
-      entry?.birthDate instanceof Date &&
-      !Number.isNaN(entry.birthDate.getTime())
-        ? entry.birthDate
-        : null;
-
-    const row = [
-      targetKey,
-      legacyKey,
-      entry?.name ?? "",
-      entry?.phone ?? "",
-      birthDate ? formatDateForSheet(birthDate) : "",
-      services.join(","),
-      services
-        .map((serviceId) => getServiceLabelByLanguage(serviceId, "pt"))
-        .filter(Boolean)
-        .join(", "),
-      services
-        .map((serviceId) => getServiceLabelByLanguage(serviceId, "en"))
-        .filter(Boolean)
-        .join(", "),
-      services
-        .map((serviceId) => getServiceLabelByLanguage(serviceId, "es"))
-        .filter(Boolean)
-        .join(", "),
-      assignment.active ? "TRUE" : "FALSE",
-      state.activeUserName || getRoleLabel(state.accessRole) || "",
-      timestamp,
-    ];
-
-    rows.push(row);
-  });
-
-  return rows;
+  return [];
 }
 
 async function loadGoogleIdentityScript() {
-  if (state.serviceSheet.scriptPromise) {
-    return state.serviceSheet.scriptPromise;
-  }
-
-  state.serviceSheet.scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = GOOGLE_IDENTITY_SCRIPT_URL;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google scripts."));
-    document.head.appendChild(script);
-  });
-
-  return state.serviceSheet.scriptPromise;
+  throw new Error("Google API disabled");
 }
 
-async function requestGoogleAccessToken({ prompt = false } = {}) {
-  const config = getServiceSheetConfig();
-  if (!config.clientId) {
-    throw new Error("Missing Google client id");
-  }
-
-  await loadGoogleIdentityScript();
-
-  if (!window.google?.accounts?.oauth2) {
-    throw new Error("Google identity services unavailable");
-  }
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: config.clientId,
-        scope: GOOGLE_SHEETS_SCOPES.join(" "),
-        callback: (response) => {
-          if (response.error) {
-            reject(response);
-            return;
-          }
-          state.serviceSheet.token = response.access_token;
-          const expiresIn = Number(response.expires_in ?? 0);
-          state.serviceSheet.tokenExpiresAt = Date.now() + expiresIn * 1000;
-          resolve(response.access_token);
-        },
-      });
-      state.serviceSheet.tokenClient = tokenClient;
-      tokenClient.requestAccessToken({ prompt: prompt ? "consent" : "" });
-    } catch (error) {
-      reject(error);
-    }
-  });
+async function requestGoogleAccessToken() {
+  throw new Error("Google API disabled");
 }
 
-async function getGoogleAccessToken({ prompt = false } = {}) {
-  if (
-    state.serviceSheet.token &&
-    Date.now() < state.serviceSheet.tokenExpiresAt - 60_000
-  ) {
-    return state.serviceSheet.token;
-  }
-
-  try {
-    return await requestGoogleAccessToken({ prompt });
-  } catch (error) {
-    const needsPrompt =
-      error?.error === "consent_required" ||
-      error?.error === "interaction_required" ||
-      prompt;
-    if (!needsPrompt) {
-      return requestGoogleAccessToken({ prompt: true });
-    }
-    throw error;
-  }
+async function getGoogleAccessToken() {
+  throw new Error("Google API disabled");
 }
 
-async function ensureServiceSheetExists(sheetId, tabName, token) {
-  const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties(title)`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+async function ensureServiceSheetExists() {}
 
-  if (!response.ok) {
-    throw new Error(`Google Sheets metadata request failed (${response.status})`);
-  }
+async function clearServiceSheetRange() {}
 
-  const payload = await response.json();
-  const sheets = Array.isArray(payload?.sheets) ? payload.sheets : [];
-  const exists = sheets.some(
-    (sheet) => sheet?.properties?.title === tabName
-  );
+async function updateServiceSheetValues() {}
 
-  if (exists) {
-    return;
-  }
+async function performServiceSheetSync() {}
 
-  const batchResponse = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        requests: [
-          {
-            addSheet: {
-              properties: {
-                title: tabName,
-              },
-            },
-          },
-        ],
-      }),
-    }
-  );
+function handleServiceSyncConnectClick() {}
 
-  if (!batchResponse.ok) {
-    throw new Error(
-      `Unable to create sheet tab (${batchResponse.status})`
-    );
-  }
-}
-
-async function clearServiceSheetRange(sheetId, tabName, token) {
-  const range = `${tabName}!A1:Z`;
-  const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
-      range
-    )}:clear`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Unable to clear range (${response.status})`);
-  }
-}
-
-async function updateServiceSheetValues(sheetId, tabName, rows, token) {
-  const range = `${tabName}!A1`;
-  const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
-      range
-    )}?valueInputOption=RAW`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        range: `${tabName}!A1`,
-        majorDimension: "ROWS",
-        values: rows,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Unable to update values (${response.status})`);
-  }
-}
-
-async function performServiceSheetSync({ interactive = false } = {}) {
-  if (!canManageServices()) {
-    return;
-  }
-
-  const config = interactive
-    ? ensureServiceSheetConfig({ interactive: true })
-    : ensureServiceSheetConfig();
-
-  if (!config) {
-    return;
-  }
-
-  if (state.serviceSheet.syncing) {
-    return;
-  }
-
-  const rows = buildServiceSheetRows();
-
-  try {
-    state.serviceSheet.syncing = true;
-    updateServiceSyncUI();
-    setServiceSyncStatus("serviceManager.sync.status.syncing");
-
-    const token = await getGoogleAccessToken({ prompt: interactive });
-    if (!token) {
-      setServiceSyncStatus(
-        "serviceManager.sync.status.unauthorized",
-        {},
-        { isError: true }
-      );
-      return;
-    }
-
-    await ensureServiceSheetExists(config.sheetId, config.tabName, token);
-    await clearServiceSheetRange(config.sheetId, config.tabName, token);
-    await updateServiceSheetValues(config.sheetId, config.tabName, rows, token);
-    setServiceSyncStatus("serviceManager.sync.status.success");
-  } catch (error) {
-    console.warn("Service sheet sync failed:", error);
-    const messageKey =
-      error?.status === 401 || error?.code === 401
-        ? "serviceManager.sync.status.unauthorized"
-        : "serviceManager.sync.status.error";
-    setServiceSyncStatus(messageKey, {}, { isError: true });
-  } finally {
-    state.serviceSheet.syncing = false;
-    updateServiceSyncUI();
-  }
-}
-
-function handleServiceSyncConnectClick() {
-  if (!canManageServices()) {
-    setStatusFromKey("serviceManager.restricted", {}, true);
-    return;
-  }
-
-  performServiceSheetSync({ interactive: true });
-}
-
-function handleServiceSyncConfigureClick() {
-  if (!canManageServices()) {
-    setStatusFromKey("serviceManager.restricted", {}, true);
-    return;
-  }
-
-  const current = getServiceSheetConfig();
-  const defaultTab =
-    current.tabName ?? SERVICE_SHEET_DEFAULT_TAB_NAMES[0] ?? "Servicos";
-  const tabName = window.prompt(
-    translate("serviceManager.sync.prompt.tabName"),
-    defaultTab
-  );
-  const configPatch = {};
-  if (typeof tabName === "string" && tabName.trim()) {
-    configPatch.tabName = tabName.trim();
-  }
-
-  const clientId = window.prompt(
-    translate("serviceManager.sync.prompt.clientId"),
-    current.clientId ?? ""
-  );
-  if (typeof clientId === "string" && clientId.trim()) {
-    configPatch.clientId = clientId.trim();
-  }
-
-  if (Object.keys(configPatch).length) {
-    setServiceSheetConfig(configPatch);
-  } else {
-    updateServiceSyncUI();
-  }
-
-  const ensured = ensureServiceSheetConfig();
-  if (ensured) {
-    setServiceSyncStatus("serviceManager.sync.status.ready");
-  }
-}
+function handleServiceSyncConfigureClick() {}
 
 function applyServiceAssignmentsToEntries() {
   if (!Array.isArray(state.enrichedRecords)) {
@@ -8292,35 +7603,6 @@ function renderServiceManager() {
     return;
   }
 
-  const canAddServices = Boolean(state.accessRole) && canManageServices();
-  if (elements.serviceManagerAddForm) {
-    elements.serviceManagerAddForm.hidden = !canAddServices;
-  }
-  if (elements.serviceManagerAddInput) {
-    elements.serviceManagerAddInput.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddInputEn) {
-    elements.serviceManagerAddInputEn.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddInputEs) {
-    elements.serviceManagerAddInputEs.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddButton) {
-    elements.serviceManagerAddButton.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddCancel) {
-    elements.serviceManagerAddCancel.disabled = !canAddServices;
-    elements.serviceManagerAddCancel.hidden =
-      !canAddServices || !state.editingServiceId;
-  }
-  if (elements.serviceManagerAddHint) {
-    elements.serviceManagerAddHint.hidden = !canAddServices;
-  }
-  if (!canAddServices) {
-    exitServiceEditMode({ preserveValues: true });
-  }
-
-  renderCustomServiceList();
   if (elements.serviceManagerBack) {
     if (state.accessRole === ACCESS_ROLES.SERVICES) {
       elements.serviceManagerBack.setAttribute("hidden", "true");
