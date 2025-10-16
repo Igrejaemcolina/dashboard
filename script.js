@@ -1,5 +1,5 @@
-const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
-const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
+const SHEET_ID = "1UrFXyGm4r2yo4UlSyw_0jGcmuaeMJqEkhjncXKyqLSc";
+const SUPPLEMENTAL_SHEET_ID = SHEET_ID;
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
@@ -9,19 +9,6 @@ const SERVICE_FILTER_UNASSIGNED = "unassigned";
 const DEFAULT_SERVICE_OPTIONS = [];
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
-const SERVICE_SYNC_CONFIG_STORAGE_KEY = "igcolina-service-sync-config";
-const SERVICE_SYNC_SECRET_STORAGE_KEY = "igcolina-service-sync-secret";
-const SERVICE_SYNC_DEFAULT_BRANCH = "main";
-const SERVICE_SYNC_DEFAULT_PATH = "data/service-assignments.json";
-const SERVICE_SYNC_DEBOUNCE_MS = 2_000;
-const SERVICE_SYNC_ACCEPT_HEADER = "application/vnd.github+json";
-const SERVICE_SYNC_MODES = {
-  GITHUB: "github",
-  WEBHOOK: "webhook",
-};
-const SERVICE_SYNC_DEFAULT_MODE = SERVICE_SYNC_MODES.GITHUB;
-const SERVICE_SYNC_DEFAULT_WRITE_METHOD = "PUT";
-const SERVICE_SYNC_WRITE_METHODS = new Set(["PUT", "POST"]);
 const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_ALL,
   SERVICE_FILTER_UNASSIGNED,
@@ -332,18 +319,11 @@ const TRANSLATIONS = {
         title: "Adicionar perfil",
         description:
           "Cadastre um novo acesso informando o nome, a função e a senha.",
-        editTitle: ({ name }) =>
-          name ? `Editar perfil de ${name}` : "Editar perfil",
-        editDescription: ({ role }) =>
-          role
-            ? `Atualize o acesso do perfil (${role}) informando um novo nome ou senha.`
-            : "Atualize o acesso do perfil informando um novo nome ou senha.",
         namePlaceholder: "Digite o nome do perfil",
         rolePlaceholder: "Selecione a função",
         passwordPlaceholder: "Cadastre uma senha",
         confirmPlaceholder: "Confirme a senha",
         save: "Salvar perfil",
-        update: "Atualizar perfil",
         cancel: "Cancelar",
         restricted: "Apenas o perfil ADM pode gerenciar novos acessos.",
         nameRequired: "Informe o nome do perfil.",
@@ -354,23 +334,7 @@ const TRANSLATIONS = {
         passwordDuplicate: "Já existe um perfil registrado com essa senha.",
         success: ({ name, role }) =>
           `Perfil "${name}" adicionado na função ${role}.`,
-        updateSuccess: ({ name, role }) =>
-          `Perfil "${name}" atualizado na função ${role}.`,
-        deleteConfirm: ({ name }) =>
-          `Tem certeza de que deseja remover o acesso do perfil "${name}"?`,
-        deleteSuccess: ({ name }) =>
-          `Perfil "${name}" removido com sucesso.`,
-        listTitle: "Perfis existentes",
-        listEmpty: "Nenhum perfil cadastrado.",
-        editAction: "Editar",
-        deleteAction: "Remover",
       },
-    },
-    directory: {
-      download: "Baixar diretório (JSON)",
-      empty: "Ainda não existem registros disponíveis para exportar.",
-      ready:
-        "O arquivo JSON está pronto para download com os nomes, idades e telefones.",
     },
     language: {
       toggleAria: "Selecionar idioma",
@@ -475,20 +439,6 @@ const TRANSLATIONS = {
         active: "Servindo",
         unassigned: "N.Serviço",
       },
-      tutorialButton: "Tutorial de uso",
-      tutorial: {
-        title: "Como usar o gerenciador de serviços",
-        description:
-          "Veja como configurar a sincronização e atualizar os ministérios em qualquer dispositivo.",
-        steps: [
-          "Acesse o gerenciador com o perfil Serviços e confirme se os irmãos aparecem na lista.",
-          "Escolha entre GitHub ou uma URL de API, preencha os dados obrigatórios e salve a configuração.",
-          "Clique no card de um irmão, selecione as frentes em que ele serve e salve as alterações.",
-          "Use o botão Atualizar agora para buscar mudanças feitas por outros dispositivos.",
-        ],
-        dismiss: "Entendi",
-        closeLabel: "Fechar tutorial de uso",
-      },
       add: {
         title: "Cadastrar novo serviço",
         label: "Nome do serviço (Português)",
@@ -537,54 +487,6 @@ const TRANSLATIONS = {
           en: "Inglês",
           es: "Espanhol",
         },
-      },
-      sync: {
-        title: "Sincronizar atribuições",
-        description:
-          "Escolha entre repositório GitHub ou uma URL de API JSON para manter as atribuições alinhadas em todos os dispositivos.",
-        mode: {
-          label: "Como deseja sincronizar?",
-          github: "Repositório GitHub",
-          webhook: "Link de API (JSON)",
-        },
-        github: {
-          ownerLabel: "Dono do repositório",
-          repoLabel: "Repositório",
-          branchLabel: "Branch",
-          pathLabel: "Caminho do arquivo",
-          tokenLabel: "Token do GitHub",
-          tokenPlaceholder: "Informe o token com acesso de escrita",
-          tokenPlaceholderSaved: "Token armazenado — deixe em branco para manter",
-        },
-        webhook: {
-          readUrlLabel: "URL para ler os dados",
-          readUrlPlaceholder: "https://exemplo.com/assignments.json",
-          writeUrlLabel: "URL para enviar atualizações (opcional)",
-          writeUrlPlaceholder: "Use se a escrita acontecer em outro endereço",
-          writeMethodLabel: "Método de escrita",
-          writeMethodPut: "PUT (substitui o JSON inteiro)",
-          writeMethodPost: "POST (envia o conteúdo como corpo)",
-          authHeaderLabel: "Cabeçalho de autorização",
-          authHeaderPlaceholder: "Authorization",
-          tokenLabel: "Valor do cabeçalho (se necessário)",
-          tokenPlaceholder: "Informe o valor usado para autenticar (opcional)",
-          tokenPlaceholderSaved:
-            "Valor armazenado — deixe em branco para manter",
-        },
-        save: "Salvar configuração",
-        clear: "Limpar dados",
-        refresh: "Atualizar agora",
-        statusSaved: "Configuração salva. Buscando dados compartilhados...",
-        statusCleared: "Sincronização removida deste dispositivo.",
-        statusInvalid: "Informe os campos obrigatórios para sincronizar.",
-        statusFetching: "Carregando atribuições compartilhadas...",
-        statusFetched: "Atribuições sincronizadas com sucesso.",
-        statusSyncing: "Enviando atualizações para a origem remota...",
-        statusSynced: "Serviços atualizados no destino configurado.",
-        statusUnauthorized:
-          "Não foi possível acessar a origem remota. Confira o token ou cabeçalho e as permissões.",
-        statusError:
-          "Falha na sincronização: {error}",
       },
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
@@ -876,18 +778,11 @@ const TRANSLATIONS = {
         title: "Add profile",
         description:
           "Create a new access by providing the name, role, and password.",
-        editTitle: ({ name }) =>
-          name ? `Edit profile for ${name}` : "Edit profile",
-        editDescription: ({ role }) =>
-          role
-            ? `Update this profile (${role}) with a new name or password.`
-            : "Update this profile with a new name or password.",
         namePlaceholder: "Enter the profile name",
         rolePlaceholder: "Select the role",
         passwordPlaceholder: "Create a password",
         confirmPlaceholder: "Confirm the password",
         save: "Save profile",
-        update: "Update profile",
         cancel: "Cancel",
         restricted: "Only the admin profile can manage new accesses.",
         nameRequired: "Enter the profile name.",
@@ -897,23 +792,7 @@ const TRANSLATIONS = {
         passwordInvalid: "Enter a valid password.",
         passwordDuplicate: "There's already a profile registered with this password.",
         success: ({ name, role }) => `Profile "${name}" added as ${role}.`,
-        updateSuccess: ({ name, role }) =>
-          `Profile "${name}" updated as ${role}.`,
-        deleteConfirm: ({ name }) =>
-          `Are you sure you want to remove the profile "${name}"?`,
-        deleteSuccess: ({ name }) =>
-          `Profile "${name}" was removed successfully.`,
-        listTitle: "Existing profiles",
-        listEmpty: "No profiles registered yet.",
-        editAction: "Edit",
-        deleteAction: "Remove",
       },
-    },
-    directory: {
-      download: "Download directory (JSON)",
-      empty: "There are no records available to export yet.",
-      ready:
-        "The JSON file is ready with every name, age, and phone number.",
     },
     language: {
       toggleAria: "Choose language",
@@ -1018,20 +897,6 @@ const TRANSLATIONS = {
         active: "Serving",
         unassigned: "No service",
       },
-      tutorialButton: "How to use",
-      tutorial: {
-        title: "How to use the services manager",
-        description:
-          "Follow these steps to configure sync and keep every device up to date.",
-        steps: [
-          "Open the manager with the Services profile and confirm the member list is visible.",
-          "Choose whether to sync through GitHub or a JSON API, complete the required details, and save the settings.",
-          "Select a member card, choose the ministries that apply, and save the changes.",
-          "Use the Fetch now button to pull updates made from other devices.",
-        ],
-        dismiss: "Got it",
-        closeLabel: "Close usage tutorial",
-      },
       add: {
         title: "Add new service",
         label: "Service name (Portuguese)",
@@ -1079,52 +944,6 @@ const TRANSLATIONS = {
           en: "English",
           es: "Spanish",
         },
-      },
-      sync: {
-        title: "Sync assignments",
-        description:
-          "Choose between a GitHub repository or a JSON API endpoint so every device stays aligned.",
-        mode: {
-          label: "How would you like to sync?",
-          github: "GitHub repository",
-          webhook: "API link (JSON)",
-        },
-        github: {
-          ownerLabel: "Repository owner",
-          repoLabel: "Repository",
-          branchLabel: "Branch",
-          pathLabel: "File path",
-          tokenLabel: "GitHub token",
-          tokenPlaceholder: "Enter a token with commit access",
-          tokenPlaceholderSaved: "Token saved — leave blank to keep it",
-        },
-        webhook: {
-          readUrlLabel: "URL to fetch data",
-          readUrlPlaceholder: "https://example.com/assignments.json",
-          writeUrlLabel: "URL to send updates (optional)",
-          writeUrlPlaceholder: "Use it if writes happen at a different endpoint",
-          writeMethodLabel: "Write method",
-          writeMethodPut: "PUT (replace the entire JSON)",
-          writeMethodPost: "POST (send the payload in the body)",
-          authHeaderLabel: "Authorization header",
-          authHeaderPlaceholder: "Authorization",
-          tokenLabel: "Header value (if required)",
-          tokenPlaceholder: "Provide the value used for authentication (optional)",
-          tokenPlaceholderSaved: "Value stored — leave blank to keep it",
-        },
-        save: "Save settings",
-        clear: "Clear data",
-        refresh: "Fetch now",
-        statusSaved: "Settings saved. Pulling shared assignments...",
-        statusCleared: "Sync removed from this device.",
-        statusInvalid: "Fill in the required fields before syncing.",
-        statusFetching: "Loading shared assignments...",
-        statusFetched: "Assignments synchronized successfully.",
-        statusSyncing: "Sending updates to the remote source...",
-        statusSynced: "Services updated on the configured destination.",
-        statusUnauthorized:
-          "We couldn't access the remote source. Check the token or header and permissions.",
-        statusError: "Sync failed: {error}",
       },
       empty: "No members found for the selected filters.",
       restricted:
@@ -1419,18 +1238,11 @@ const TRANSLATIONS = {
         title: "Agregar perfil",
         description:
           "Crea un nuevo acceso indicando el nombre, la función y la contraseña.",
-        editTitle: ({ name }) =>
-          name ? `Editar perfil de ${name}` : "Editar perfil",
-        editDescription: ({ role }) =>
-          role
-            ? `Actualiza el acceso del perfil (${role}) con un nuevo nombre o contraseña.`
-            : "Actualiza el acceso del perfil con un nuevo nombre o contraseña.",
         namePlaceholder: "Ingresa el nombre del perfil",
         rolePlaceholder: "Selecciona la función",
         passwordPlaceholder: "Crea una contraseña",
         confirmPlaceholder: "Confirma la contraseña",
         save: "Guardar perfil",
-        update: "Actualizar perfil",
         cancel: "Cancelar",
         restricted: "Solo el perfil ADM puede gestionar nuevos accesos.",
         nameRequired: "Ingresa el nombre del perfil.",
@@ -1441,23 +1253,7 @@ const TRANSLATIONS = {
         passwordDuplicate: "Ya existe un perfil registrado con esa contraseña.",
         success: ({ name, role }) =>
           `Perfil "${name}" agregado como ${role}.`,
-        updateSuccess: ({ name, role }) =>
-          `Perfil "${name}" actualizado como ${role}.`,
-        deleteConfirm: ({ name }) =>
-          `¿Seguro que deseas eliminar el acceso del perfil "${name}"?`,
-        deleteSuccess: ({ name }) =>
-          `Perfil "${name}" eliminado correctamente.`,
-        listTitle: "Perfiles existentes",
-        listEmpty: "Aún no hay perfiles registrados.",
-        editAction: "Editar",
-        deleteAction: "Eliminar",
       },
-    },
-    directory: {
-      download: "Descargar directorio (JSON)",
-      empty: "Todavía no hay registros disponibles para exportar.",
-      ready:
-        "El archivo JSON está listo con todos los nombres, edades y teléfonos.",
     },
     language: {
       toggleAria: "Seleccionar idioma",
@@ -1562,20 +1358,6 @@ const TRANSLATIONS = {
         active: "Sirviendo",
         unassigned: "Sin servicio",
       },
-      tutorialButton: "Cómo usar",
-      tutorial: {
-        title: "Cómo usar el gestor de servicios",
-        description:
-          "Sigue estos pasos para configurar la sincronización y mantener todo actualizado.",
-        steps: [
-          "Abre el gestor con el perfil Servicios y confirma que la lista de hermanos esté visible.",
-          "Elige si sincronizarás con GitHub o con una API JSON, completa los datos requeridos y guarda la configuración.",
-          "Selecciona la tarjeta de un hermano, marca los ministerios correspondientes y guarda los cambios.",
-          "Utiliza el botón Actualizar ahora para traer los cambios hechos en otros dispositivos.",
-        ],
-        dismiss: "Listo",
-        closeLabel: "Cerrar tutorial de uso",
-      },
       add: {
         title: "Agregar nuevo servicio",
         label: "Nombre del servicio (Portugués)",
@@ -1624,55 +1406,6 @@ const TRANSLATIONS = {
           en: "Inglés",
           es: "Español",
         },
-      },
-      sync: {
-        title: "Sincronizar asignaciones",
-        description:
-          "Elige entre un repositorio de GitHub o una URL de API JSON para mantener todo sincronizado.",
-        mode: {
-          label: "¿Cómo deseas sincronizar?",
-          github: "Repositorio de GitHub",
-          webhook: "Enlace de API (JSON)",
-        },
-        github: {
-          ownerLabel: "Propietario del repositorio",
-          repoLabel: "Repositorio",
-          branchLabel: "Branch",
-          pathLabel: "Ruta del archivo",
-          tokenLabel: "Token de GitHub",
-          tokenPlaceholder: "Ingresa un token con permiso de escritura",
-          tokenPlaceholderSaved: "Token guardado — deja en blanco para mantenerlo",
-        },
-        webhook: {
-          readUrlLabel: "URL para leer los datos",
-          readUrlPlaceholder: "https://ejemplo.com/asignaciones.json",
-          writeUrlLabel: "URL para enviar actualizaciones (opcional)",
-          writeUrlPlaceholder: "Úsala si los envíos ocurren en otra dirección",
-          writeMethodLabel: "Método de escritura",
-          writeMethodPut: "PUT (reemplaza todo el JSON)",
-          writeMethodPost: "POST (envía el contenido en el cuerpo)",
-          authHeaderLabel: "Encabezado de autorización",
-          authHeaderPlaceholder: "Authorization",
-          tokenLabel: "Valor del encabezado (si es necesario)",
-          tokenPlaceholder:
-            "Ingresa el valor utilizado para autenticar (opcional)",
-          tokenPlaceholderSaved:
-            "Valor guardado — deja en blanco para mantenerlo",
-        },
-        save: "Guardar configuración",
-        clear: "Limpiar datos",
-        refresh: "Actualizar ahora",
-        statusSaved:
-          "Configuración guardada. Obteniendo asignaciones compartidas...",
-        statusCleared: "Sincronización eliminada de este dispositivo.",
-        statusInvalid: "Completa los campos obligatorios para sincronizar.",
-        statusFetching: "Cargando asignaciones compartidas...",
-        statusFetched: "Asignaciones sincronizadas correctamente.",
-        statusSyncing: "Enviando actualizaciones al origen remoto...",
-        statusSynced: "Servicios actualizados en el destino configurado.",
-        statusUnauthorized:
-          "No pudimos acceder al origen remoto. Verifica el token o encabezado y los permisos.",
-        statusError: "Error en la sincronización: {error}",
       },
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
@@ -1833,7 +1566,6 @@ const elements = {
   switchUser: document.getElementById("switch-user"),
   changePassword: document.getElementById("change-password"),
   manageProfiles: document.getElementById("manage-profiles"),
-  downloadDirectory: document.getElementById("download-directory"),
   manageServices: document.getElementById("manage-services"),
   accessModal: document.getElementById("access-modal"),
   accessOptions: document.getElementById("access-options"),
@@ -1893,9 +1625,6 @@ const elements = {
   profileModalPassword: document.getElementById("profile-modal-password"),
   profileModalConfirm: document.getElementById("profile-modal-confirm"),
   profileModalFeedback: document.getElementById("profile-modal-feedback"),
-  profileModalList: document.getElementById("profile-modal-list"),
-  profileModalListEmpty: document.getElementById("profile-modal-list-empty"),
-  profileModalListTitle: document.getElementById("profile-modal-list-title"),
   serviceManagerSection: document.getElementById("service-manager"),
   serviceManagerTitle: document.getElementById("service-manager-title"),
   serviceManagerDescription: document.getElementById("service-manager-description"),
@@ -1915,7 +1644,6 @@ const elements = {
   serviceManagerList: document.getElementById("service-manager-list"),
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
-  serviceManagerTutorial: document.getElementById("service-manager-tutorial"),
   serviceManagerNotice: document.getElementById("service-manager-notice"),
   serviceManagerCustomSection: document.getElementById("service-manager-custom"),
   serviceManagerCustomTitle: document.getElementById("service-manager-custom-title"),
@@ -1924,45 +1652,6 @@ const elements = {
   ),
   serviceManagerCustomList: document.getElementById("service-manager-custom-list"),
   serviceManagerCustomEmpty: document.getElementById("service-manager-custom-empty"),
-  serviceSyncSection: document.getElementById("service-sync"),
-  serviceSyncForm: document.getElementById("service-sync-form"),
-  serviceSyncTitle: document.getElementById("service-sync-title"),
-  serviceSyncDescription: document.getElementById("service-sync-description"),
-  serviceSyncModeLabel: document.getElementById("service-sync-mode-label"),
-  serviceSyncMode: document.getElementById("service-sync-mode"),
-  serviceSyncOwnerLabel: document.getElementById("service-sync-owner-label"),
-  serviceSyncOwner: document.getElementById("service-sync-owner"),
-  serviceSyncRepoLabel: document.getElementById("service-sync-repo-label"),
-  serviceSyncRepo: document.getElementById("service-sync-repo"),
-  serviceSyncBranchLabel: document.getElementById("service-sync-branch-label"),
-  serviceSyncBranch: document.getElementById("service-sync-branch"),
-  serviceSyncPathLabel: document.getElementById("service-sync-path-label"),
-  serviceSyncPath: document.getElementById("service-sync-path"),
-  serviceSyncReadUrlLabel: document.getElementById("service-sync-read-url-label"),
-  serviceSyncReadUrl: document.getElementById("service-sync-read-url"),
-  serviceSyncWriteUrlLabel: document.getElementById("service-sync-write-url-label"),
-  serviceSyncWriteUrl: document.getElementById("service-sync-write-url"),
-  serviceSyncWriteMethodLabel: document.getElementById(
-    "service-sync-write-method-label"
-  ),
-  serviceSyncWriteMethod: document.getElementById("service-sync-write-method"),
-  serviceSyncAuthHeaderLabel: document.getElementById(
-    "service-sync-auth-header-label"
-  ),
-  serviceSyncAuthHeader: document.getElementById("service-sync-auth-header"),
-  serviceSyncTokenLabel: document.getElementById("service-sync-token-label"),
-  serviceSyncToken: document.getElementById("service-sync-token"),
-  serviceSyncFeedback: document.getElementById("service-sync-feedback"),
-  serviceSyncSave: document.getElementById("service-sync-save"),
-  serviceSyncClear: document.getElementById("service-sync-clear"),
-  serviceSyncRefresh: document.getElementById("service-sync-refresh"),
-  serviceTutorialModal: document.getElementById("service-tutorial-modal"),
-  serviceTutorialDialog: document.getElementById("service-tutorial-dialog"),
-  serviceTutorialClose: document.getElementById("service-tutorial-close"),
-  serviceTutorialDismiss: document.getElementById("service-tutorial-dismiss"),
-  serviceTutorialTitle: document.getElementById("service-tutorial-title"),
-  serviceTutorialDescription: document.getElementById("service-tutorial-description"),
-  serviceTutorialSteps: document.getElementById("service-tutorial-steps"),
   serviceAssignmentModal: document.getElementById("service-assignment-modal"),
   serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
   serviceAssignmentTitle: document.getElementById("service-assignment-title"),
@@ -2076,151 +1765,6 @@ const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
   ].map((label) => normalizeColumnLabel(label))
 );
 
-function getDefaultServiceSyncConfig() {
-  return {
-    mode: SERVICE_SYNC_DEFAULT_MODE,
-    owner: "",
-    repo: "",
-    branch: SERVICE_SYNC_DEFAULT_BRANCH,
-    path: SERVICE_SYNC_DEFAULT_PATH,
-    readUrl: "",
-    writeUrl: "",
-    writeMethod: SERVICE_SYNC_DEFAULT_WRITE_METHOD,
-    authHeader: "Authorization",
-  };
-}
-
-function sanitizeServiceSyncConfig(config) {
-  if (!config || typeof config !== "object") {
-    return getDefaultServiceSyncConfig();
-  }
-
-  const toTrimmedString = (value) =>
-    typeof value === "string" ? value.trim() : "";
-
-  const modeCandidate = toTrimmedString(config.mode).toLowerCase();
-  const mode = Object.values(SERVICE_SYNC_MODES).includes(modeCandidate)
-    ? modeCandidate
-    : SERVICE_SYNC_DEFAULT_MODE;
-  const owner = toTrimmedString(config.owner);
-  const repo = toTrimmedString(config.repo);
-  const branch = toTrimmedString(config.branch) || SERVICE_SYNC_DEFAULT_BRANCH;
-  const path = toTrimmedString(config.path) || SERVICE_SYNC_DEFAULT_PATH;
-  const readUrl = toTrimmedString(config.readUrl);
-  const writeUrl = toTrimmedString(config.writeUrl);
-  const writeMethodCandidate = toTrimmedString(config.writeMethod).toUpperCase();
-  const writeMethod = SERVICE_SYNC_WRITE_METHODS.has(writeMethodCandidate)
-    ? writeMethodCandidate
-    : SERVICE_SYNC_DEFAULT_WRITE_METHOD;
-  const authHeader = toTrimmedString(config.authHeader) || "Authorization";
-
-  return {
-    mode,
-    owner,
-    repo,
-    branch,
-    path,
-    readUrl,
-    writeUrl,
-    writeMethod,
-    authHeader,
-  };
-}
-
-function getStoredServiceSyncConfig() {
-  if (typeof localStorage === "undefined") {
-    return getDefaultServiceSyncConfig();
-  }
-
-  try {
-    const stored = localStorage.getItem(SERVICE_SYNC_CONFIG_STORAGE_KEY);
-    if (!stored) {
-      return getDefaultServiceSyncConfig();
-    }
-    const parsed = JSON.parse(stored);
-    return sanitizeServiceSyncConfig(parsed);
-  } catch (error) {
-    console.warn("Failed to read service sync config:", error);
-    return getDefaultServiceSyncConfig();
-  }
-}
-
-function safeDecodeBase64(value) {
-  if (!value) return "";
-  try {
-    if (typeof atob === "function") {
-      return atob(value);
-    }
-    return Buffer.from(value, "base64").toString("utf8");
-  } catch (error) {
-    console.warn("Failed to decode base64 string:", error);
-    return "";
-  }
-}
-
-function safeEncodeBase64(value) {
-  const stringValue = typeof value === "string" ? value : String(value ?? "");
-  try {
-    if (typeof btoa === "function") {
-      return btoa(stringValue);
-    }
-    return Buffer.from(stringValue, "utf8").toString("base64");
-  } catch (error) {
-    console.warn("Failed to encode base64 string:", error);
-    return stringValue;
-  }
-}
-
-function getStoredServiceSyncSecret() {
-  if (typeof localStorage === "undefined") {
-    return "";
-  }
-
-  try {
-    const stored = localStorage.getItem(SERVICE_SYNC_SECRET_STORAGE_KEY);
-    if (!stored) {
-      return "";
-    }
-    return safeDecodeBase64(stored) || "";
-  } catch (error) {
-    console.warn("Failed to read service sync secret:", error);
-    return "";
-  }
-}
-
-function persistServiceSyncConfig(config) {
-  if (typeof localStorage === "undefined") {
-    return;
-  }
-
-  try {
-    const sanitized = sanitizeServiceSyncConfig(config);
-    localStorage.setItem(
-      SERVICE_SYNC_CONFIG_STORAGE_KEY,
-      JSON.stringify(sanitized)
-    );
-  } catch (error) {
-    console.warn("Failed to persist service sync config:", error);
-  }
-}
-
-function persistServiceSyncSecret(secret) {
-  if (typeof localStorage === "undefined") {
-    return;
-  }
-
-  try {
-    if (!secret) {
-      localStorage.removeItem(SERVICE_SYNC_SECRET_STORAGE_KEY);
-      return;
-    }
-    const encoded = safeEncodeBase64(secret);
-    localStorage.setItem(SERVICE_SYNC_SECRET_STORAGE_KEY, encoded);
-  } catch (error) {
-    console.warn("Failed to persist service sync secret:", error);
-  }
-}
-
 const state = {
   records: [],
   columns: [],
@@ -2259,31 +1803,8 @@ const state = {
   activeDetailEntry: null,
   activeServiceModalEntry: null,
   activeServiceModalTrigger: null,
-  activeServiceTutorialTrigger: null,
   editingServiceId: null,
   roleCredentials: cloneRoleCredentials(),
-  profileModal: {
-    mode: "create",
-    editing: null,
-    entries: [],
-  },
-  directoryExport: {
-    entries: [],
-    json: "",
-    updatedAt: null,
-  },
-  serviceSync: {
-    config: getStoredServiceSyncConfig(),
-    secret: getStoredServiceSyncSecret(),
-    remoteSha: null,
-    syncing: false,
-    refreshing: false,
-    pendingUpload: false,
-    timer: null,
-    lastStatus: null,
-    lastReplacements: {},
-    lastIsError: false,
-  },
   assistant: {
     greeted: false,
     customMode: false,
@@ -2843,11 +2364,6 @@ function applyLanguage(options = {}) {
       "serviceManager.filterLabel"
     );
   }
-  if (elements.serviceManagerTutorial) {
-    elements.serviceManagerTutorial.textContent = translate(
-      "serviceManager.tutorialButton"
-    );
-  }
   if (elements.serviceManagerEmpty) {
     elements.serviceManagerEmpty.textContent = translate("serviceManager.empty");
   }
@@ -2938,9 +2454,35 @@ function applyLanguage(options = {}) {
     );
   }
 
-  applyProfileModalTranslations();
-  renderProfileList();
-  renderProfileRoleOptions();
+  if (elements.profileModalTitle) {
+    elements.profileModalTitle.textContent = translate("profile.manage.title");
+  }
+  if (elements.profileModalDescription) {
+    elements.profileModalDescription.textContent = translate(
+      "profile.manage.description"
+    );
+  }
+  if (elements.profileModalName) {
+    elements.profileModalName.placeholder = translate(
+      "profile.manage.namePlaceholder"
+    );
+  }
+  if (elements.profileModalPassword) {
+    elements.profileModalPassword.placeholder = translate(
+      "profile.manage.passwordPlaceholder"
+    );
+  }
+  if (elements.profileModalConfirm) {
+    elements.profileModalConfirm.placeholder = translate(
+      "profile.manage.confirmPlaceholder"
+    );
+  }
+  if (elements.profileModalSave) {
+    elements.profileModalSave.textContent = translate("profile.manage.save");
+  }
+  if (elements.profileModalCancel) {
+    elements.profileModalCancel.textContent = translate("profile.manage.cancel");
+  }
 
   if (elements.serviceAssignmentSubtitle) {
     elements.serviceAssignmentSubtitle.textContent = translate(
@@ -3574,7 +3116,6 @@ function applyAccessRestrictions() {
     renderServiceManager();
   }
 
-  updateServiceSyncVisibility();
   updateUserProfileUI();
   updateBirthdays();
   redirectToServiceManagerIfNeeded();
@@ -3658,11 +3199,6 @@ function updateUserProfileUI() {
       elements.manageProfiles.hidden = true;
       elements.manageProfiles.setAttribute("aria-hidden", "true");
     }
-    if (elements.downloadDirectory) {
-      elements.downloadDirectory.hidden = true;
-      elements.downloadDirectory.setAttribute("aria-hidden", "true");
-    }
-    updateDirectoryDownloadButton();
     closeUserMenu();
     return;
   }
@@ -3711,18 +3247,6 @@ function updateUserProfileUI() {
       elements.manageProfiles.setAttribute("aria-hidden", "true");
     }
   }
-  if (elements.downloadDirectory) {
-    const showDownload = Boolean(accessRole);
-    elements.downloadDirectory.textContent = translate("directory.download");
-    elements.downloadDirectory.hidden = !showDownload;
-    if (showDownload) {
-      elements.downloadDirectory.removeAttribute("aria-hidden");
-    } else {
-      elements.downloadDirectory.setAttribute("aria-hidden", "true");
-    }
-  }
-
-  updateDirectoryDownloadButton();
 }
 
 function isElementOpen(element) {
@@ -3746,20 +3270,10 @@ function refreshBodyScrollLock() {
   const parentOpen = Boolean(elements.parentChoice && !elements.parentChoice.hidden);
   const passwordOpen = Boolean(elements.passwordModal && !elements.passwordModal.hidden);
   const profileOpen = Boolean(elements.profileModal && !elements.profileModal.hidden);
-  const tutorialOpen = Boolean(
-    elements.serviceTutorialModal && !elements.serviceTutorialModal.hidden
-  );
   const assistantOpen = Boolean(
     elements.assistantPanel && !elements.assistantPanel.hidden
   );
-  if (
-    detailOpen ||
-    assignmentOpen ||
-    parentOpen ||
-    passwordOpen ||
-    profileOpen ||
-    tutorialOpen
-  ) {
+  if (detailOpen || assignmentOpen || parentOpen || passwordOpen || profileOpen) {
     document.body.style.overflow = "hidden";
   } else if (!assistantOpen) {
     document.body.style.overflow = "";
@@ -3892,246 +3406,12 @@ async function handlePasswordFormSubmit(event) {
   setStatusFromKey("profile.password.success");
 }
 
-function applyProfileModalTranslations() {
-  const modalState = state.profileModal ?? { mode: "create", editing: null };
-  const isEdit = modalState.mode === "edit";
-  const editing = modalState.editing;
-  const roleLabel = editing?.role
-    ? translate(ACCESS_METADATA[editing.role]?.labelKey ?? "")
-    : "";
-  const replacements = {
-    name: editing?.name ?? "",
-    role: roleLabel,
-  };
-
-  if (elements.profileModalTitle) {
-    const key = isEdit ? "profile.manage.editTitle" : "profile.manage.title";
-    elements.profileModalTitle.textContent = translate(key, replacements);
-  }
-  if (elements.profileModalDescription) {
-    const key = isEdit
-      ? "profile.manage.editDescription"
-      : "profile.manage.description";
-    elements.profileModalDescription.textContent = translate(key, replacements);
-  }
-  if (elements.profileModalSave) {
-    const key = isEdit ? "profile.manage.update" : "profile.manage.save";
-    elements.profileModalSave.textContent = translate(key);
-  }
-  if (elements.profileModalCancel) {
-    elements.profileModalCancel.textContent = translate("profile.manage.cancel");
-  }
+function resetProfileModal() {
   if (elements.profileModalName) {
-    elements.profileModalName.placeholder = translate(
-      "profile.manage.namePlaceholder"
-    );
-  }
-  if (elements.profileModalPassword) {
-    elements.profileModalPassword.placeholder = translate(
-      "profile.manage.passwordPlaceholder"
-    );
-  }
-  if (elements.profileModalConfirm) {
-    elements.profileModalConfirm.placeholder = translate(
-      "profile.manage.confirmPlaceholder"
-    );
-  }
-  if (elements.profileModalListTitle) {
-    elements.profileModalListTitle.textContent = translate(
-      "profile.manage.listTitle"
-    );
-  }
-  if (elements.profileModalListEmpty) {
-    elements.profileModalListEmpty.textContent = translate(
-      "profile.manage.listEmpty"
-    );
-  }
-}
-
-function buildStoredProfileEntries() {
-  const entries = [];
-  const credentials = state.roleCredentials ?? {};
-
-  Object.entries(credentials).forEach(([role, hashes]) => {
-    if (!hashes || typeof hashes !== "object") {
-      return;
-    }
-
-    Object.entries(hashes).forEach(([hash, secret]) => {
-      if (!hash || typeof secret !== "string") {
-        return;
-      }
-      const name = decryptNameSecret(secret)?.trim();
-      if (!name) {
-        return;
-      }
-
-      const roleLabel = translate(ACCESS_METADATA[role]?.labelKey ?? "");
-      entries.push({
-        role,
-        hash,
-        secret,
-        name,
-        roleLabel,
-      });
-    });
-  });
-
-  entries.sort((a, b) => {
-    const nameComparison = collator.compare(a.name, b.name);
-    if (nameComparison !== 0) {
-      return nameComparison;
-    }
-    return collator.compare(a.roleLabel ?? "", b.roleLabel ?? "");
-  });
-
-  return entries;
-}
-
-function findStoredProfileEntry(role, hash) {
-  if (!role || !hash) {
-    return null;
-  }
-  const list = state.profileModal?.entries ?? [];
-  return list.find((entry) => entry.role === role && entry.hash === hash) ?? null;
-}
-
-function renderProfileList() {
-  if (!elements.profileModalList) {
-    return;
-  }
-
-  const entries = buildStoredProfileEntries();
-  state.profileModal = state.profileModal ?? { mode: "create", editing: null };
-  state.profileModal.entries = entries;
-
-  const list = elements.profileModalList;
-  list.innerHTML = "";
-
-  if (!entries.length) {
-    list.hidden = true;
-    if (elements.profileModalListEmpty) {
-      elements.profileModalListEmpty.hidden = false;
-    }
-    return;
-  }
-
-  list.hidden = false;
-  if (elements.profileModalListEmpty) {
-    elements.profileModalListEmpty.hidden = true;
-  }
-
-  const fragment = document.createDocumentFragment();
-
-  entries.forEach((entry) => {
-    const item = document.createElement("li");
-    item.className = "credential-modal-list-item";
-    item.dataset.role = entry.role;
-    item.dataset.hash = entry.hash;
-
-    const info = document.createElement("div");
-    info.className = "credential-modal-list-info";
-
-    const name = document.createElement("span");
-    name.className = "credential-modal-list-name";
-    name.textContent = entry.name;
-    info.appendChild(name);
-
-    const role = document.createElement("span");
-    role.className = "credential-modal-list-role";
-    role.textContent = entry.roleLabel;
-    info.appendChild(role);
-
-    const actions = document.createElement("div");
-    actions.className = "credential-modal-list-actions";
-
-    const editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.className = "credential-modal-list-action";
-    editButton.dataset.action = "edit";
-    editButton.textContent = translate("profile.manage.editAction");
-    actions.appendChild(editButton);
-
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.className = "credential-modal-list-action danger";
-    deleteButton.dataset.action = "delete";
-    deleteButton.textContent = translate("profile.manage.deleteAction");
-    actions.appendChild(deleteButton);
-
-    item.appendChild(info);
-    item.appendChild(actions);
-    fragment.appendChild(item);
-  });
-
-  list.appendChild(fragment);
-}
-
-function handleProfileListClick(event) {
-  const target = event.target instanceof Element ? event.target : null;
-  if (!target) {
-    return;
-  }
-
-  const button = target.closest("button[data-action]");
-  if (!button) {
-    return;
-  }
-
-  const item = button.closest(".credential-modal-list-item");
-  if (!item) {
-    return;
-  }
-
-  const { role, hash } = item.dataset;
-  const entry = findStoredProfileEntry(role, hash);
-  if (!entry) {
-    return;
-  }
-
-  const action = button.dataset.action;
-  if (action === "edit") {
-    renderProfileRoleOptions();
-    setProfileModalMode("edit", entry);
-    try {
-      elements.profileModalName?.focus?.();
-    } catch (error) {
-      // ignore focus errors
-    }
-    return;
-  }
-
-  if (action === "delete") {
-    const confirmed = window.confirm(
-      translate("profile.manage.deleteConfirm", { name: entry.name })
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    removeRoleCredential(entry.role, entry.hash);
-    renderProfileList();
-    setProfileModalMode("create");
-    setStatusFromKey("profile.manage.deleteSuccess", { name: entry.name });
-  }
-}
-
-function setProfileModalMode(mode, profile = null) {
-  state.profileModal = state.profileModal ?? { mode: "create", editing: null };
-  state.profileModal.mode = mode;
-  state.profileModal.editing = profile ?? null;
-
-  applyProfileModalTranslations();
-
-  if (elements.profileModalName) {
-    elements.profileModalName.value = mode === "edit" ? profile?.name ?? "" : "";
+    elements.profileModalName.value = "";
   }
   if (elements.profileModalRole) {
-    if (mode === "edit" && profile?.role) {
-      elements.profileModalRole.value = profile.role;
-    } else {
-      elements.profileModalRole.value = "";
-    }
+    elements.profileModalRole.value = "";
   }
   if (elements.profileModalPassword) {
     elements.profileModalPassword.value = "";
@@ -4142,79 +3422,6 @@ function setProfileModalMode(mode, profile = null) {
   if (elements.profileModalFeedback) {
     elements.profileModalFeedback.textContent = "";
   }
-}
-
-function resetProfileModal() {
-  setProfileModalMode("create");
-  renderProfileList();
-}
-
-function buildDirectoryExportEntries() {
-  if (!Array.isArray(state.enrichedRecords) || !state.enrichedRecords.length) {
-    return [];
-  }
-
-  const entries = state.enrichedRecords.map((entry) => ({
-    name: entry.name != null ? String(entry.name).trim() : "",
-    age: Number.isFinite(entry.age) ? entry.age : null,
-    phone: entry.phone != null ? String(entry.phone).trim() : "",
-  }));
-
-  entries.sort((a, b) => collator.compare(a.name ?? "", b.name ?? ""));
-  return entries;
-}
-
-function updateDirectoryExport() {
-  const entries = buildDirectoryExportEntries();
-  const json = JSON.stringify(entries, null, 2);
-
-  state.directoryExport = {
-    entries,
-    json,
-    updatedAt: entries.length ? new Date().toISOString() : null,
-  };
-
-  updateDirectoryDownloadButton();
-}
-
-function updateDirectoryDownloadButton() {
-  if (!elements.downloadDirectory) {
-    return;
-  }
-  const hasEntries = Boolean(state.directoryExport?.entries?.length);
-  elements.downloadDirectory.disabled = !hasEntries;
-  elements.downloadDirectory.setAttribute(
-    "aria-disabled",
-    hasEntries ? "false" : "true"
-  );
-}
-
-function handleDirectoryDownload(event) {
-  if (event) {
-    event.preventDefault?.();
-  }
-
-  const entries = state.directoryExport?.entries ?? [];
-  if (!entries.length) {
-    setStatusFromKey("directory.empty", {}, true);
-    return;
-  }
-
-  const json = state.directoryExport?.json ?? JSON.stringify(entries, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = `diretorio-igcolina-${timestamp}.json`;
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-
-  setStatusFromKey("directory.ready");
 }
 
 function renderProfileRoleOptions() {
@@ -4335,44 +3542,16 @@ async function handleProfileFormSubmit(event) {
   }
 
   const secret = encryptNameSecret(trimmedName);
-  const modalState = state.profileModal ?? { mode: "create", editing: null };
-  const roleLabel = translate(ACCESS_METADATA[roleValue]?.labelKey ?? "");
-
-  if (modalState.mode === "edit" && modalState.editing) {
-    const previous = modalState.editing;
-
-    if (roleValue !== previous.role) {
-      const targetCredentials = getRoleCredentials(roleValue);
-      if (targetCredentials[hashed]) {
-        showProfileFeedback("profile.manage.passwordDuplicate");
-        return;
-      }
-      removeRoleCredential(previous.role, previous.hash);
-      addRoleCredential(roleValue, hashed, secret);
-    } else {
-      replaceRoleCredential(roleValue, previous.hash, hashed, secret);
-    }
-
-    renderProfileList();
-    setProfileModalMode("create");
-    setStatusFromKey("profile.manage.updateSuccess", {
-      name: trimmedName,
-      role: roleLabel,
-    });
-    return;
-  }
-
   const added = addRoleCredential(roleValue, hashed, secret);
   if (!added) {
     showProfileFeedback("profile.manage.passwordDuplicate");
     return;
   }
 
-  renderProfileList();
   closeProfileModal();
   setStatusFromKey("profile.manage.success", {
     name: trimmedName,
-    role: roleLabel,
+    role: translate(ACCESS_METADATA[roleValue]?.labelKey ?? ""),
   });
 }
 
@@ -4413,10 +3592,6 @@ function setupUserProfileEvents() {
 
   if (elements.manageProfiles) {
     elements.manageProfiles.addEventListener("click", openProfileModal);
-  }
-
-  if (elements.downloadDirectory) {
-    elements.downloadDirectory.addEventListener("click", handleDirectoryDownload);
   }
 
   document.addEventListener("click", handleUserProfileOutsideClick);
@@ -4702,7 +3877,6 @@ async function fetchSheetData() {
     applyServiceAssignmentsToEntries();
     state.parentEntries = buildParentEntries(state.enrichedRecords);
     state.parentSummary = summarizeParentEntries(state.parentEntries);
-    updateDirectoryExport();
     buildSuggestions();
 
     if (!CATEGORY_BY_ID[state.activeCategory]) {
@@ -5506,48 +4680,7 @@ function deleteCustomService(optionId) {
   return true;
 }
 
-function createServiceAssignmentMapFromObject(object) {
-  const map = new Map();
-  if (!object || typeof object !== "object") {
-    return map;
-  }
-
-  Object.entries(object).forEach(([key, value]) => {
-    if (typeof key !== "string" || !key) {
-      return;
-    }
-    const normalized = normalizeServiceAssignment(value);
-    if (!normalized.active || !normalized.services.length) {
-      return;
-    }
-    map.set(key, normalized);
-  });
-
-  return map;
-}
-
-function buildServiceAssignmentPayload(map = state.serviceAssignments) {
-  const payload = {};
-  if (!(map instanceof Map)) {
-    return payload;
-  }
-
-  map.forEach((assignment, key) => {
-    if (!key) return;
-    const services = Array.isArray(assignment?.services)
-      ? assignment.services.filter((serviceId) => sanitizeServiceId(serviceId))
-      : [];
-    payload[key] = {
-      active: Boolean(assignment?.active) && services.length > 0,
-      services,
-      serviceId: services[0] ?? "",
-    };
-  });
-
-  return payload;
-}
-
-function loadLocalServiceAssignments() {
+function loadServiceAssignments() {
   if (typeof localStorage === "undefined") {
     state.serviceAssignments = new Map();
     return;
@@ -5561,493 +4694,50 @@ function loadLocalServiceAssignments() {
     }
 
     const parsed = JSON.parse(stored);
-    state.serviceAssignments = createServiceAssignmentMapFromObject(parsed);
+    if (!parsed || typeof parsed !== "object") {
+      state.serviceAssignments = new Map();
+      return;
+    }
+
+    const map = new Map();
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (typeof key !== "string" || !key) {
+        return;
+      }
+      const normalized = normalizeServiceAssignment(value);
+      if (!normalized.active || !normalized.services.length) {
+        return;
+      }
+      map.set(key, normalized);
+    });
+    state.serviceAssignments = map;
   } catch (error) {
     console.warn("Failed to load service assignments:", error);
     state.serviceAssignments = new Map();
   }
 }
 
-function persistServiceAssignments({ skipRemote = false } = {}) {
+function persistServiceAssignments() {
   if (typeof localStorage === "undefined") {
     return;
   }
 
   try {
-    const payload = buildServiceAssignmentPayload();
+    const payload = {};
+    state.serviceAssignments.forEach((assignment, key) => {
+      if (!key) return;
+      const services = Array.isArray(assignment?.services)
+        ? assignment.services.filter((serviceId) => sanitizeServiceId(serviceId))
+        : [];
+      payload[key] = {
+        active: Boolean(assignment?.active) && services.length > 0,
+        services,
+        serviceId: services[0] ?? "",
+      };
+    });
     localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(payload));
-    if (!skipRemote) {
-      scheduleServiceSync();
-    }
   } catch (error) {
     console.warn("Failed to persist service assignments:", error);
-  }
-}
-
-function getServiceSyncConfig() {
-  const config = state.serviceSync?.config;
-  return sanitizeServiceSyncConfig(config);
-}
-
-function updateServiceSyncConfig(config) {
-  const sanitized = sanitizeServiceSyncConfig(config);
-  state.serviceSync = {
-    ...state.serviceSync,
-    config: sanitized,
-  };
-  persistServiceSyncConfig(sanitized);
-}
-
-function updateServiceSyncSecret(secret) {
-  const trimmed = typeof secret === "string" ? secret.trim() : "";
-  state.serviceSync = {
-    ...state.serviceSync,
-    secret: trimmed,
-  };
-  persistServiceSyncSecret(trimmed);
-}
-
-function hasServiceSyncRepository(config = getServiceSyncConfig()) {
-  if (!config) {
-    return false;
-  }
-
-  if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
-    return Boolean(config.readUrl);
-  }
-
-  return Boolean(
-    config.owner &&
-    config.repo &&
-    config.branch &&
-    config.path
-  );
-}
-
-function hasServiceSyncCredentials() {
-  const config = getServiceSyncConfig();
-  if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
-    return Boolean(config.readUrl);
-  }
-  return hasServiceSyncRepository(config) && Boolean(state.serviceSync?.secret);
-}
-
-function encodeServiceSyncPath(path) {
-  if (!path) return "";
-  return path
-    .split("/")
-    .filter((segment) => segment)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-}
-
-function buildServiceSyncContentsUrl(config = getServiceSyncConfig()) {
-  if (config.mode !== SERVICE_SYNC_MODES.GITHUB) {
-    return "";
-  }
-  const { owner, repo, branch, path } = config;
-  if (!owner || !repo || !path) {
-    return "";
-  }
-  const encodedPath = encodeServiceSyncPath(path);
-  const base = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}`;
-  return branch ? `${base}?ref=${encodeURIComponent(branch)}` : base;
-}
-
-function getServiceSyncHeaders(includeAuth = true) {
-  const config = getServiceSyncConfig();
-  const headers = {};
-
-  if (config.mode === SERVICE_SYNC_MODES.GITHUB) {
-    headers.Accept = SERVICE_SYNC_ACCEPT_HEADER;
-    if (includeAuth && state.serviceSync?.secret) {
-      headers.Authorization = `Bearer ${state.serviceSync.secret}`;
-    }
-  } else {
-    headers.Accept = "application/json";
-    if (includeAuth && state.serviceSync?.secret) {
-      const headerName = config.authHeader || "Authorization";
-      headers[headerName] = state.serviceSync.secret;
-    }
-  }
-
-  return headers;
-}
-
-async function fetchServiceSyncFile({ parseContent = true, silent = false } = {}) {
-  if (!hasServiceSyncRepository()) {
-    return { sha: null, assignments: new Map(), exists: false };
-  }
-
-  const config = getServiceSyncConfig();
-
-  if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
-    const url = config.readUrl;
-    if (!url) {
-      return { sha: null, assignments: new Map(), exists: false };
-    }
-
-    try {
-      const response = await fetch(url, {
-        headers: getServiceSyncHeaders(true),
-        cache: "no-store",
-      });
-
-      if (response.status === 404) {
-        return { sha: null, assignments: new Map(), exists: false };
-      }
-
-      if (!response.ok) {
-        const error = new Error(
-          `Service sync request failed (${response.status} ${response.statusText})`
-        );
-        error.status = response.status;
-        throw error;
-      }
-
-      if (!parseContent) {
-        return { sha: null, assignments: null, exists: true };
-      }
-
-      let text;
-      try {
-        text = await response.text();
-      } catch (error) {
-        console.warn("Failed to read webhook response:", error);
-        text = "{}";
-      }
-
-      const raw = text && text.trim() ? text : "{}";
-      let parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (error) {
-        console.warn("Failed to parse webhook service assignments:", error);
-        parsed = {};
-      }
-
-      return {
-        sha: null,
-        assignments: createServiceAssignmentMapFromObject(parsed),
-        exists: true,
-      };
-    } catch (error) {
-      if (!silent) {
-        console.warn("Unable to fetch webhook service assignments:", error);
-      }
-      throw error;
-    }
-  }
-
-  const url = buildServiceSyncContentsUrl(config);
-  if (!url) {
-    return { sha: null, assignments: new Map(), exists: false };
-  }
-
-  try {
-    const response = await fetch(url, {
-      headers: getServiceSyncHeaders(true),
-      cache: "no-store",
-    });
-
-    if (response.status === 404) {
-      return { sha: null, assignments: new Map(), exists: false };
-    }
-
-    if (!response.ok) {
-      const error = new Error(
-        `Service sync request failed (${response.status} ${response.statusText})`
-      );
-      error.status = response.status;
-      throw error;
-    }
-
-    const data = await response.json();
-    const sha = data?.sha ?? null;
-
-    if (!parseContent) {
-      return { sha, assignments: null, exists: true };
-    }
-
-    let rawContent = "{}";
-    if (data && typeof data.content === "string") {
-      rawContent = safeDecodeBase64(data.content.replace(/\n/g, "")) || "{}";
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(rawContent);
-    } catch (error) {
-      console.warn("Failed to parse remote service assignments:", error);
-      parsed = {};
-    }
-
-    return {
-      sha,
-      assignments: createServiceAssignmentMapFromObject(parsed),
-      exists: true,
-    };
-  } catch (error) {
-    if (!silent) {
-      console.warn("Unable to fetch remote service assignments:", error);
-    }
-    throw error;
-  }
-}
-
-function setServiceSyncStatus(key, replacements = {}, isError = false) {
-  const normalizedReplacements =
-    replacements && typeof replacements === "object"
-      ? { ...replacements }
-      : {};
-  const message = key ? translate(key, replacements) : "";
-  state.serviceSync = {
-    ...state.serviceSync,
-    lastStatus: key,
-    lastReplacements: normalizedReplacements,
-    lastIsError: Boolean(isError),
-  };
-  if (elements.serviceSyncFeedback) {
-    elements.serviceSyncFeedback.textContent = message;
-    elements.serviceSyncFeedback.classList.toggle("error", Boolean(isError));
-  }
-}
-
-function renderServiceTutorialContent() {
-  if (!elements.serviceTutorialModal) {
-    return;
-  }
-
-  if (elements.serviceTutorialTitle) {
-    elements.serviceTutorialTitle.textContent = translate(
-      "serviceManager.tutorial.title"
-    );
-  }
-
-  if (elements.serviceTutorialDescription) {
-    elements.serviceTutorialDescription.textContent = translate(
-      "serviceManager.tutorial.description"
-    );
-  }
-
-  if (elements.serviceTutorialClose) {
-    const closeLabel = translate("serviceManager.tutorial.closeLabel");
-    if (closeLabel) {
-      elements.serviceTutorialClose.setAttribute("aria-label", closeLabel);
-    }
-  }
-
-  if (elements.serviceTutorialDismiss) {
-    elements.serviceTutorialDismiss.textContent = translate(
-      "serviceManager.tutorial.dismiss"
-    );
-  }
-
-  if (elements.serviceTutorialSteps) {
-    const container = elements.serviceTutorialSteps;
-    container.innerHTML = "";
-    const steps = translate("serviceManager.tutorial.steps");
-    const items = Array.isArray(steps)
-      ? steps
-      : typeof steps === "string"
-      ? [steps]
-      : [];
-    for (const step of items) {
-      if (typeof step !== "string" || !step.trim()) {
-        continue;
-      }
-      const item = document.createElement("li");
-      item.textContent = step.trim();
-      container.appendChild(item);
-    }
-  }
-}
-
-async function refreshRemoteServiceAssignments({ silent = false } = {}) {
-  if (state.serviceSync?.refreshing) {
-    return false;
-  }
-
-  if (!hasServiceSyncRepository()) {
-    return false;
-  }
-
-  state.serviceSync.refreshing = true;
-  if (!silent) {
-    setServiceSyncStatus("serviceManager.sync.statusFetching");
-  }
-
-  try {
-    const result = await fetchServiceSyncFile({ parseContent: true, silent });
-    state.serviceSync.remoteSha = result.sha;
-
-    if (result.assignments) {
-      state.serviceAssignments = result.assignments;
-      persistServiceAssignments({ skipRemote: true });
-      applyServiceAssignmentsToEntries();
-      recalculateServiceSummaries();
-      if (isServiceManagerPage) {
-        renderServiceManager();
-      } else if (isDashboardPage || isCategoryPage) {
-        renderCategory(state.activeCategory);
-      }
-      refreshActiveServiceInterfaces({ preserveSelection: true });
-    }
-
-    if (!silent) {
-      setServiceSyncStatus("serviceManager.sync.statusFetched");
-    }
-    return true;
-  } catch (error) {
-    if (!silent) {
-      const replacements = { error: error?.message ?? "" };
-      const unauthorized = error?.status === 401 || error?.status === 403;
-      const key = unauthorized
-        ? "serviceManager.sync.statusUnauthorized"
-        : "serviceManager.sync.statusError";
-      setServiceSyncStatus(key, replacements, true);
-    }
-    return false;
-  } finally {
-    state.serviceSync.refreshing = false;
-  }
-}
-
-function clearServiceSyncTimer() {
-  if (state.serviceSync?.timer) {
-    clearTimeout(state.serviceSync.timer);
-    state.serviceSync.timer = null;
-  }
-}
-
-function scheduleServiceSync() {
-  if (!hasServiceSyncCredentials()) {
-    return;
-  }
-
-  clearServiceSyncTimer();
-  state.serviceSync.pendingUpload = true;
-  state.serviceSync.timer = setTimeout(() => {
-    state.serviceSync.timer = null;
-    syncServiceAssignmentsToRemote();
-  }, SERVICE_SYNC_DEBOUNCE_MS);
-}
-
-async function syncServiceAssignmentsToRemote({ silent = false } = {}) {
-  if (!hasServiceSyncCredentials()) {
-    return false;
-  }
-
-  if (state.serviceSync?.syncing) {
-    state.serviceSync.pendingUpload = true;
-    return false;
-  }
-
-  state.serviceSync.syncing = true;
-  state.serviceSync.pendingUpload = false;
-  if (!silent) {
-    setServiceSyncStatus("serviceManager.sync.statusSyncing");
-  }
-
-  try {
-    const config = getServiceSyncConfig();
-    const payload = buildServiceAssignmentPayload();
-
-    if (config.mode === SERVICE_SYNC_MODES.WEBHOOK) {
-      const targetUrl = config.writeUrl || config.readUrl;
-      if (!targetUrl) {
-        setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
-        return false;
-      }
-
-      const headers = {
-        ...getServiceSyncHeaders(true),
-        "Content-Type": "application/json",
-      };
-
-      const response = await fetch(targetUrl, {
-        method: config.writeMethod || SERVICE_SYNC_DEFAULT_WRITE_METHOD,
-        headers,
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok && response.status !== 204) {
-        const error = new Error(
-          `Service sync upload failed (${response.status} ${response.statusText})`
-        );
-        error.status = response.status;
-        throw error;
-      }
-
-      state.serviceSync.remoteSha = null;
-      if (!silent) {
-        setServiceSyncStatus("serviceManager.sync.statusSynced");
-      }
-      return true;
-    }
-
-    if (!state.serviceSync.remoteSha) {
-      try {
-        const metadata = await fetchServiceSyncFile({
-          parseContent: false,
-          silent: true,
-        });
-        state.serviceSync.remoteSha = metadata.sha;
-      } catch (error) {
-        if (error?.status !== 404) {
-          throw error;
-        }
-      }
-    }
-
-    const content = JSON.stringify(payload, null, 2);
-    const body = {
-      message: "Atualiza atribuições de serviços",
-      content: safeEncodeBase64(content),
-      branch: getServiceSyncConfig().branch,
-    };
-    if (state.serviceSync.remoteSha) {
-      body.sha = state.serviceSync.remoteSha;
-    }
-
-    const url = buildServiceSyncContentsUrl(config);
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: {
-        ...getServiceSyncHeaders(true),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const error = new Error(
-        `Service sync upload failed (${response.status} ${response.statusText})`
-      );
-      error.status = response.status;
-      throw error;
-    }
-
-    const data = await response.json();
-    state.serviceSync.remoteSha = data?.content?.sha ?? null;
-    if (!silent) {
-      setServiceSyncStatus("serviceManager.sync.statusSynced");
-    }
-    return true;
-  } catch (error) {
-    const replacements = { error: error?.message ?? "" };
-    const unauthorized = error?.status === 401 || error?.status === 403;
-    const key = unauthorized
-      ? "serviceManager.sync.statusUnauthorized"
-      : "serviceManager.sync.statusError";
-    setServiceSyncStatus(key, replacements, true);
-    console.warn("Failed to sync service assignments:", error);
-    return false;
-  } finally {
-    state.serviceSync.syncing = false;
-    if (state.serviceSync.pendingUpload) {
-      scheduleServiceSync();
-    }
   }
 }
 
@@ -6140,50 +4830,11 @@ function recalculateServiceSummaries() {
 }
 
 function initializeServiceAssignments() {
-  loadLocalServiceAssignments();
-  refreshRemoteServiceAssignments({ silent: true });
+  loadServiceAssignments();
 }
 
 function initializeCustomServices() {
   loadCustomServices();
-}
-
-function initializeServiceSync() {
-  populateServiceSyncForm();
-  applyServiceSyncTranslations();
-  updateServiceSyncVisibility();
-
-  if (elements.serviceSyncForm) {
-    elements.serviceSyncForm.addEventListener("submit", (event) => {
-      handleServiceSyncSubmit(event);
-    });
-  }
-  if (elements.serviceSyncMode) {
-    elements.serviceSyncMode.addEventListener("change", () => {
-      const selected =
-        elements.serviceSyncMode?.value?.trim().toLowerCase() ??
-        SERVICE_SYNC_DEFAULT_MODE;
-      const mode = Object.values(SERVICE_SYNC_MODES).includes(selected)
-        ? selected
-        : SERVICE_SYNC_DEFAULT_MODE;
-      if (elements.serviceSyncForm) {
-        elements.serviceSyncForm.dataset.mode = mode;
-      }
-      if (elements.serviceSyncSection) {
-        elements.serviceSyncSection.dataset.mode = mode;
-      }
-      applyServiceSyncTranslations();
-    });
-  }
-  if (elements.serviceSyncClear) {
-    elements.serviceSyncClear.addEventListener("click", handleServiceSyncClear);
-  }
-  if (elements.serviceSyncRefresh) {
-    elements.serviceSyncRefresh.addEventListener(
-      "click",
-      handleServiceSyncRefresh
-    );
-  }
 }
 
 function matchSupplementalRecord(record, birthDate) {
@@ -8061,67 +6712,6 @@ function closeServiceAssignmentModal() {
   }
 }
 
-function openServiceTutorialModal(trigger = null) {
-  if (!elements.serviceTutorialModal) {
-    return;
-  }
-
-  renderServiceTutorialContent();
-  closeModal();
-  closeServiceAssignmentModal();
-
-  const activeElement = trigger ?? document.activeElement;
-  state.activeServiceTutorialTrigger =
-    activeElement && document.contains(activeElement)
-      ? activeElement
-      : elements.serviceManagerTutorial;
-
-  elements.serviceTutorialModal.hidden = false;
-  elements.serviceTutorialModal.setAttribute("aria-hidden", "false");
-  refreshBodyScrollLock();
-
-  setTimeout(() => {
-    const focusTarget =
-      elements.serviceTutorialDismiss || elements.serviceTutorialClose;
-    if (focusTarget && typeof focusTarget.focus === "function") {
-      try {
-        focusTarget.focus();
-      } catch (error) {
-        // Ignore focus errors
-      }
-    }
-  }, 0);
-}
-
-function closeServiceTutorialModal() {
-  if (!elements.serviceTutorialModal) {
-    return;
-  }
-
-  if (elements.serviceTutorialModal.hidden) {
-    state.activeServiceTutorialTrigger = null;
-    return;
-  }
-
-  elements.serviceTutorialModal.hidden = true;
-  elements.serviceTutorialModal.setAttribute("aria-hidden", "true");
-  refreshBodyScrollLock();
-
-  const trigger = state.activeServiceTutorialTrigger;
-  state.activeServiceTutorialTrigger = null;
-  const fallback = elements.serviceManagerTutorial;
-  const focusTarget =
-    trigger && document.contains(trigger) ? trigger : fallback;
-
-  if (focusTarget && typeof focusTarget.focus === "function") {
-    try {
-      focusTarget.focus();
-    } catch (error) {
-      // Ignore focus errors
-    }
-  }
-}
-
 function handleServiceAssignmentOptionsChange(event) {
   if (!event || !event.target) {
     return;
@@ -8425,341 +7015,6 @@ function renderCustomServiceList() {
   });
 }
 
-function populateServiceSyncForm() {
-  const form = elements.serviceSyncForm;
-  if (!form) {
-    return;
-  }
-
-  const config = getServiceSyncConfig();
-  const mode = config.mode || SERVICE_SYNC_DEFAULT_MODE;
-
-  if (elements.serviceSyncMode) {
-    elements.serviceSyncMode.value = mode;
-  }
-
-  if (elements.serviceSyncForm) {
-    elements.serviceSyncForm.dataset.mode = mode;
-  }
-
-  if (elements.serviceSyncSection) {
-    elements.serviceSyncSection.dataset.mode = mode;
-  }
-
-  if (elements.serviceSyncOwner) {
-    elements.serviceSyncOwner.value = config.owner ?? "";
-  }
-  if (elements.serviceSyncRepo) {
-    elements.serviceSyncRepo.value = config.repo ?? "";
-  }
-  if (elements.serviceSyncBranch) {
-    elements.serviceSyncBranch.value = config.branch ?? "";
-  }
-  if (elements.serviceSyncPath) {
-    elements.serviceSyncPath.value = config.path ?? "";
-  }
-  if (elements.serviceSyncReadUrl) {
-    elements.serviceSyncReadUrl.value = config.readUrl ?? "";
-  }
-  if (elements.serviceSyncWriteUrl) {
-    elements.serviceSyncWriteUrl.value = config.writeUrl ?? "";
-  }
-  if (elements.serviceSyncWriteMethod) {
-    elements.serviceSyncWriteMethod.value =
-      config.writeMethod || SERVICE_SYNC_DEFAULT_WRITE_METHOD;
-  }
-  if (elements.serviceSyncAuthHeader) {
-    elements.serviceSyncAuthHeader.value = config.authHeader ?? "";
-  }
-  if (elements.serviceSyncToken) {
-    elements.serviceSyncToken.value = "";
-    elements.serviceSyncToken.placeholder = "";
-  }
-}
-
-function applyServiceSyncTranslations() {
-  if (!elements.serviceSyncSection) {
-    return;
-  }
-
-  const config = getServiceSyncConfig();
-  const activeMode =
-    elements.serviceSyncForm?.dataset.mode ||
-    config.mode ||
-    SERVICE_SYNC_DEFAULT_MODE;
-  const secretStored = Boolean(state.serviceSync?.secret);
-
-  if (elements.serviceSyncTitle) {
-    elements.serviceSyncTitle.textContent = translate("serviceManager.sync.title");
-  }
-  if (elements.serviceSyncDescription) {
-    elements.serviceSyncDescription.textContent = translate(
-      "serviceManager.sync.description"
-    );
-  }
-  if (elements.serviceSyncModeLabel) {
-    elements.serviceSyncModeLabel.textContent = translate(
-      "serviceManager.sync.mode.label"
-    );
-  }
-  if (elements.serviceSyncMode) {
-    Array.from(elements.serviceSyncMode.options || []).forEach((option) => {
-      if (!option || !option.value) {
-        return;
-      }
-      const key =
-        option.value === SERVICE_SYNC_MODES.WEBHOOK
-          ? "serviceManager.sync.mode.webhook"
-          : "serviceManager.sync.mode.github";
-      option.textContent = translate(key);
-    });
-  }
-  if (elements.serviceSyncOwnerLabel) {
-    elements.serviceSyncOwnerLabel.textContent = translate(
-      "serviceManager.sync.github.ownerLabel"
-    );
-  }
-  if (elements.serviceSyncRepoLabel) {
-    elements.serviceSyncRepoLabel.textContent = translate(
-      "serviceManager.sync.github.repoLabel"
-    );
-  }
-  if (elements.serviceSyncBranchLabel) {
-    elements.serviceSyncBranchLabel.textContent = translate(
-      "serviceManager.sync.github.branchLabel"
-    );
-  }
-  if (elements.serviceSyncPathLabel) {
-    elements.serviceSyncPathLabel.textContent = translate(
-      "serviceManager.sync.github.pathLabel"
-    );
-  }
-  if (elements.serviceSyncReadUrlLabel) {
-    elements.serviceSyncReadUrlLabel.textContent = translate(
-      "serviceManager.sync.webhook.readUrlLabel"
-    );
-  }
-  if (elements.serviceSyncReadUrl) {
-    elements.serviceSyncReadUrl.placeholder = translate(
-      "serviceManager.sync.webhook.readUrlPlaceholder"
-    );
-  }
-  if (elements.serviceSyncWriteUrlLabel) {
-    elements.serviceSyncWriteUrlLabel.textContent = translate(
-      "serviceManager.sync.webhook.writeUrlLabel"
-    );
-  }
-  if (elements.serviceSyncWriteUrl) {
-    elements.serviceSyncWriteUrl.placeholder = translate(
-      "serviceManager.sync.webhook.writeUrlPlaceholder"
-    );
-  }
-  if (elements.serviceSyncWriteMethodLabel) {
-    elements.serviceSyncWriteMethodLabel.textContent = translate(
-      "serviceManager.sync.webhook.writeMethodLabel"
-    );
-  }
-  if (elements.serviceSyncWriteMethod) {
-    Array.from(elements.serviceSyncWriteMethod.options || []).forEach(
-      (option) => {
-        if (!option || !option.value) {
-          return;
-        }
-        const key =
-          option.value.toUpperCase() === "POST"
-            ? "serviceManager.sync.webhook.writeMethodPost"
-            : "serviceManager.sync.webhook.writeMethodPut";
-        option.textContent = translate(key);
-      }
-    );
-  }
-  if (elements.serviceSyncAuthHeaderLabel) {
-    elements.serviceSyncAuthHeaderLabel.textContent = translate(
-      "serviceManager.sync.webhook.authHeaderLabel"
-    );
-  }
-  if (elements.serviceSyncAuthHeader) {
-    elements.serviceSyncAuthHeader.placeholder = translate(
-      "serviceManager.sync.webhook.authHeaderPlaceholder"
-    );
-  }
-  if (elements.serviceSyncTokenLabel) {
-    const tokenLabelKey =
-      activeMode === SERVICE_SYNC_MODES.WEBHOOK
-        ? "serviceManager.sync.webhook.tokenLabel"
-        : "serviceManager.sync.github.tokenLabel";
-    elements.serviceSyncTokenLabel.textContent = translate(tokenLabelKey);
-  }
-  if (elements.serviceSyncToken) {
-    const placeholderKey = secretStored
-      ? activeMode === SERVICE_SYNC_MODES.WEBHOOK
-        ? "serviceManager.sync.webhook.tokenPlaceholderSaved"
-        : "serviceManager.sync.github.tokenPlaceholderSaved"
-      : activeMode === SERVICE_SYNC_MODES.WEBHOOK
-      ? "serviceManager.sync.webhook.tokenPlaceholder"
-      : "serviceManager.sync.github.tokenPlaceholder";
-    elements.serviceSyncToken.placeholder = translate(placeholderKey);
-  }
-  if (elements.serviceSyncSave) {
-    elements.serviceSyncSave.textContent = translate("serviceManager.sync.save");
-  }
-  if (elements.serviceSyncClear) {
-    elements.serviceSyncClear.textContent = translate(
-      "serviceManager.sync.clear"
-    );
-  }
-  if (elements.serviceSyncRefresh) {
-    elements.serviceSyncRefresh.textContent = translate(
-      "serviceManager.sync.refresh"
-    );
-  }
-  renderServiceTutorialContent();
-  if (elements.serviceSyncFeedback && state.serviceSync?.lastStatus) {
-    const key = state.serviceSync.lastStatus;
-    const replacements =
-      state.serviceSync.lastReplacements &&
-      typeof state.serviceSync.lastReplacements === "object"
-        ? state.serviceSync.lastReplacements
-        : {};
-    elements.serviceSyncFeedback.textContent = translate(key, replacements);
-    elements.serviceSyncFeedback.classList.toggle(
-      "error",
-      Boolean(state.serviceSync.lastIsError)
-    );
-  } else if (elements.serviceSyncFeedback) {
-    elements.serviceSyncFeedback.textContent = "";
-    elements.serviceSyncFeedback.classList.remove("error");
-  }
-}
-
-function updateServiceSyncVisibility() {
-  const section = elements.serviceSyncSection;
-  if (!section) {
-    return;
-  }
-
-  const canManage = Boolean(state.accessRole) && canManageServices();
-  section.hidden = !canManage;
-
-  const controls = [
-    elements.serviceSyncMode,
-    elements.serviceSyncOwner,
-    elements.serviceSyncRepo,
-    elements.serviceSyncBranch,
-    elements.serviceSyncPath,
-    elements.serviceSyncReadUrl,
-    elements.serviceSyncWriteUrl,
-    elements.serviceSyncWriteMethod,
-    elements.serviceSyncAuthHeader,
-    elements.serviceSyncToken,
-    elements.serviceSyncSave,
-    elements.serviceSyncClear,
-    elements.serviceSyncRefresh,
-  ];
-
-  controls.forEach((control) => {
-    if (!control) return;
-    control.disabled = !canManage;
-  });
-}
-
-async function handleServiceSyncSubmit(event) {
-  event.preventDefault();
-
-  if (!canManageServices()) {
-    setServiceSyncStatus("serviceManager.restricted", {}, true);
-    return;
-  }
-
-  const selectedMode =
-    elements.serviceSyncMode?.value?.trim().toLowerCase() ??
-    SERVICE_SYNC_DEFAULT_MODE;
-  const mode = Object.values(SERVICE_SYNC_MODES).includes(selectedMode)
-    ? selectedMode
-    : SERVICE_SYNC_DEFAULT_MODE;
-
-  const token = elements.serviceSyncToken?.value?.trim() ?? "";
-  const nextConfig = { ...getServiceSyncConfig(), mode };
-
-  if (mode === SERVICE_SYNC_MODES.GITHUB) {
-    const owner = elements.serviceSyncOwner?.value?.trim() ?? "";
-    const repo = elements.serviceSyncRepo?.value?.trim() ?? "";
-    const branch = elements.serviceSyncBranch?.value?.trim() ?? "";
-    const path = elements.serviceSyncPath?.value?.trim() ?? "";
-
-    if (!owner || !repo) {
-      setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
-      (elements.serviceSyncOwner || elements.serviceSyncRepo)?.focus?.();
-      return;
-    }
-
-    nextConfig.owner = owner;
-    nextConfig.repo = repo;
-    nextConfig.branch = branch;
-    nextConfig.path = path;
-  } else {
-    const readUrl = elements.serviceSyncReadUrl?.value?.trim() ?? "";
-    const writeUrl = elements.serviceSyncWriteUrl?.value?.trim() ?? "";
-    const writeMethodRaw =
-      elements.serviceSyncWriteMethod?.value?.trim().toUpperCase() ??
-      SERVICE_SYNC_DEFAULT_WRITE_METHOD;
-    const writeMethod = SERVICE_SYNC_WRITE_METHODS.has(writeMethodRaw)
-      ? writeMethodRaw
-      : SERVICE_SYNC_DEFAULT_WRITE_METHOD;
-    const authHeader = elements.serviceSyncAuthHeader?.value?.trim() ?? "";
-
-    if (!readUrl) {
-      setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
-      elements.serviceSyncReadUrl?.focus?.();
-      return;
-    }
-
-    nextConfig.readUrl = readUrl;
-    nextConfig.writeUrl = writeUrl;
-    nextConfig.writeMethod = writeMethod;
-    nextConfig.authHeader = authHeader || "Authorization";
-  }
-
-  updateServiceSyncConfig(nextConfig);
-  state.serviceSync.remoteSha = null;
-  if (token) {
-    updateServiceSyncSecret(token);
-  }
-
-  populateServiceSyncForm();
-  applyServiceSyncTranslations();
-  setServiceSyncStatus("serviceManager.sync.statusSaved");
-  await refreshRemoteServiceAssignments({ silent: false });
-}
-
-function handleServiceSyncClear(event) {
-  event.preventDefault();
-
-  if (!canManageServices()) {
-    setServiceSyncStatus("serviceManager.restricted", {}, true);
-    return;
-  }
-
-  updateServiceSyncConfig(getDefaultServiceSyncConfig());
-  updateServiceSyncSecret("");
-  state.serviceSync.remoteSha = null;
-  clearServiceSyncTimer();
-  populateServiceSyncForm();
-  applyServiceSyncTranslations();
-  setServiceSyncStatus("serviceManager.sync.statusCleared");
-}
-
-async function handleServiceSyncRefresh(event) {
-  event.preventDefault();
-
-  if (!hasServiceSyncRepository()) {
-    setServiceSyncStatus("serviceManager.sync.statusInvalid", {}, true);
-    return;
-  }
-
-  await refreshRemoteServiceAssignments({ silent: false });
-}
-
 function handleCustomServiceListClick(event) {
   if (!event || !event.target) {
     return;
@@ -8819,9 +7074,6 @@ function renderServiceManager() {
   if (!isServiceManagerPage) {
     return;
   }
-
-  applyServiceSyncTranslations();
-  updateServiceSyncVisibility();
 
   const list = elements.serviceManagerList;
   const empty = elements.serviceManagerEmpty;
@@ -9799,14 +8051,6 @@ function handleDocumentClick(event) {
   }
 
   if (
-    elements.serviceTutorialModal &&
-    !elements.serviceTutorialModal.hidden &&
-    event.target === elements.serviceTutorialModal
-  ) {
-    closeServiceTutorialModal();
-  }
-
-  if (
     elements.assistantPanel &&
     !elements.assistantPanel.hidden &&
     !elements.assistantPanel.contains(event.target) &&
@@ -9874,24 +8118,6 @@ function setupEventListeners() {
     elements.serviceManagerBack.addEventListener("click", () => {
       window.location.assign("index.html");
     });
-  }
-
-  if (elements.serviceManagerTutorial) {
-    elements.serviceManagerTutorial.addEventListener("click", () => {
-      openServiceTutorialModal(elements.serviceManagerTutorial);
-    });
-  }
-  if (elements.serviceTutorialClose) {
-    elements.serviceTutorialClose.addEventListener(
-      "click",
-      closeServiceTutorialModal
-    );
-  }
-  if (elements.serviceTutorialDismiss) {
-    elements.serviceTutorialDismiss.addEventListener(
-      "click",
-      closeServiceTutorialModal
-    );
   }
 
   if (elements.serviceManagerAddForm) {
@@ -9976,9 +8202,6 @@ function setupEventListeners() {
       handleProfileFormSubmit
     );
   }
-  if (elements.profileModalList) {
-    elements.profileModalList.addEventListener("click", handleProfileListClick);
-  }
 
   if (elements.closeModal) {
     elements.closeModal.addEventListener("click", closeModal);
@@ -9988,7 +8211,6 @@ function setupEventListeners() {
     if (event.key === "Escape") {
       closeModal();
       closeServiceAssignmentModal();
-      closeServiceTutorialModal();
       closeUserMenu();
       closeAssistant();
       closeParentChoice();
@@ -10056,7 +8278,6 @@ setupUserProfileEvents();
 setupAssistant();
 initializeCustomServices();
 initializeServiceAssignments();
-initializeServiceSync();
 
 async function bootstrap() {
   await initializeAccessControl();

@@ -84,15 +84,6 @@
             <button
               type="button"
               class="user-profile-action"
-              id="download-directory"
-              role="menuitem"
-              hidden
-            >
-              Baixar diretório (JSON)
-            </button>
-            <button
-              type="button"
-              class="user-profile-action"
               id="manage-services"
               role="menuitem"
             >
@@ -133,22 +124,9 @@
               Defina se o irmão serve na vida da igreja e escolha a frente de atuação.
             </p>
           </div>
-          <div class="service-manager-actions">
-            <button
-              type="button"
-              class="service-manager-tutorial"
-              id="service-manager-tutorial"
-            >
-              Tutorial de uso
-            </button>
-            <button
-              type="button"
-              class="service-manager-back"
-              id="service-manager-back"
-            >
-              ← Voltar ao painel principal
-            </button>
-          </div>
+          <button type="button" class="service-manager-back" id="service-manager-back">
+            ← Voltar ao painel principal
+          </button>
         </div>
         <p class="service-manager-notice" id="service-manager-notice" hidden>
           Atribuição de serviços disponível apenas para o perfil Serviços.
@@ -249,155 +227,6 @@
           </p>
           <ul class="service-manager-custom-list" id="service-manager-custom-list"></ul>
         </section>
-        <section class="service-sync" id="service-sync" hidden>
-          <header class="service-sync-header">
-            <h3 id="service-sync-title">Sincronizar atribuições</h3>
-            <p id="service-sync-description">
-              Escolha o método de sincronização para manter os serviços atualizados.
-            </p>
-          </header>
-          <form
-            class="service-sync-form"
-            id="service-sync-form"
-            data-mode="github"
-          >
-            <div class="service-sync-field">
-              <label for="service-sync-mode" id="service-sync-mode-label"
-                >Como deseja sincronizar?</label
-              >
-              <select id="service-sync-mode" name="service-sync-mode">
-                <option value="github">Repositório GitHub</option>
-                <option value="webhook">Link de API (JSON)</option>
-              </select>
-            </div>
-            <div class="service-sync-grid" data-sync-mode="github">
-              <div class="service-sync-field">
-                <label for="service-sync-owner" id="service-sync-owner-label"
-                  >Dono do repositório</label
-                >
-                <input
-                  type="text"
-                  id="service-sync-owner"
-                  name="service-sync-owner"
-                  autocomplete="off"
-                />
-              </div>
-              <div class="service-sync-field">
-                <label for="service-sync-repo" id="service-sync-repo-label"
-                  >Repositório</label
-                >
-                <input
-                  type="text"
-                  id="service-sync-repo"
-                  name="service-sync-repo"
-                  autocomplete="off"
-                />
-              </div>
-            </div>
-            <div class="service-sync-grid" data-sync-mode="github">
-              <div class="service-sync-field">
-                <label for="service-sync-branch" id="service-sync-branch-label"
-                  >Branch</label
-                >
-                <input
-                  type="text"
-                  id="service-sync-branch"
-                  name="service-sync-branch"
-                  autocomplete="off"
-                  value="main"
-                />
-              </div>
-              <div class="service-sync-field">
-                <label for="service-sync-path" id="service-sync-path-label"
-                  >Caminho do arquivo</label
-                >
-                <input
-                  type="text"
-                  id="service-sync-path"
-                  name="service-sync-path"
-                  autocomplete="off"
-                  value="data/service-assignments.json"
-                />
-              </div>
-            </div>
-            <div class="service-sync-grid" data-sync-mode="webhook">
-              <div class="service-sync-field full">
-                <label for="service-sync-read-url" id="service-sync-read-url-label"
-                  >URL para ler os dados</label
-                >
-                <input
-                  type="url"
-                  id="service-sync-read-url"
-                  name="service-sync-read-url"
-                  autocomplete="off"
-                  placeholder="https://"
-                />
-              </div>
-              <div class="service-sync-field full">
-                <label for="service-sync-write-url" id="service-sync-write-url-label"
-                  >URL para enviar atualizações (opcional)</label
-                >
-                <input
-                  type="url"
-                  id="service-sync-write-url"
-                  name="service-sync-write-url"
-                  autocomplete="off"
-                  placeholder="https://"
-                />
-              </div>
-            </div>
-            <div class="service-sync-grid" data-sync-mode="webhook">
-              <div class="service-sync-field">
-                <label
-                  for="service-sync-write-method"
-                  id="service-sync-write-method-label"
-                  >Método de escrita</label
-                >
-                <select
-                  id="service-sync-write-method"
-                  name="service-sync-write-method"
-                >
-                  <option value="PUT">PUT</option>
-                  <option value="POST">POST</option>
-                </select>
-              </div>
-              <div class="service-sync-field">
-                <label for="service-sync-auth-header" id="service-sync-auth-header-label"
-                  >Cabeçalho de autorização</label
-                >
-                <input
-                  type="text"
-                  id="service-sync-auth-header"
-                  name="service-sync-auth-header"
-                  autocomplete="off"
-                  placeholder="Authorization"
-                />
-              </div>
-            </div>
-            <div class="service-sync-field">
-              <label for="service-sync-token" id="service-sync-token-label"
-                >Token do GitHub</label
-              >
-              <input
-                type="password"
-                id="service-sync-token"
-                name="service-sync-token"
-                autocomplete="off"
-                placeholder="Informe o token com acesso de escrita"
-              />
-            </div>
-            <p class="service-sync-feedback" id="service-sync-feedback" role="status"></p>
-            <div class="service-sync-actions">
-              <button type="submit" id="service-sync-save">Salvar configuração</button>
-              <button type="button" class="secondary" id="service-sync-clear">
-                Limpar dados
-              </button>
-              <button type="button" class="ghost" id="service-sync-refresh">
-                Atualizar agora
-              </button>
-            </div>
-          </form>
-        </section>
         <section class="service-summary" id="service-summary" hidden aria-live="polite">
           <header class="service-summary-header">
             <h3 id="service-summary-title">Serviços disponíveis</h3>
@@ -482,60 +311,6 @@
             </button>
           </div>
         </form>
-    </div>
-  </div>
-
-    <div
-      class="service-tutorial-modal"
-      id="service-tutorial-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-hidden="true"
-      aria-labelledby="service-tutorial-title"
-      hidden
-    >
-      <div
-        class="service-tutorial-dialog"
-        id="service-tutorial-dialog"
-        role="document"
-      >
-        <button
-          type="button"
-          class="service-tutorial-close"
-          id="service-tutorial-close"
-          aria-label="Fechar tutorial de uso"
-        >
-          ×
-        </button>
-        <header class="service-tutorial-header">
-          <h2 id="service-tutorial-title">Como usar o gerenciador</h2>
-          <p id="service-tutorial-description">
-            Aprenda a configurar a sincronização e a atualizar as atribuições em poucos passos.
-          </p>
-        </header>
-        <ol class="service-tutorial-steps" id="service-tutorial-steps">
-          <li>
-            Abra o gerenciador com o perfil Serviços e confirme que os irmãos aparecem na lista.
-          </li>
-          <li>
-            Configure a sincronização informando o repositório compartilhado e salve os dados.
-          </li>
-          <li>
-            Clique no card de um irmão para abrir o painel, marque as frentes e salve as alterações.
-          </li>
-          <li>
-            Use o botão de atualização para buscar alterações recentes feitas por outros dispositivos.
-          </li>
-        </ol>
-        <footer class="service-tutorial-footer">
-          <button
-            type="button"
-            class="service-tutorial-dismiss"
-            id="service-tutorial-dismiss"
-          >
-            Entendi
-          </button>
-        </footer>
       </div>
     </div>
 
@@ -698,11 +473,6 @@
             </button>
           </div>
         </form>
-        <section class="credential-modal-section" aria-live="polite">
-          <h3 id="profile-modal-list-title">Perfis existentes</h3>
-          <p id="profile-modal-list-empty">Nenhum perfil cadastrado.</p>
-          <ul class="credential-modal-list" id="profile-modal-list"></ul>
-        </section>
       </div>
     </div>
 
