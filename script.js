@@ -6,7 +6,9 @@ const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEME
 const SERVICE_STORAGE_KEY = "igcolina-services";
 const SERVICE_FILTER_ALL = "all";
 const SERVICE_FILTER_UNASSIGNED = "unassigned";
+const SERVICE_CATALOG_URL = "services.json";
 const DEFAULT_SERVICE_OPTIONS = [];
+const DEFAULT_SERVICE_OPTION_IDS = new Set();
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
 const SERVICE_SHEET_CONFIG_STORAGE_KEY = "igcolina-service-sheet-config";
@@ -32,12 +34,146 @@ const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_UNASSIGNED,
   "active",
 ]);
-const DEFAULT_SERVICE_OPTION_IDS = new Set(
-  DEFAULT_SERVICE_OPTIONS.map((option) => option.id)
-);
 const customServiceOptions = new Map();
 
 const EMPTY_SERVICE_ASSIGNMENT = { active: false, services: [] };
+
+function applyDefaultServiceOptions(options) {
+  DEFAULT_SERVICE_OPTIONS.length = 0;
+  DEFAULT_SERVICE_OPTION_IDS.clear();
+
+  options.forEach((option) => {
+    DEFAULT_SERVICE_OPTIONS.push(option);
+    DEFAULT_SERVICE_OPTION_IDS.add(option.id);
+  });
+
+  refreshDefaultServiceConsumers();
+}
+
+function refreshDefaultServiceConsumers() {
+  ensureServiceManagerFilterOptions();
+  recalculateServiceSummaries();
+  refreshActiveServiceInterfaces({ preserveSelection: true });
+  if (isServiceManagerPage) {
+    renderServiceManager();
+  }
+}
+
+function normalizeDefaultServiceOption(rawOption) {
+  if (typeof rawOption === "string") {
+    const base = rawOption.trim();
+    if (!base) {
+      return null;
+    }
+
+    const id = normalizeServiceId(base);
+    if (!id || RESERVED_SERVICE_IDS.has(id)) {
+      return null;
+    }
+
+    return {
+      id,
+      label: base,
+      labels: { pt: base, en: base, es: base },
+    };
+  }
+
+  if (!rawOption || typeof rawOption !== "object") {
+    return null;
+  }
+
+  const idSource =
+    typeof rawOption.id === "string" && rawOption.id.trim()
+      ? rawOption.id.trim()
+      : "";
+
+  const preferredPtLabels = [
+    typeof rawOption.label === "string" ? rawOption.label.trim() : "",
+    typeof rawOption.pt === "string" ? rawOption.pt.trim() : "",
+    typeof rawOption.name === "string" ? rawOption.name.trim() : "",
+    rawOption.labels && typeof rawOption.labels === "object"
+      ? typeof rawOption.labels.pt === "string"
+        ? rawOption.labels.pt.trim()
+        : ""
+      : "",
+  ];
+
+  const baseLabel = preferredPtLabels.find((value) => value);
+  if (!baseLabel) {
+    return null;
+  }
+
+  const normalizedId = normalizeServiceId(idSource || baseLabel);
+  if (!normalizedId || RESERVED_SERVICE_IDS.has(normalizedId)) {
+    return null;
+  }
+
+  const extractLabel = (value) =>
+    typeof value === "string" && value.trim() ? value.trim() : "";
+
+  const labels = { pt: baseLabel };
+  const enCandidate =
+    (rawOption.labels && extractLabel(rawOption.labels.en)) ||
+    extractLabel(rawOption.en) ||
+    extractLabel(rawOption.english) ||
+    baseLabel;
+  const esCandidate =
+    (rawOption.labels && extractLabel(rawOption.labels.es)) ||
+    extractLabel(rawOption.es) ||
+    extractLabel(rawOption.spanish) ||
+    baseLabel;
+
+  labels.en = enCandidate || baseLabel;
+  labels.es = esCandidate || baseLabel;
+
+  return { id: normalizedId, label: baseLabel, labels };
+}
+
+async function loadDefaultServiceOptions() {
+  try {
+    const response = await fetch(SERVICE_CATALOG_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+    let entries = [];
+    if (Array.isArray(payload)) {
+      entries = payload;
+    } else if (Array.isArray(payload?.services)) {
+      entries = payload.services;
+    } else if (payload != null) {
+      console.warn(
+        "Service catalog payload must be an array or an object with a services array."
+      );
+    }
+
+    if (!entries.length) {
+      applyDefaultServiceOptions([]);
+      return;
+    }
+
+    const seen = new Set();
+    const options = [];
+
+    entries.forEach((rawOption) => {
+      const option = normalizeDefaultServiceOption(rawOption);
+      if (!option) {
+        return;
+      }
+      if (seen.has(option.id)) {
+        return;
+      }
+      seen.add(option.id);
+      options.push(option);
+    });
+
+    applyDefaultServiceOptions(options);
+  } catch (error) {
+    console.warn("Failed to load service catalog:", error);
+    refreshDefaultServiceConsumers();
+  }
+}
 
 function hasActiveServices(entry) {
   return Boolean(
@@ -4480,6 +4616,22 @@ function translateServiceName(serviceId) {
     return translation || normalized;
   }
 
+  if (defaultOption) {
+    if (defaultOption.labels && typeof defaultOption.labels === "object") {
+      const language = state.language ?? getDefaultLanguage();
+      const label =
+        defaultOption.labels[language] ??
+        defaultOption.labels[getDefaultLanguage()] ??
+        defaultOption.labels.pt;
+      if (label) {
+        return label;
+      }
+    }
+    if (defaultOption.label) {
+      return defaultOption.label;
+    }
+  }
+
   const customOption = customServiceOptions.get(normalized);
   if (customOption) {
     if (customOption.labels && typeof customOption.labels === "object") {
@@ -4521,6 +4673,21 @@ function getServiceLabelByLanguage(serviceId, language) {
       targetLanguage
     );
     return translation || normalized;
+  }
+
+  if (defaultOption) {
+    if (defaultOption.labels && typeof defaultOption.labels === "object") {
+      const preferred =
+        defaultOption.labels[targetLanguage] ??
+        defaultOption.labels[getDefaultLanguage()] ??
+        defaultOption.labels.pt;
+      if (preferred) {
+        return preferred;
+      }
+    }
+    if (defaultOption.label) {
+      return defaultOption.label;
+    }
   }
 
   const customOption = customServiceOptions.get(normalized);
@@ -9320,8 +9487,6 @@ initializeLanguage();
 setupAccessControlEvents();
 setupUserProfileEvents();
 setupAssistant();
-initializeCustomServices();
-initializeServiceAssignments();
 
 async function bootstrap() {
   await initializeAccessControl();
@@ -9334,4 +9499,13 @@ async function bootstrap() {
   fetchSheetData();
 }
 
-bootstrap();
+async function start() {
+  await loadDefaultServiceOptions();
+  initializeCustomServices();
+  initializeServiceAssignments();
+  await bootstrap();
+}
+
+start().catch((error) => {
+  console.error("Failed to initialize dashboard:", error);
+});
