@@ -30,6 +30,24 @@ const SERVICE_SELECTION_POSITIVE_VALUES = new Set([
   "1",
 ]);
 
+const NO_SERVICE_LABELS = new Set([
+  "n servico",
+  "n ministerio",
+  "n servicio",
+  "nenhum servico",
+  "nenhum ministerio",
+  "ningun servicio",
+  "ningun ministerio",
+  "sem servico",
+  "sem ministerio",
+  "sin servicio",
+  "sin ministerio",
+  "nao serve",
+  "nao servindo",
+  "no service",
+  "none",
+]);
+
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
 const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_ALL,
@@ -4817,12 +4835,12 @@ function normalizeServiceId(value) {
     return "";
   }
 
-  const normalized = normalizeString(value);
-  if (!normalized) {
+  const normalizedRaw = normalizeString(value);
+  if (!normalizedRaw || NO_SERVICE_LABELS.has(normalizedRaw)) {
     return "";
   }
 
-  return normalized.replace(/\s+/g, "-");
+  return normalizedRaw.replace(/\s+/g, "-");
 }
 
 function sanitizeServiceId(value) {
