@@ -1,16 +1,8 @@
 const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
 const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
-const SERVICE_SHEET_NAMES = [
-  "Serviços",
-  "serviços",
-  "Servicos",
-  "servicos",
-  "SERVIÇOS",
-  "SERVICOS",
-];
 const SERVICE_HTML_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true";
-const REFRESH_INTERVAL = 60_000; // 1 minuto
+const REFRESH_INTERVAL = 10_000; // 10 segundos
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
 const SERVICE_STORAGE_KEY = "igcolina-services";
@@ -4127,36 +4119,24 @@ async function fetchGvizTable(url) {
 }
 
 async function fetchServiceSheetTable() {
-  let htmlError = null;
-
-  if (SERVICE_HTML_URL) {
-    try {
-      const htmlResult = await fetchServiceHtmlTable(SERVICE_HTML_URL);
-      const hasRecords = Array.isArray(htmlResult?.records)
-        ? htmlResult.records.length > 0
-        : false;
-      const hasColumns = Array.isArray(htmlResult?.columns)
-        ? htmlResult.columns.length > 0
-        : false;
-      if (hasRecords || hasColumns) {
-        return htmlResult;
-      }
-      htmlError = new Error(translate("errors.serviceLoad"));
-      console.warn("Services HTML table did not contain any data.");
-    } catch (error) {
-      htmlError = error;
-      console.warn("Failed to load services HTML table:", error);
-    }
+  if (!SERVICE_HTML_URL) {
+    throw new Error(translate("errors.serviceLoad"));
   }
 
-  try {
-    return await fetchServiceSheetTableFromGviz();
-  } catch (error) {
-    if (htmlError) {
-      throw htmlError;
-    }
-    throw error;
+  const htmlResult = await fetchServiceHtmlTable(SERVICE_HTML_URL);
+  const hasRecords = Array.isArray(htmlResult?.records)
+    ? htmlResult.records.length > 0
+    : false;
+  const hasColumns = Array.isArray(htmlResult?.columns)
+    ? htmlResult.columns.length > 0
+    : false;
+
+  if (!hasRecords && !hasColumns) {
+    console.warn("Services HTML table did not contain any data.");
+    throw new Error(translate("errors.serviceLoad"));
   }
+
+  return htmlResult;
 }
 
 async function fetchServiceHtmlTable(url) {
@@ -4330,37 +4310,6 @@ function sanitizeServiceCellValue(cell) {
 
   const combined = segments.join(", ");
   return combined.replace(/\s+,/g, ", ").replace(/,\s+/g, ", ").trim();
-}
-
-async function fetchServiceSheetTableFromGviz() {
-  let lastError = null;
-
-  for (const sheetName of SERVICE_SHEET_NAMES) {
-    if (!sheetName) {
-      continue;
-    }
-
-    const trimmed = String(sheetName).trim();
-    if (!trimmed) {
-      continue;
-    }
-
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(
-      trimmed
-    )}`;
-
-    try {
-      return await fetchGvizTable(url);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  if (lastError) {
-    throw lastError;
-  }
-
-  throw new Error(translate("errors.serviceLoad"));
 }
 
 function extractGvizPayload(rawText) {
