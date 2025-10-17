@@ -40,11 +40,20 @@ const NO_SERVICE_LABELS = new Set([
   "ningun ministerio",
   "sem servico",
   "sem ministerio",
+  "semservico",
+  "semservicio",
+  "semservice",
   "sin servicio",
   "sin ministerio",
   "nao serve",
   "nao servindo",
   "no service",
+  "n s",
+  "ns",
+  "nservico",
+  "nservicio",
+  "n servicio",
+  "nservice",
   "none",
 ]);
 
@@ -4836,7 +4845,16 @@ function normalizeServiceId(value) {
   }
 
   const normalizedRaw = normalizeString(value);
-  if (!normalizedRaw || NO_SERVICE_LABELS.has(normalizedRaw)) {
+  if (!normalizedRaw) {
+    return "";
+  }
+
+  const compactNormalized = normalizedRaw.replace(/\s+/g, "");
+
+  if (
+    NO_SERVICE_LABELS.has(normalizedRaw) ||
+    NO_SERVICE_LABELS.has(compactNormalized)
+  ) {
     return "";
   }
 
@@ -7997,6 +8015,16 @@ function createServiceManagerCard(entry) {
       tag.textContent = translateServiceName(serviceId);
       tags.appendChild(tag);
     });
+
+    card.appendChild(tags);
+  } else {
+    const tags = document.createElement("div");
+    tags.className = "service-manager-tags";
+
+    const tag = document.createElement("span");
+    tag.className = "service-manager-tag";
+    tag.textContent = translate("services.detailValueNone");
+    tags.appendChild(tag);
 
     card.appendChild(tags);
   }
