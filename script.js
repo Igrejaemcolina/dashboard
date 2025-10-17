@@ -11,6 +11,8 @@ const SERVICE_FILTER_UNASSIGNED = "unassigned";
 const SERVICE_CATALOG_URL = "services.json";
 const DEFAULT_SERVICE_OPTIONS = [];
 const DEFAULT_SERVICE_OPTION_IDS = new Set();
+const dynamicServiceOptions = new Map();
+let dynamicServiceOptionsDirty = false;
 const SERVICE_SELECTION_POSITIVE_VALUES = new Set([
   "true",
   "sim",
@@ -55,6 +57,61 @@ function refreshDefaultServiceConsumers() {
   if (isServiceManagerPage) {
     renderServiceManager();
   }
+}
+
+function registerDynamicServiceOption(value) {
+  const normalized = normalizeServiceId(value);
+  if (!normalized || RESERVED_SERVICE_IDS.has(normalized)) {
+    return "";
+  }
+
+  if (
+    DEFAULT_SERVICE_OPTION_IDS.has(normalized) ||
+    customServiceOptions.has(normalized) ||
+    dynamicServiceOptions.has(normalized)
+  ) {
+    return normalized;
+  }
+
+  const rawLabel = typeof value === "string" ? value.trim() : "";
+  const fallbackLabel = normalized
+    .split("-")
+    .map((segment) =>
+      segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : ""
+    )
+    .join(" ")
+    .trim();
+  const baseLabel = rawLabel || fallbackLabel || normalized;
+
+  const labels = {
+    pt: baseLabel,
+    en: baseLabel,
+    es: baseLabel,
+  };
+
+  dynamicServiceOptions.set(normalized, {
+    id: normalized,
+    label: baseLabel,
+    labels,
+  });
+  dynamicServiceOptionsDirty = true;
+  return normalized;
+}
+
+function clearDynamicServiceOptions() {
+  if (!dynamicServiceOptions.size) {
+    return;
+  }
+  dynamicServiceOptions.clear();
+  dynamicServiceOptionsDirty = true;
+}
+
+function flushDynamicServiceOptions() {
+  if (!dynamicServiceOptionsDirty) {
+    return;
+  }
+  dynamicServiceOptionsDirty = false;
+  refreshDefaultServiceConsumers();
 }
 
 function normalizeDefaultServiceOption(rawOption) {
@@ -4524,6 +4581,8 @@ function buildServiceAssignmentsFromSheet(records, columns) {
     return null;
   }
 
+  clearDynamicServiceOptions();
+
   const servicesColumn =
     findServiceSheetColumn(columns, [
       "serviços (ids)",
@@ -4689,12 +4748,14 @@ function buildServiceAssignmentsFromSheet(records, columns) {
 function applyRemoteServiceAssignments(records, columns) {
   const remoteAssignments = buildServiceAssignmentsFromSheet(records, columns);
   if (!remoteAssignments) {
+    flushDynamicServiceOptions();
     return;
   }
 
   state.serviceAssignments = remoteAssignments;
   persistLocalServiceAssignments();
   setServiceSyncStatus("serviceManager.sync.status.ready");
+  flushDynamicServiceOptions();
 }
 
 function normalizeServiceId(value) {
@@ -4722,6 +4783,15 @@ function sanitizeServiceId(value) {
 
   if (customServiceOptions.has(normalized)) {
     return normalized;
+  }
+
+  if (dynamicServiceOptions.has(normalized)) {
+    return normalized;
+  }
+
+  const registered = registerDynamicServiceOption(value);
+  if (registered) {
+    return registered;
   }
 
   return "";
@@ -4771,6 +4841,23 @@ function translateServiceName(serviceId) {
     }
     if (customOption.label) {
       return customOption.label;
+    }
+  }
+
+  const dynamicOption = dynamicServiceOptions.get(normalized);
+  if (dynamicOption) {
+    if (dynamicOption.labels && typeof dynamicOption.labels === "object") {
+      const language = state.language ?? getDefaultLanguage();
+      const label =
+        dynamicOption.labels[language] ??
+        dynamicOption.labels[getDefaultLanguage()] ??
+        dynamicOption.labels.pt;
+      if (label) {
+        return label;
+      }
+    }
+    if (dynamicOption.label) {
+      return dynamicOption.label;
     }
   }
 
@@ -5287,6 +5374,12 @@ function buildServiceSummary(entries) {
   return summary;
 }
 
+function getDynamicServiceOptions() {
+  return Array.from(dynamicServiceOptions.values()).sort((a, b) =>
+    collator.compare(getServiceOptionLabel(a), getServiceOptionLabel(b))
+  );
+}
+
 function getCustomServiceOptions() {
   return Array.from(customServiceOptions.values()).sort((a, b) =>
     collator.compare(getServiceOptionLabel(a), getServiceOptionLabel(b))
@@ -5294,7 +5387,11 @@ function getCustomServiceOptions() {
 }
 
 function getAllServiceOptions() {
-  return [...DEFAULT_SERVICE_OPTIONS, ...getCustomServiceOptions()];
+  return [
+    ...DEFAULT_SERVICE_OPTIONS,
+    ...getDynamicServiceOptions(),
+    ...getCustomServiceOptions(),
+  ];
 }
 
 function getServiceOptionLabel(option) {
@@ -5576,6 +5673,7 @@ function deleteCustomService(optionId) {
 function loadServiceAssignments() {
   if (typeof localStorage === "undefined") {
     state.serviceAssignments = new Map();
+    flushDynamicServiceOptions();
     return;
   }
 
@@ -5583,12 +5681,14 @@ function loadServiceAssignments() {
     const stored = localStorage.getItem(SERVICE_STORAGE_KEY);
     if (!stored) {
       state.serviceAssignments = new Map();
+      flushDynamicServiceOptions();
       return;
     }
 
     const parsed = JSON.parse(stored);
     if (!parsed || typeof parsed !== "object") {
       state.serviceAssignments = new Map();
+      flushDynamicServiceOptions();
       return;
     }
 
@@ -5604,9 +5704,11 @@ function loadServiceAssignments() {
       map.set(key, normalized);
     });
     state.serviceAssignments = map;
+    flushDynamicServiceOptions();
   } catch (error) {
     console.warn("Failed to load service assignments:", error);
     state.serviceAssignments = new Map();
+    flushDynamicServiceOptions();
   }
 }
 
