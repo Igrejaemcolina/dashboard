@@ -5779,6 +5779,37 @@ function applyServiceAssignmentsToEntries() {
       }
     }
 
+    if (!assignment) {
+      const fallbackName = normalizeString(
+        entry.name ||
+          (state.nameColumn && entry.record
+            ? entry.record[state.nameColumn]
+            : "")
+      );
+
+      if (fallbackName) {
+        const fallbackAssignment = state.serviceAssignments.get(fallbackName);
+        if (fallbackAssignment) {
+          assignment = fallbackAssignment;
+
+          if (serviceKey && serviceKey !== fallbackName) {
+            state.serviceAssignments.set(serviceKey, fallbackAssignment);
+            migrated = true;
+          }
+
+          if (
+            legacyKey &&
+            legacyKey !== serviceKey &&
+            legacyKey !== fallbackName &&
+            !state.serviceAssignments.has(legacyKey)
+          ) {
+            state.serviceAssignments.set(legacyKey, fallbackAssignment);
+            migrated = true;
+          }
+        }
+      }
+    }
+
     entry.service = normalizeServiceAssignment(assignment);
   });
 
