@@ -1,6 +1,13 @@
 const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
 const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
-const SERVICE_SHEET_NAMES = ["Serviços", "serviços", "Servicos", "servicos"];
+const SERVICE_SHEET_NAMES = [
+  "Serviços",
+  "serviços",
+  "Servicos",
+  "servicos",
+  "SERVIÇOS",
+  "SERVICOS",
+];
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
