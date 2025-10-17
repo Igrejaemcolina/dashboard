@@ -8,6 +8,8 @@ const SERVICE_SHEET_NAMES = [
   "SERVIÇOS",
   "SERVICOS",
 ];
+const SERVICE_HTML_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
@@ -4125,6 +4127,212 @@ async function fetchGvizTable(url) {
 }
 
 async function fetchServiceSheetTable() {
+  let htmlError = null;
+
+  if (SERVICE_HTML_URL) {
+    try {
+      const htmlResult = await fetchServiceHtmlTable(SERVICE_HTML_URL);
+      const hasRecords = Array.isArray(htmlResult?.records)
+        ? htmlResult.records.length > 0
+        : false;
+      const hasColumns = Array.isArray(htmlResult?.columns)
+        ? htmlResult.columns.length > 0
+        : false;
+      if (hasRecords || hasColumns) {
+        return htmlResult;
+      }
+      htmlError = new Error(translate("errors.serviceLoad"));
+      console.warn("Services HTML table did not contain any data.");
+    } catch (error) {
+      htmlError = error;
+      console.warn("Failed to load services HTML table:", error);
+    }
+  }
+
+  try {
+    return await fetchServiceSheetTableFromGviz();
+  } catch (error) {
+    if (htmlError) {
+      throw htmlError;
+    }
+    throw error;
+  }
+}
+
+async function fetchServiceHtmlTable(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(translate("errors.fetchStatus", { status: response.status }));
+  }
+
+  const html = await response.text();
+  return parseServiceHtmlTable(html);
+}
+
+function parseServiceHtmlTable(html) {
+  if (typeof DOMParser === "undefined") {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  if (!doc) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const tables = Array.from(doc.querySelectorAll("table"));
+  if (!tables.length) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const candidateTable = findServiceHtmlTableCandidate(tables);
+  if (!candidateTable) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  return extractServiceHtmlTable(candidateTable);
+}
+
+function findServiceHtmlTableCandidate(tables) {
+  let fallback = null;
+
+  for (const table of tables) {
+    const headerRow = Array.from(table.querySelectorAll("tr")).find((row) => {
+      const cells = Array.from(row.querySelectorAll("th,td"));
+      return cells.some((cell) => sanitizeHeaderLabel(cell?.textContent ?? ""));
+    });
+
+    if (!headerRow) {
+      continue;
+    }
+
+    const headerValues = Array.from(headerRow.querySelectorAll("th,td"))
+      .map((cell) => normalizeString(cell?.textContent ?? ""))
+      .filter(Boolean);
+
+    if (!headerValues.length) {
+      continue;
+    }
+
+    const hasName = headerValues.some((value) => value.includes("nome"));
+    const hasService = headerValues.some((value) => value.includes("servico"));
+
+    if (hasName && hasService) {
+      return table;
+    }
+
+    if (!fallback) {
+      fallback = table;
+    }
+  }
+
+  return fallback ?? null;
+}
+
+function extractServiceHtmlTable(table) {
+  const rows = Array.from(table.querySelectorAll("tr"));
+  if (!rows.length) {
+    return { columns: [], records: [] };
+  }
+
+  let headerRowIndex = -1;
+  let columns = [];
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    const cells = Array.from(row.querySelectorAll("th,td"));
+    if (!cells.length) {
+      continue;
+    }
+
+    const labels = cells.map((cell, cellIndex) => {
+      const label = sanitizeHeaderLabel(cell?.textContent ?? "");
+      return label || `Coluna ${cellIndex + 1}`;
+    });
+
+    const hasContent = labels.some((label) => label.trim().length);
+    if (!hasContent) {
+      continue;
+    }
+
+    columns = ensureUniqueColumnLabels(labels);
+    headerRowIndex = index;
+    break;
+  }
+
+  if (headerRowIndex === -1) {
+    return { columns: [], records: [] };
+  }
+
+  const records = [];
+
+  for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    const cells = Array.from(row.querySelectorAll("td,th"));
+    if (!cells.length) {
+      continue;
+    }
+
+    const values = columns.map((_, cellIndex) => sanitizeServiceCellValue(cells[cellIndex] ?? null));
+    const hasValue = values.some((value) => value);
+    if (!hasValue) {
+      continue;
+    }
+
+    const entry = {};
+    const raw = {};
+    values.forEach((value, cellIndex) => {
+      const columnName = columns[cellIndex];
+      entry[columnName] = value;
+      raw[columnName] = value;
+    });
+    entry.__raw = raw;
+    records.push(entry);
+  }
+
+  return { columns, records };
+}
+
+function ensureUniqueColumnLabels(labels) {
+  const counts = new Map();
+  return labels.map((label, index) => {
+    const base = label && label.trim() ? label.trim() : `Coluna ${index + 1}`;
+    const count = counts.get(base) ?? 0;
+    counts.set(base, count + 1);
+    if (count > 0) {
+      return `${base} (${count + 1})`;
+    }
+    return base;
+  });
+}
+
+function sanitizeHeaderLabel(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function sanitizeServiceCellValue(cell) {
+  if (!cell) {
+    return "";
+  }
+
+  const text = (cell.textContent ?? "").replace(/\u00a0/g, " ").replace(/\r/g, "");
+  const segments = text
+    .split(/\n+/)
+    .map((segment) => segment.replace(/\s+/g, " ").replace(/,\s*$/g, "").trim())
+    .filter(Boolean);
+
+  if (!segments.length) {
+    return "";
+  }
+
+  const combined = segments.join(", ");
+  return combined.replace(/\s+,/g, ", ").replace(/,\s+/g, ", ").trim();
+}
+
+async function fetchServiceSheetTableFromGviz() {
   let lastError = null;
 
   for (const sheetName of SERVICE_SHEET_NAMES) {
