@@ -5041,8 +5041,8 @@ function isTruthyServiceSelection(value, serviceId) {
     return false;
   }
 
-  const sanitized = sanitizeServiceId(value);
-  if (sanitized && serviceId && sanitized === serviceId) {
+  const normalizedValueId = normalizeServiceId(value);
+  if (normalizedValueId && serviceId && normalizedValueId === serviceId) {
     return true;
   }
 
@@ -5081,7 +5081,7 @@ function detectServiceColumnsFromRecords(records, columns, excludedColumn) {
       return;
     }
 
-    const serviceId = sanitizeServiceId(column);
+    const serviceId = normalizeServiceId(column);
     if (!serviceId || seen.has(serviceId)) {
       return;
     }
