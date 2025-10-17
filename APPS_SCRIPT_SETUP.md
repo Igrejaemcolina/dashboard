@@ -7,6 +7,7 @@
    2. Clique no botão ▶️ para executar.
    3. Conceda as permissões solicitadas pelo Google (use a conta que é proprietária da planilha).
 4. Volte para a planilha, recarregue a página. Você verá o menu **⚙️ Sincronização** na barra superior.
-5. Use **Sincronizar agora** para atualizar todas as abas de serviços e **Mostrar popup da pessoa (linha atual)** para abrir o modal com os dados da pessoa selecionada na aba `serviços`.
+5. Use **Sincronizar agora** para atualizar todas as abas existentes de serviço (sem criar novas) com base na aba `Serviços`,
+   enquanto **Mostrar popup da pessoa (linha atual)** abre o modal com os dados consolidados da aba `Forms`.
 
 Depois da primeira autorização, as próximas execuções funcionarão diretamente pelo menu.

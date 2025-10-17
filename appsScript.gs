@@ -1,8 +1,10 @@
 /**
- * Google Apps Script to synchronize "serviços" and "forms" sheets, generate
- * per-service tabs, and display popups with a person's information.
- * Paste this file into the Apps Script editor attached to your spreadsheet.
+ * Google Apps Script que sincroniza a aba "Serviços" com as abas de cada
+ * ministério existente, reutilizando os dados adicionais da aba "Forms".
+ * Cole este arquivo no editor do Apps Script ligado à planilha.
  */
+
+var SERVICE_TABS_CACHE = null;
 
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
@@ -14,11 +16,12 @@ function onOpen() {
 
 function getConfig() {
   return {
-    mainSheetName: 'serviços',
-    formsSheetName: 'forms',
+    mainSheetName: 'Serviços',
+    formsSheetName: 'Forms',
     nameHeaders: ['nome', 'name'],
     emailHeaders: ['email', 'e-mail'],
-    timestampHeaders: ['timestamp', 'data', 'data/hora', 'submitted at']
+    phoneHeaders: ['telefone', 'celular', 'phone', 'telefone celular'],
+    timestampHeaders: ['timestamp', 'data', 'data hora', 'data/hora', 'submitted at']
   };
 }
 
@@ -31,7 +34,7 @@ function syncAll() {
     updateServiceSheets(ss, servicesData, formsData);
     ss.toast('Sincronização concluída.', '⚙️ Sincronização', 5);
   } catch (error) {
-    console.error('Erro na sincronização:', error);
+    console.error('Erro na sincronização geral:', error);
     SpreadsheetApp.getUi().alert('Erro na sincronização: ' + error.message);
     throw error;
   }
@@ -46,20 +49,20 @@ function showPersonPopupFromActiveRow() {
       SpreadsheetApp.getUi().alert('Selecione uma linha na aba "' + config.mainSheetName + '".');
       return;
     }
-    var activeCell = sheet.getActiveCell();
-    if (!activeCell || activeCell.getRow() <= 1) {
+    var cell = sheet.getActiveCell();
+    if (!cell || cell.getRow() <= 1) {
       SpreadsheetApp.getUi().alert('Selecione uma linha com dados de pessoa.');
       return;
     }
-    var name = sheet.getRange(activeCell.getRow(), 1).getValue();
+    var name = sheet.getRange(cell.getRow(), 1).getValue();
     if (!name) {
-      SpreadsheetApp.getUi().alert('Linha sem nome.');
+      SpreadsheetApp.getUi().alert('A linha selecionada não possui nome.');
       return;
     }
     showPersonPopupByName(name);
   } catch (error) {
-    console.error('Erro ao mostrar popup pela linha ativa:', error);
-    SpreadsheetApp.getUi().alert('Erro ao mostrar popup: ' + error.message);
+    console.error('Erro ao abrir popup pela linha ativa:', error);
+    SpreadsheetApp.getUi().alert('Erro ao abrir popup: ' + error.message);
   }
 }
 
@@ -72,12 +75,11 @@ function showPersonPopupByName(name) {
     var ss = SpreadsheetApp.getActive();
     var config = getConfig();
     var servicesData = loadServicesData(ss, config);
-    var normalizedTarget = normalizePersonKey(name);
+    var normalizedTarget = normalize(name);
     var person = null;
     for (var i = 0; i < servicesData.people.length; i++) {
-      var current = servicesData.people[i];
-      if (normalizePersonKey(current.name) === normalizedTarget) {
-        person = current;
+      if (servicesData.people[i].normalizedName === normalizedTarget) {
+        person = servicesData.people[i];
         break;
       }
     }
@@ -87,14 +89,14 @@ function showPersonPopupByName(name) {
     }
     var formsData = loadFormsData(ss, config);
     var record = getFormsRecordForName(person.name, formsData);
-    var popupHtml = buildPersonPopupHtml(person, record, formsData);
-    var htmlOutput = HtmlService.createHtmlOutput(popupHtml)
+    var html = buildPersonPopupHtml(person, record, formsData);
+    var output = HtmlService.createHtmlOutput(html)
       .setWidth(420)
       .setHeight(520);
-    SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Dados da pessoa');
+    SpreadsheetApp.getUi().showModalDialog(output, 'Dados da pessoa');
   } catch (error) {
-    console.error('Erro ao mostrar popup da pessoa:', error);
-    SpreadsheetApp.getUi().alert('Erro ao mostrar popup: ' + error.message);
+    console.error('Erro ao montar popup da pessoa:', error);
+    SpreadsheetApp.getUi().alert('Erro ao montar popup: ' + error.message);
   }
 }
 
@@ -103,468 +105,454 @@ function loadServicesData(ss, config) {
   if (!sheet) {
     throw new Error('A aba "' + config.mainSheetName + '" não foi encontrada.');
   }
-  var values = sheet.getDataRange().getValues();
-  if (values.length === 0) {
-    return { sheet: sheet, serviceHeaders: [], people: [], mapping: {} };
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return { sheet: sheet, people: [] };
   }
-  var headerRow = values[0];
-  var mapping = getServiceSheetNameMap();
-  var usedSheetNames = {};
-  var serviceHeaders = [];
-  for (var col = 1; col < headerRow.length; col++) {
-    var serviceName = (headerRow[col] || '').toString().trim();
-    if (!serviceName) {
-      continue;
-    }
-    var mappedName = mapping[serviceName];
-    var sanitized = mappedName || sanitizeSheetName(serviceName);
-    if (!sanitized) {
-      sanitized = 'Servico_' + (col + 1);
-    }
-    sanitized = ensureUniqueSheetName(sanitized, usedSheetNames);
-    if (!mappedName || mappedName !== sanitized) {
-      mapping[serviceName] = sanitized;
-    }
-    serviceHeaders.push({
-      name: serviceName,
-      columnIndex: col,
-      sheetName: sanitized
-    });
-  }
-  saveServiceSheetNameMap(mapping);
-
+  var range = sheet.getRange(1, 1, lastRow, Math.min(2, lastCol));
+  var values = range.getValues();
   var people = [];
   for (var row = 1; row < values.length; row++) {
-    var name = (values[row][0] || '').toString().trim();
-    if (!name) {
+    var name = values[row][0];
+    var servicesCell = values[row][1];
+    if (!name && !servicesCell) {
       continue;
     }
-    var assignedServices = [];
-    for (var s = 0; s < serviceHeaders.length; s++) {
-      var header = serviceHeaders[s];
-      var cell = values[row][header.columnIndex];
-      if (cell === true || cell === 'TRUE') {
-        assignedServices.push(header);
-      }
+    var trimmedName = name ? name.toString().trim() : '';
+    if (!trimmedName) {
+      continue;
     }
+    var servicesList = splitServices(servicesCell);
     people.push({
-      name: name,
-      services: assignedServices,
+      name: trimmedName,
+      normalizedName: normalize(trimmedName),
+      services: servicesList,
       rowIndex: row + 1
     });
   }
-
-  return {
-    sheet: sheet,
-    serviceHeaders: serviceHeaders,
-    people: people,
-    mapping: mapping
-  };
+  return { sheet: sheet, people: people };
 }
 
 function loadFormsData(ss, config) {
   var sheet = ss.getSheetByName(config.formsSheetName);
   if (!sheet) {
-    throw new Error('A aba "' + config.formsSheetName + '" não foi encontrada.');
-  }
-  var range = sheet.getDataRange();
-  var values = range.getValues();
-  if (values.length === 0) {
+    console.log('Aba "' + config.formsSheetName + '" não encontrada. Prosseguindo sem dados adicionais.');
     return {
+      sheet: null,
       headers: [],
       normalizedHeaders: [],
-      recordsByName: {},
-      recordsByKey: {},
-      timestampHeader: null
+      nameIndex: null,
+      timestampIndex: null,
+      outputColumnIndexes: [],
+      outputColumnHeaders: [],
+      recordsByName: {}
     };
   }
-  var headers = values[0].map(function (header) {
-    return header ? header.toString().trim() : '';
-  });
-  var normalizedHeaders = headers.map(function (header) {
-    return normalizeHeader(header);
-  });
-
-  var emailHeader = findHeader(headers, config.emailHeaders);
-  var nameHeader = findHeader(headers, config.nameHeaders);
-  var timestampHeader = findHeader(headers, config.timestampHeaders);
-
-  var records = [];
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol === 0) {
+    var emptyHeaderInfo = detectHeaders(sheet);
+    return {
+      sheet: sheet,
+      headers: emptyHeaderInfo.headers,
+      normalizedHeaders: emptyHeaderInfo.normalizedHeaders,
+      nameIndex: null,
+      timestampIndex: null,
+      outputColumnIndexes: [],
+      outputColumnHeaders: [],
+      recordsByName: {}
+    };
+  }
+  var dataRange = sheet.getRange(1, 1, lastRow, lastCol);
+  var values = dataRange.getValues();
+  var headerInfo = detectHeaders(sheet);
+  var headers = headerInfo.headers;
+  var nameIndex = headerInfo.indexes.name;
+  if (nameIndex === null || nameIndex === undefined) {
+    throw new Error('Não foi possível localizar a coluna de Nome na aba "' + config.formsSheetName + '".');
+  }
+  var timestampIndex = headerInfo.indexes.timestamp;
+  var recordsByName = {};
   for (var row = 1; row < values.length; row++) {
     var rowValues = values[row];
-    if (isRowEmpty(rowValues)) {
+    var nameValue = rowValues[nameIndex];
+    if (!nameValue) {
       continue;
     }
-    var record = {};
-    for (var col = 0; col < headers.length; col++) {
-      record[headers[col]] = rowValues[col];
+    var key = normalize(nameValue);
+    if (!key) {
+      continue;
     }
-    record.__rowIndex = row + 1;
-    record.__name = nameHeader ? (record[nameHeader] || '').toString().trim() : '';
-    record.__email = emailHeader ? (record[emailHeader] || '').toString().trim() : '';
-    record.__timestamp = timestampHeader ? record[timestampHeader] : null;
-    records.push(record);
-  }
-
-  var emailIndex = emailHeader ? indexByKey(records, '__email', normalizeEmail) : {};
-  var nameIndex = nameHeader ? indexByKey(records, '__name', normalizePersonKey) : {};
-  var keyIndex = Object.keys(emailIndex).length ? emailIndex : nameIndex;
-
-  var flattenedByKey = {};
-  for (var key in keyIndex) {
-    if (keyIndex.hasOwnProperty(key)) {
-      flattenedByKey[key] = getMostRecent(keyIndex[key], timestampHeader);
+    var record = {
+      values: rowValues,
+      rowIndex: row + 1
+    };
+    if (recordsByName[key]) {
+      recordsByName[key] = pickMostRecent([recordsByName[key], record], timestampIndex);
+    } else {
+      recordsByName[key] = record;
     }
   }
-  var flattenedByName = {};
-  for (var nameKey in nameIndex) {
-    if (nameIndex.hasOwnProperty(nameKey)) {
-      flattenedByName[nameKey] = getMostRecent(nameIndex[nameKey], timestampHeader);
+  var outputColumnIndexes = [];
+  var outputColumnHeaders = [];
+  for (var col = 0; col < headers.length; col++) {
+    if (col === nameIndex) {
+      continue;
     }
+    var headerLabel = headers[col];
+    if (headerLabel === null || headerLabel === undefined || headerLabel === '') {
+      continue;
+    }
+    outputColumnIndexes.push(col);
+    outputColumnHeaders.push(headerLabel);
   }
-
   return {
+    sheet: sheet,
     headers: headers,
-    normalizedHeaders: normalizedHeaders,
-    emailHeader: emailHeader,
-    nameHeader: nameHeader,
-    timestampHeader: timestampHeader,
-    recordsByName: flattenedByName,
-    recordsByKey: flattenedByKey
+    normalizedHeaders: headerInfo.normalizedHeaders,
+    nameIndex: nameIndex,
+    timestampIndex: timestampIndex,
+    outputColumnIndexes: outputColumnIndexes,
+    outputColumnHeaders: outputColumnHeaders,
+    recordsByName: recordsByName
   };
 }
 
 function updateServiceSheets(ss, servicesData, formsData) {
-  var formsHeaders = getFormsOutputHeaders(formsData);
-  var headerRow = ['Nome'].concat(formsHeaders);
-  var serviceRowsMap = {};
-  for (var i = 0; i < servicesData.serviceHeaders.length; i++) {
-    var serviceHeader = servicesData.serviceHeaders[i];
-    serviceRowsMap[serviceHeader.sheetName] = [];
+  var serviceTabsMap = getServiceTabsMap();
+  var formsIndexes = formsData.outputColumnIndexes || [];
+  var groups = {};
+  for (var i = 0; i < servicesData.people.length; i++) {
+    var person = servicesData.people[i];
+    for (var j = 0; j < person.services.length; j++) {
+      var serviceName = person.services[j];
+      var normalizedService = normalize(serviceName);
+      if (!normalizedService) {
+        continue;
+      }
+      if (!groups[normalizedService]) {
+        groups[normalizedService] = {
+          normalized: normalizedService,
+          displayName: serviceName,
+          people: []
+        };
+      }
+      groups[normalizedService].people.push(person);
+    }
   }
-
-  for (var p = 0; p < servicesData.people.length; p++) {
-    var person = servicesData.people[p];
-    if (!person.services.length) {
+  for (var missingKey in groups) {
+    if (groups.hasOwnProperty(missingKey) && !serviceTabsMap[missingKey]) {
+      console.log('Serviço "' + groups[missingKey].displayName + '" ignorado: aba correspondente não encontrada.');
+    }
+  }
+  for (var key in serviceTabsMap) {
+    if (!serviceTabsMap.hasOwnProperty(key)) {
       continue;
     }
-    var record = getFormsRecordForName(person.name, formsData);
-    var baseRow = [person.name];
-    for (var fh = 0; fh < formsHeaders.length; fh++) {
-      var headerName = formsHeaders[fh];
-      baseRow.push(record && record.hasOwnProperty(headerName) ? record[headerName] : '');
-    }
-    for (var s = 0; s < person.services.length; s++) {
-      var service = person.services[s];
-      if (!serviceRowsMap.hasOwnProperty(service.sheetName)) {
-        serviceRowsMap[service.sheetName] = [];
+    var sheetName = serviceTabsMap[key];
+    var group = groups[key];
+    var displayName = group ? group.displayName : sheetName;
+    try {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        console.log('Aba "' + sheetName + '" não encontrada para o serviço "' + displayName + '".');
+        continue;
       }
-      serviceRowsMap[service.sheetName].push(baseRow.slice());
+      clearSheetBody(sheet);
+      if (!group || group.people.length === 0) {
+        continue;
+      }
+      group.people.sort(function(a, b) {
+        var na = a.normalizedName;
+        var nb = b.normalizedName;
+        if (na < nb) return -1;
+        if (na > nb) return 1;
+        return 0;
+      });
+      var dataRows = [];
+      for (var idx = 0; idx < group.people.length; idx++) {
+        var current = group.people[idx];
+        var record = getFormsRecordForName(current.name, formsData);
+        var row = [current.name];
+        for (var c = 0; c < formsIndexes.length; c++) {
+          var colIndex = formsIndexes[c];
+          var value = record ? record.values[colIndex] : '';
+          row.push(value === undefined ? '' : value);
+        }
+        dataRows.push(row);
+      }
+      if (dataRows.length > 0) {
+        var targetCols = Math.max(sheet.getLastColumn(), dataRows[0].length);
+        targetCols = Math.max(targetCols, 1);
+        for (var r = 0; r < dataRows.length; r++) {
+          while (dataRows[r].length < targetCols) {
+            dataRows[r].push('');
+          }
+          if (dataRows[r].length > targetCols) {
+            dataRows[r] = dataRows[r].slice(0, targetCols);
+          }
+        }
+        sheet.getRange(2, 1, dataRows.length, targetCols).setValues(dataRows);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar a aba do serviço "' + displayName + '":', error);
     }
   }
-
-  for (var svc = 0; svc < servicesData.serviceHeaders.length; svc++) {
-    var svcHeader = servicesData.serviceHeaders[svc];
-    var rows = serviceRowsMap[svcHeader.sheetName] || [];
-    rows.sort(function (a, b) {
-      return a[0].toString().localeCompare(b[0].toString());
-    });
-    upsertServiceSheet(ss, svcHeader.sheetName, headerRow, rows);
-  }
 }
 
-function upsertServiceSheet(ss, sheetName, headerRow, rows) {
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
+function getServiceTabsMap() {
+  if (SERVICE_TABS_CACHE) {
+    return SERVICE_TABS_CACHE;
   }
-  ensureColumnCapacity(sheet, headerRow.length);
-  sheet.getRange(1, 1, 1, headerRow.length).setValues([headerRow]);
-  if (sheet.getLastRow() > 1) {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getMaxColumns()).clearContent();
+  var ss = SpreadsheetApp.getActive();
+  var config = getConfig();
+  var sheets = ss.getSheets();
+  var map = {};
+  var forbidden = {};
+  forbidden[normalize(config.mainSheetName)] = true;
+  forbidden[normalize(config.formsSheetName)] = true;
+  for (var i = 0; i < sheets.length; i++) {
+    var sheetName = sheets[i].getName();
+    var normalized = normalize(sheetName);
+    if (!normalized || forbidden[normalized]) {
+      continue;
+    }
+    if (!map[normalized]) {
+      map[normalized] = sheetName;
+    }
   }
-  if (rows.length) {
-    sheet.getRange(2, 1, rows.length, headerRow.length).setValues(rows);
-  }
+  SERVICE_TABS_CACHE = map;
+  return map;
 }
 
-function getFormsOutputHeaders(formsData) {
-  if (!formsData || !formsData.headers || !formsData.headers.length) {
+function clearSheetBody(sheet) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow <= 1 || lastCol === 0) {
+    return;
+  }
+  sheet.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+}
+
+function splitServices(cellValue) {
+  if (cellValue === null || cellValue === undefined) {
     return [];
   }
-  var output = [];
-  for (var i = 0; i < formsData.headers.length; i++) {
-    var header = formsData.headers[i];
-    var normalized = formsData.normalizedHeaders[i];
-    if (!header) {
-      continue;
-    }
-    if (!normalized) {
-      continue;
-    }
-    if (normalized === 'nome' || normalized === 'name') {
-      continue;
-    }
-    output.push(header);
+  var text = cellValue;
+  if (Array.isArray(text)) {
+    text = text.join(',');
   }
-  return output;
+  text = text.toString().replace(/\r?\n/g, ',');
+  var rawParts = text.split(',');
+  var seen = {};
+  var result = [];
+  for (var i = 0; i < rawParts.length; i++) {
+    var part = rawParts[i];
+    if (part === null || part === undefined) {
+      continue;
+    }
+    var cleaned = part.toString().replace(/\s+/g, ' ').trim();
+    if (!cleaned) {
+      continue;
+    }
+    var key = normalize(cleaned);
+    if (!key || seen[key]) {
+      continue;
+    }
+    seen[key] = true;
+    result.push(cleaned);
+  }
+  return result;
 }
 
-function buildPersonPopupHtml(person, record, formsData) {
-  var servicesList = person.services.map(function (service) {
-    return service.name;
-  });
-  if (!servicesList.length) {
-    servicesList.push('N.Serviço');
+function detectHeaders(sheet) {
+  var config = getConfig();
+  var lastCol = sheet.getLastColumn();
+  if (lastCol === 0) {
+    return {
+      headers: [],
+      normalizedHeaders: [],
+      indexes: {
+        name: null,
+        email: null,
+        phone: null,
+        timestamp: null
+      }
+    };
   }
-  var detailRows = [];
-  if (record) {
-    for (var i = 0; i < formsData.headers.length; i++) {
-      var header = formsData.headers[i];
-      var normalized = formsData.normalizedHeaders[i];
-      if (!header || !normalized) {
-        continue;
-      }
-      if (normalized === 'nome' || normalized === 'name') {
-        continue;
-      }
-      var value = record[header];
-      if (value === null || value === undefined || value === '') {
-        continue;
-      }
-      detailRows.push({ label: header, value: value });
+  var headerValues = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var normalizedHeaders = [];
+  var indexMap = {};
+  for (var i = 0; i < headerValues.length; i++) {
+    var header = headerValues[i] === null || headerValues[i] === undefined ? '' : headerValues[i].toString();
+    var normalized = normalize(header);
+    normalizedHeaders.push(normalized);
+    if (normalized && indexMap[normalized] === undefined) {
+      indexMap[normalized] = i;
     }
   }
-
-  var html = [];
-  html.push('<!DOCTYPE html>');
-  html.push('<html>');
-  html.push('<head>');
-  html.push('<meta charset="utf-8" />');
-  html.push('<style>');
-  html.push('body { font-family: "Roboto", Arial, sans-serif; margin: 0; padding: 16px; background: #121212; color: #f1f1f1; }');
-  html.push('h1 { font-size: 20px; margin: 0 0 12px; }');
-  html.push('section { margin-bottom: 16px; }');
-  html.push('.tag-list { display: flex; flex-wrap: wrap; gap: 8px; }');
-  html.push('.tag { background: linear-gradient(135deg, #4f46e5, #9333ea); padding: 6px 12px; border-radius: 999px; font-size: 13px; }');
-  html.push('.row { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.06); }');
-  html.push('.row span { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #a1a1aa; margin-bottom: 4px; }');
-  html.push('.empty { color: #a1a1aa; font-style: italic; }');
-  html.push('</style>');
-  html.push('</head>');
-  html.push('<body>');
-  html.push('<section>');
-  html.push('<h1>' + sanitizeHtml(person.name) + '</h1>');
-  html.push('<div class="tag-list">');
-  for (var s = 0; s < servicesList.length; s++) {
-    html.push('<div class="tag">' + sanitizeHtml(servicesList[s]) + '</div>');
-  }
-  html.push('</div>');
-  html.push('</section>');
-  html.push('<section>');
-  html.push('<h2 style="font-size:16px;margin-bottom:10px;">Dados do formulário</h2>');
-  if (!detailRows.length) {
-    html.push('<p class="empty">Sem dados adicionais do formulário.</p>');
-  } else {
-    for (var d = 0; d < detailRows.length; d++) {
-      var row = detailRows[d];
-      html.push('<div class="row"><span>' + sanitizeHtml(row.label) + '</span>' + sanitizeHtml(formatValue(row.value)) + '</div>');
+  return {
+    headers: headerValues,
+    normalizedHeaders: normalizedHeaders,
+    indexes: {
+      name: findHeaderIndex(normalizedHeaders, config.nameHeaders),
+      email: findHeaderIndex(normalizedHeaders, config.emailHeaders),
+      phone: findHeaderIndex(normalizedHeaders, config.phoneHeaders),
+      timestamp: findHeaderIndex(normalizedHeaders, config.timestampHeaders)
     }
-  }
-  html.push('</section>');
-  html.push('</body>');
-  html.push('</html>');
-  return html.join('');
+  };
 }
 
-function getFormsRecordForName(name, formsData) {
-  if (!formsData) {
+function findHeaderIndex(normalizedHeaders, candidates) {
+  if (!normalizedHeaders || !candidates) {
     return null;
   }
-  var normalizedName = normalizePersonKey(name);
-  if (formsData.recordsByName && formsData.recordsByName.hasOwnProperty(normalizedName)) {
-    return formsData.recordsByName[normalizedName];
+  for (var i = 0; i < normalizedHeaders.length; i++) {
+    var value = normalizedHeaders[i];
+    if (!value) {
+      continue;
+    }
+    for (var j = 0; j < candidates.length; j++) {
+      var target = normalize(candidates[j]);
+      if (value === target) {
+        return i;
+      }
+    }
   }
-  if (formsData.recordsByKey && formsData.recordsByKey.hasOwnProperty(normalizedName)) {
-    return formsData.recordsByKey[normalizedName];
+  for (var k = 0; k < normalizedHeaders.length; k++) {
+    var headerValue = normalizedHeaders[k];
+    if (!headerValue) {
+      continue;
+    }
+    for (var h = 0; h < candidates.length; h++) {
+      var candidate = normalize(candidates[h]);
+      if (candidate && headerValue.indexOf(candidate) !== -1) {
+        return k;
+      }
+    }
   }
   return null;
 }
 
-function indexByKey(rows, key, normalizer) {
-  var index = {};
-  for (var i = 0; i < rows.length; i++) {
-    var row = rows[i];
-    var rawKey = row[key];
-    if (!rawKey) {
-      continue;
-    }
-    var normalized = normalizer ? normalizer(rawKey) : normalizePersonKey(rawKey);
-    if (!normalized) {
-      continue;
-    }
-    if (!index[normalized]) {
-      index[normalized] = [];
-    }
-    index[normalized].push(row);
-  }
-  return index;
-}
-
-function getMostRecent(records, timestampHeader) {
-  if (!records || !records.length) {
+function pickMostRecent(records, timestampIndex) {
+  if (!records || records.length === 0) {
     return null;
   }
-  if (!timestampHeader) {
-    return records[records.length - 1];
+  var chosen = records[0];
+  for (var i = 1; i < records.length; i++) {
+    chosen = chooseMoreRecentRecord(chosen, records[i], timestampIndex);
   }
-  var bestRecord = records[records.length - 1];
-  var bestTimestamp = parseTimestamp(bestRecord[timestampHeader]);
-  for (var i = records.length - 2; i >= 0; i--) {
-    var candidate = records[i];
-    var candidateTimestamp = parseTimestamp(candidate[timestampHeader]);
-    if (candidateTimestamp && (!bestTimestamp || candidateTimestamp > bestTimestamp)) {
-      bestRecord = candidate;
-      bestTimestamp = candidateTimestamp;
+  return chosen;
+}
+
+function chooseMoreRecentRecord(a, b, timestampIndex) {
+  if (timestampIndex !== null && timestampIndex !== undefined) {
+    var timeA = parseTimestamp(a.values[timestampIndex]);
+    var timeB = parseTimestamp(b.values[timestampIndex]);
+    if (timeA && timeB) {
+      return timeB.getTime() >= timeA.getTime() ? b : a;
+    }
+    if (timeB && !timeA) {
+      return b;
+    }
+    if (!timeB && timeA) {
+      return a;
     }
   }
-  return bestRecord;
+  return a.rowIndex >= b.rowIndex ? a : b;
 }
 
 function parseTimestamp(value) {
   if (!value) {
     return null;
   }
-  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+  if (value instanceof Date) {
     return value;
   }
   var parsed = new Date(value);
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function normalizeHeader(str) {
-  if (!str) {
-    return '';
-  }
-  return str.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-}
-
-function normalizePersonKey(value) {
-  if (!value) {
-    return '';
-  }
-  return value.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
-function normalizeEmail(value) {
-  if (!value) {
-    return '';
-  }
-  return value.toString().trim().toLowerCase();
-}
-
-function findHeader(headers, candidates) {
-  if (!headers || !headers.length) {
+function getFormsRecordForName(name, formsData) {
+  if (!formsData || !formsData.recordsByName) {
     return null;
   }
-  var normalizedHeaders = headers.map(normalizeHeader);
-  for (var i = 0; i < candidates.length; i++) {
-    var candidate = normalizeHeader(candidates[i]);
-    for (var col = 0; col < normalizedHeaders.length; col++) {
-      if (normalizedHeaders[col] === candidate) {
-        return headers[col];
+  var key = normalize(name);
+  if (!key) {
+    return null;
+  }
+  return formsData.recordsByName[key] || null;
+}
+
+function buildPersonPopupHtml(person, record, formsData) {
+  var servicesList = person.services && person.services.length ? person.services : ['N.Serviço'];
+  var html = [];
+  html.push('<div style="font-family:Arial,sans-serif;padding:16px;max-width:480px;">');
+  html.push('<h2 style="margin-top:0;">' + escapeHtml(person.name) + '</h2>');
+  html.push('<p><strong>Serviços:</strong> ' + escapeHtml(servicesList.join(', ')) + '</p>');
+  if (record && formsData && formsData.outputColumnIndexes && formsData.outputColumnIndexes.length) {
+    var details = [];
+    for (var i = 0; i < formsData.outputColumnIndexes.length; i++) {
+      var colIndex = formsData.outputColumnIndexes[i];
+      var header = formsData.outputColumnHeaders[i];
+      var value = record.values[colIndex];
+      if (value === null || value === undefined || value === '') {
+        continue;
       }
+      details.push({ header: header, value: value });
     }
-  }
-  return null;
-}
-
-function ensureColumnCapacity(sheet, requiredColumns) {
-  var current = sheet.getMaxColumns();
-  if (current < requiredColumns) {
-    sheet.insertColumnsAfter(current, requiredColumns - current);
-  }
-}
-
-function sanitizeSheetName(name) {
-  if (!name) {
-    return '';
-  }
-  var cleaned = name.toString().trim().replace(/[\\/?*\[\]:]/g, '_');
-  if (!cleaned) {
-    cleaned = 'Servico';
-  }
-  if (cleaned.length > 100) {
-    cleaned = cleaned.substring(0, 100);
-  }
-  return cleaned;
-}
-
-function ensureUniqueSheetName(baseName, used) {
-  var name = baseName;
-  var counter = 2;
-  while (used[name]) {
-    var suffix = ' (' + counter + ')';
-    var trimmedBase = baseName;
-    if (trimmedBase.length + suffix.length > 100) {
-      trimmedBase = trimmedBase.substring(0, 100 - suffix.length);
+    if (details.length) {
+      html.push('<div style="margin-top:12px;">');
+      html.push('<table style="width:100%;border-collapse:collapse;">');
+      for (var d = 0; d < details.length; d++) {
+        var item = details[d];
+        html.push('<tr>');
+        html.push('<th style="text-align:left;padding:4px 8px;border-bottom:1px solid #ddd;white-space:nowrap;">' + escapeHtml(item.header) + '</th>');
+        html.push('<td style="padding:4px 8px;border-bottom:1px solid #ddd;">' + escapeHtml(formatFieldValue(item.value)) + '</td>');
+        html.push('</tr>');
+      }
+      html.push('</table>');
+      html.push('</div>');
+    } else {
+      html.push('<p style="margin-top:12px;">Sem dados adicionais encontrados na aba "Forms".</p>');
     }
-    name = trimmedBase + suffix;
-    counter++;
+  } else {
+    html.push('<p style="margin-top:12px;">Sem dados adicionais encontrados na aba "Forms".</p>');
   }
-  used[name] = true;
-  return name;
+  html.push('</div>');
+  return html.join('');
 }
 
-function getServiceSheetNameMap() {
-  var props = PropertiesService.getDocumentProperties();
-  var raw = props.getProperty('SERVICE_SHEET_MAP');
-  if (!raw) {
-    return {};
-  }
-  try {
-    return JSON.parse(raw);
-  } catch (error) {
-    console.error('Não foi possível interpretar o mapa de serviços salvo:', error);
-    return {};
-  }
-}
-
-function saveServiceSheetNameMap(map) {
-  var props = PropertiesService.getDocumentProperties();
-  props.setProperty('SERVICE_SHEET_MAP', JSON.stringify(map));
-}
-
-function sanitizeHtml(value) {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  return value.toString().replace(/[&<>\"]/g, function (char) {
-    switch (char) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      default: return char;
-    }
-  });
-}
-
-function formatValue(value) {
-  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+function formatFieldValue(value) {
+  if (value instanceof Date) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
   }
-  return value;
+  return value.toString();
 }
 
-function isRowEmpty(row) {
-  if (!row) {
-    return true;
+function escapeHtml(text) {
+  if (text === null || text === undefined) {
+    return '';
   }
-  for (var i = 0; i < row.length; i++) {
-    if (row[i] !== null && row[i] !== '') {
-      return false;
-    }
+  return text
+    .toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalize(str) {
+  if (str === null || str === undefined) {
+    return '';
   }
-  return true;
+  return str
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 }
