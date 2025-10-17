@@ -10,6 +10,20 @@ const SERVICE_FILTER_UNASSIGNED = "unassigned";
 const SERVICE_CATALOG_URL = "services.json";
 const DEFAULT_SERVICE_OPTIONS = [];
 const DEFAULT_SERVICE_OPTION_IDS = new Set();
+const SERVICE_SELECTION_POSITIVE_VALUES = new Set([
+  "true",
+  "sim",
+  "yes",
+  "ativo",
+  "activa",
+  "active",
+  "si",
+  "checked",
+  "marcado",
+  "selecionado",
+  "ok",
+  "1",
+]);
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
 const RESERVED_SERVICE_IDS = new Set([
@@ -4356,7 +4370,13 @@ function buildServiceAssignmentsFromSheet(records, columns) {
       "services (ids)",
     ]) ?? null;
 
-  if (!servicesColumn) {
+  const checkboxColumns = detectServiceColumnsFromRecords(
+    records,
+    columns,
+    servicesColumn
+  );
+
+  if (!servicesColumn && !checkboxColumns.length) {
     return null;
   }
 
@@ -4398,12 +4418,28 @@ function buildServiceAssignmentsFromSheet(records, columns) {
   records.forEach((record) => {
     if (!record) return;
 
-    const serviceIds = parseServiceList(record[servicesColumn]);
+    const aggregatedServices = servicesColumn
+      ? mergeServiceIdLists(
+          parseServiceList(record[servicesColumn]),
+          parseServiceList(record.__raw?.[servicesColumn])
+        )
+      : [];
+    const columnServices = checkboxColumns.length
+      ? extractServiceIdsFromColumns(record, checkboxColumns)
+      : [];
+    const serviceIds = mergeServiceIdLists(aggregatedServices, columnServices);
     if (!serviceIds.length) {
       return;
     }
 
-    const active = activeColumn ? parseBoolean(record[activeColumn]) : true;
+    let active = true;
+    if (activeColumn) {
+      const activeValues = collectColumnValues(record, activeColumn);
+      if (activeValues.length) {
+        active = activeValues.some((value) => parseBoolean(value));
+      }
+    }
+
     const normalized = normalizeServiceAssignment({
       active,
       services: serviceIds,
@@ -4413,8 +4449,12 @@ function buildServiceAssignmentsFromSheet(records, columns) {
       return;
     }
 
-    let serviceKey = serviceKeyColumn ? record[serviceKeyColumn] ?? "" : "";
-    let legacyKey = legacyKeyColumn ? record[legacyKeyColumn] ?? "" : "";
+    let serviceKey = serviceKeyColumn
+      ? extractFirstNonEmptyValue(record, serviceKeyColumn)
+      : "";
+    let legacyKey = legacyKeyColumn
+      ? extractFirstNonEmptyValue(record, legacyKeyColumn)
+      : "";
 
     if (typeof serviceKey === "string") {
       serviceKey = serviceKey.trim();
@@ -4438,15 +4478,17 @@ function buildServiceAssignmentsFromSheet(records, columns) {
 
     if (!serviceKey && !legacyKey) {
       const fallback = [];
-      if (nameColumn && record[nameColumn]) {
-        const normalizedName = normalizeString(record[nameColumn]);
+      if (nameColumn) {
+        const nameValue = extractFirstNonEmptyValue(record, nameColumn);
+        const normalizedName = normalizeString(nameValue);
         if (normalizedName) {
           fallback.push(normalizedName);
         }
       }
 
-      if (birthColumn && record[birthColumn]) {
-        const rawBirth = record.__raw?.[birthColumn] ?? record[birthColumn];
+      if (birthColumn) {
+        const birthValues = collectColumnValues(record, birthColumn);
+        const rawBirth = birthValues.find((value) => value != null && value !== "");
         const birthDate = parseDate(rawBirth);
         const formattedBirth = formatDateForSheet(birthDate);
         if (formattedBirth) {
@@ -4454,8 +4496,11 @@ function buildServiceAssignmentsFromSheet(records, columns) {
         }
       }
 
-      if (phoneColumn && record[phoneColumn]) {
-        const digits = extractPhoneDigits(record[phoneColumn]);
+      if (phoneColumn) {
+        const phoneValues = collectColumnValues(record, phoneColumn);
+        const digits = phoneValues
+          .map((value) => extractPhoneDigits(value))
+          .find((value) => value);
         if (digits) {
           fallback.push(digits);
         }
@@ -4566,6 +4611,173 @@ function translateServiceName(serviceId) {
   }
 
   return normalized;
+}
+
+function collectColumnValues(record, column) {
+  const values = [];
+  if (!record || !column) {
+    return values;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(record, column)) {
+    values.push(record[column]);
+  }
+
+  if (record.__raw && Object.prototype.hasOwnProperty.call(record.__raw, column)) {
+    values.push(record.__raw[column]);
+  }
+
+  return values;
+}
+
+function extractFirstNonEmptyValue(record, column) {
+  const values = collectColumnValues(record, column);
+  for (const value of values) {
+    if (value == null) {
+      continue;
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+      continue;
+    }
+    if (typeof value === "number" && !Number.isNaN(value)) {
+      const stringValue = String(value).trim();
+      if (stringValue) {
+        return stringValue;
+      }
+    }
+  }
+  return "";
+}
+
+function mergeServiceIdLists(primary, secondary) {
+  const result = [];
+  const seen = new Set();
+
+  const addList = (list) => {
+    if (!Array.isArray(list)) {
+      return;
+    }
+    list.forEach((serviceId) => {
+      const sanitized = sanitizeServiceId(serviceId);
+      if (!sanitized || seen.has(sanitized)) {
+        return;
+      }
+      seen.add(sanitized);
+      result.push(sanitized);
+    });
+  };
+
+  addList(primary);
+  addList(secondary);
+
+  return result;
+}
+
+function isTruthyServiceSelection(value, serviceId) {
+  if (Array.isArray(value)) {
+    return value.some((entry) => isTruthyServiceSelection(entry, serviceId));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).some((entry) =>
+      isTruthyServiceSelection(entry, serviceId)
+    );
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+
+  if (value == null) {
+    return false;
+  }
+
+  const sanitized = sanitizeServiceId(value);
+  if (sanitized && serviceId && sanitized === serviceId) {
+    return true;
+  }
+
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    return false;
+  }
+
+  if (serviceId) {
+    if (normalized === serviceId) {
+      return true;
+    }
+    const serviceName = serviceId.replace(/-/g, " ");
+    if (normalized === serviceName) {
+      return true;
+    }
+  }
+
+  return SERVICE_SELECTION_POSITIVE_VALUES.has(normalized);
+}
+
+function detectServiceColumnsFromRecords(records, columns, excludedColumn) {
+  if (!Array.isArray(records) || !records.length) {
+    return [];
+  }
+
+  if (!Array.isArray(columns) || !columns.length) {
+    return [];
+  }
+
+  const serviceColumns = [];
+  const seen = new Set();
+
+  columns.forEach((column) => {
+    if (!column || column === excludedColumn) {
+      return;
+    }
+
+    const serviceId = sanitizeServiceId(column);
+    if (!serviceId || seen.has(serviceId)) {
+      return;
+    }
+
+    const hasSelection = records.some((record) => {
+      if (!record) {
+        return false;
+      }
+      const values = collectColumnValues(record, column);
+      return values.some((value) => isTruthyServiceSelection(value, serviceId));
+    });
+
+    if (!hasSelection) {
+      return;
+    }
+
+    serviceColumns.push({ column, serviceId });
+    seen.add(serviceId);
+  });
+
+  return serviceColumns;
+}
+
+function extractServiceIdsFromColumns(record, serviceColumns) {
+  if (!record || !Array.isArray(serviceColumns) || !serviceColumns.length) {
+    return [];
+  }
+
+  const selected = [];
+  serviceColumns.forEach(({ column, serviceId }) => {
+    const values = collectColumnValues(record, column);
+    if (values.some((value) => isTruthyServiceSelection(value, serviceId))) {
+      selected.push(serviceId);
+    }
+  });
+
+  return selected;
 }
 
 function getServiceLabelByLanguage(serviceId, language) {
