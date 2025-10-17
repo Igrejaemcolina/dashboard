@@ -29,6 +29,7 @@ function syncAll() {
   try {
     var ss = SpreadsheetApp.getActive();
     var config = getConfig();
+    SERVICE_TABS_CACHE = null;
     var servicesData = loadServicesData(ss, config);
     var formsData = loadFormsData(ss, config);
     updateServiceSheets(ss, servicesData, formsData);
@@ -223,27 +224,41 @@ function updateServiceSheets(ss, servicesData, formsData) {
   var serviceTabsMap = getServiceTabsMap();
   var formsIndexes = formsData.outputColumnIndexes || [];
   var groups = {};
+  var missingServices = {};
   for (var i = 0; i < servicesData.people.length; i++) {
     var person = servicesData.people[i];
     for (var j = 0; j < person.services.length; j++) {
       var serviceName = person.services[j];
-      var normalizedService = normalize(serviceName);
-      if (!normalizedService) {
+      var variants = buildServiceKeyVariants(serviceName);
+      if (!variants.length) {
         continue;
       }
-      if (!groups[normalizedService]) {
-        groups[normalizedService] = {
-          normalized: normalizedService,
+      var matchedKey = null;
+      for (var v = 0; v < variants.length; v++) {
+        if (serviceTabsMap[variants[v]]) {
+          matchedKey = variants[v];
+          break;
+        }
+      }
+      var targetKey = matchedKey || variants[0];
+      if (!groups[targetKey]) {
+        groups[targetKey] = {
+          normalized: targetKey,
           displayName: serviceName,
-          people: []
+          sheetName: matchedKey ? serviceTabsMap[matchedKey] : null,
+          people: [],
+          matched: !!matchedKey
         };
       }
-      groups[normalizedService].people.push(person);
+      groups[targetKey].people.push(person);
+      if (!matchedKey) {
+        missingServices[targetKey] = serviceName;
+      }
     }
   }
-  for (var missingKey in groups) {
-    if (groups.hasOwnProperty(missingKey) && !serviceTabsMap[missingKey]) {
-      console.log('Serviço "' + groups[missingKey].displayName + '" ignorado: aba correspondente não encontrada.');
+  for (var missingKey in missingServices) {
+    if (missingServices.hasOwnProperty(missingKey) && !serviceTabsMap[missingKey]) {
+      console.log('Serviço "' + missingServices[missingKey] + '" ignorado: aba correspondente não encontrada.');
     }
   }
   for (var key in serviceTabsMap) {
@@ -260,7 +275,7 @@ function updateServiceSheets(ss, servicesData, formsData) {
         continue;
       }
       clearSheetBody(sheet);
-      if (!group || group.people.length === 0) {
+      if (!group || !group.matched || group.people.length === 0) {
         continue;
       }
       group.people.sort(function(a, b) {
@@ -314,12 +329,25 @@ function getServiceTabsMap() {
   forbidden[normalize(config.formsSheetName)] = true;
   for (var i = 0; i < sheets.length; i++) {
     var sheetName = sheets[i].getName();
-    var normalized = normalize(sheetName);
-    if (!normalized || forbidden[normalized]) {
+    var variants = buildServiceKeyVariants(sheetName);
+    if (!variants.length) {
       continue;
     }
-    if (!map[normalized]) {
-      map[normalized] = sheetName;
+    var skip = false;
+    for (var f in forbidden) {
+      if (forbidden.hasOwnProperty(f) && variants.indexOf(f) !== -1) {
+        skip = true;
+        break;
+      }
+    }
+    if (skip) {
+      continue;
+    }
+    for (var v = 0; v < variants.length; v++) {
+      var key = variants[v];
+      if (!map[key]) {
+        map[key] = sheetName;
+      }
     }
   }
   SERVICE_TABS_CACHE = map;
@@ -364,6 +392,30 @@ function splitServices(cellValue) {
     result.push(cleaned);
   }
   return result;
+}
+
+function buildServiceKeyVariants(name) {
+  if (name === null || name === undefined) {
+    return [];
+  }
+  var raw = name.toString();
+  var candidates = [raw, raw.replace(/[_-]+/g, ' ')];
+  var seen = {};
+  var variants = [];
+  for (var i = 0; i < candidates.length; i++) {
+    var base = normalize(candidates[i]);
+    if (!base || seen[base]) {
+      continue;
+    }
+    seen[base] = true;
+    variants.push(base);
+    var collapsed = base.replace(/\s+/g, '');
+    if (collapsed && !seen[collapsed]) {
+      seen[collapsed] = true;
+      variants.push(collapsed);
+    }
+  }
+  return variants;
 }
 
 function detectHeaders(sheet) {
@@ -552,6 +604,7 @@ function normalize(str) {
     .toString()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_-]+/g, ' ')
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
