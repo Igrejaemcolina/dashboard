@@ -1,5 +1,6 @@
 const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
 const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
+const SERVICE_SHEET_NAMES = ["Serviços", "serviços", "Servicos", "servicos"];
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
@@ -295,6 +296,7 @@ const TRANSLATIONS = {
       primaryLoad: "Não foi possível carregar a planilha principal.",
       fetchStatus: ({ status }) => `Erro ao acessar a planilha (status ${status})`,
       unexpectedResponse: "Resposta inesperada da API do Google Sheets.",
+      serviceLoad: "Não foi possível carregar a aba de serviços.",
     },
     category: {
       loadingTitle: "Carregando categoria...",
@@ -394,6 +396,8 @@ const TRANSLATIONS = {
       },
       tagsLabel: "Serviços desempenhados",
       selectLabel: "Selecione os serviços",
+      detailLabel: "Onde serve",
+      detailValueNone: "N.Serviço",
       feedback: {
         inactive: "N.Serviço",
         active: "Servindo",
@@ -780,6 +784,7 @@ const TRANSLATIONS = {
       primaryLoad: "Unable to load the primary spreadsheet.",
       fetchStatus: ({ status }) => `Spreadsheet request failed (status ${status}).`,
       unexpectedResponse: "Unexpected response from the Google Sheets API.",
+      serviceLoad: "Unable to load the services tab.",
     },
     category: {
       loadingTitle: "Loading category...",
@@ -879,6 +884,8 @@ const TRANSLATIONS = {
       },
       tagsLabel: "Serving in",
       selectLabel: "Choose the services",
+      detailLabel: "Serving in",
+      detailValueNone: "No service",
       feedback: {
         inactive: "No service",
         active: "Serving",
@@ -1262,6 +1269,7 @@ const TRANSLATIONS = {
       primaryLoad: "No se pudo cargar la planilla principal.",
       fetchStatus: ({ status }) => `No fue posible acceder a la planilla (estado ${status}).`,
       unexpectedResponse: "Respuesta inesperada de la API de Google Sheets.",
+      serviceLoad: "No fue posible cargar la pestaña de servicios.",
     },
     category: {
       loadingTitle: "Cargando categoría...",
@@ -1362,6 +1370,8 @@ const TRANSLATIONS = {
       },
       tagsLabel: "Servicios en los que participa",
       selectLabel: "Elige los servicios",
+      detailLabel: "Dónde sirve",
+      detailValueNone: "Sin servicio",
       feedback: {
         inactive: "Sin servicio",
         active: "Sirviendo",
@@ -3938,10 +3948,12 @@ async function initializeAccessControl() {
 async function fetchSheetData() {
   setStatusFromKey("status.loading");
   try {
-    const [primaryResult, supplementalResult] = await Promise.allSettled([
-      fetchGvizTable(GVIZ_URL),
-      fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
-    ]);
+    const [primaryResult, supplementalResult, serviceResult] =
+      await Promise.allSettled([
+        fetchGvizTable(GVIZ_URL),
+        fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
+        fetchServiceSheetTable(),
+      ]);
 
     if (primaryResult.status !== "fulfilled") {
       throw (
@@ -4017,9 +4029,6 @@ async function fetchSheetData() {
         state.supplementalPhoneColumn
       );
       state.supplementalIndex = buildSupplementalIndex(state.supplementalEntries);
-      state.serviceSheet.columns = supplementalColumns;
-      state.serviceSheet.records = supplementalRecords;
-      applyRemoteServiceAssignments(supplementalRecords, supplementalColumns);
     } else {
       console.warn(
         "Unable to load the supplemental spreadsheet:",
@@ -4032,6 +4041,19 @@ async function fetchSheetData() {
       state.supplementalPhoneColumn = null;
       state.supplementalEntries = [];
       state.supplementalIndex = new Map();
+    }
+
+    if (serviceResult.status === "fulfilled") {
+      const { records: serviceRecords, columns: serviceColumns } =
+        serviceResult.value;
+      state.serviceSheet.columns = serviceColumns;
+      state.serviceSheet.records = serviceRecords;
+      applyRemoteServiceAssignments(serviceRecords, serviceColumns);
+    } else {
+      console.warn(
+        "Unable to load the services tab:",
+        serviceResult.reason
+      );
       state.serviceSheet.columns = [];
       state.serviceSheet.records = [];
     }
@@ -4079,6 +4101,37 @@ async function fetchGvizTable(url) {
   const text = await response.text();
   const payload = extractGvizPayload(text);
   return parseTable(payload.table);
+}
+
+async function fetchServiceSheetTable() {
+  let lastError = null;
+
+  for (const sheetName of SERVICE_SHEET_NAMES) {
+    if (!sheetName) {
+      continue;
+    }
+
+    const trimmed = String(sheetName).trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(
+      trimmed
+    )}`;
+
+    try {
+      return await fetchGvizTable(url);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(translate("errors.serviceLoad"));
 }
 
 function extractGvizPayload(rawText) {
@@ -8135,6 +8188,28 @@ function mergeRecordDetails(primaryRecord, supplementalRecord, entry) {
         const supplementalValue = supplementalRecord ? supplementalRecord[column] : "";
         addValue(column, supplementalValue);
       }
+    });
+  }
+
+  const serviceLabel = translate("services.detailLabel");
+  const assignment = entry?.service ?? EMPTY_SERVICE_ASSIGNMENT;
+  const serviceNames = Array.isArray(assignment.services)
+    ? assignment.services
+        .map((serviceId) => translateServiceName(serviceId))
+        .filter(Boolean)
+    : [];
+  let serviceValue = "";
+  if (assignment.active && serviceNames.length) {
+    serviceValue = serviceNames.join(", ");
+  }
+  if (!serviceValue) {
+    serviceValue = translate("services.detailValueNone");
+  }
+  if (serviceLabel) {
+    merged.unshift({
+      key: serviceLabel,
+      value: serviceValue,
+      normalizedKey: "__service_detail__",
     });
   }
 
