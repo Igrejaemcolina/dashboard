@@ -4583,8 +4583,10 @@ function buildServiceAssignmentsFromSheet(records, columns) {
 
   clearDynamicServiceOptions();
 
-  const servicesColumn =
-    findServiceSheetColumn(columns, [
+  const sheetColumns = Array.isArray(columns) ? columns.slice() : [];
+
+  let servicesColumn =
+    findServiceSheetColumn(sheetColumns, [
       "serviços (ids)",
       "servicos (ids)",
       "serviços",
@@ -4593,9 +4595,14 @@ function buildServiceAssignmentsFromSheet(records, columns) {
       "services (ids)",
     ]) ?? null;
 
+  if (!servicesColumn && sheetColumns.length > 1) {
+    // Fallback: a primeira coluna é o nome e a segunda concentra os serviços
+    servicesColumn = sheetColumns[1];
+  }
+
   const checkboxColumns = detectServiceColumnsFromRecords(
     records,
-    columns,
+    sheetColumns,
     servicesColumn
   );
 
@@ -4603,32 +4610,35 @@ function buildServiceAssignmentsFromSheet(records, columns) {
     return null;
   }
 
-  const serviceKeyColumn = findServiceSheetColumn(columns, [
+  const serviceKeyColumn = findServiceSheetColumn(sheetColumns, [
     "service key",
     "chave do serviço",
     "chave do servico",
     "identificador",
   ]);
-  const legacyKeyColumn = findServiceSheetColumn(columns, [
+  const legacyKeyColumn = findServiceSheetColumn(sheetColumns, [
     "legacy key",
     "chave legada",
   ]);
-  const activeColumn = findServiceSheetColumn(columns, [
+  const activeColumn = findServiceSheetColumn(sheetColumns, [
     "ativo",
     "active",
     "estado",
   ]);
-  const nameColumn = findServiceSheetColumn(columns, [
+  let nameColumn = findServiceSheetColumn(sheetColumns, [
     "nome",
     "nome do irmão",
     "name",
   ]);
-  const phoneColumn = findServiceSheetColumn(columns, [
+  if (!nameColumn && sheetColumns.length) {
+    nameColumn = sheetColumns[0];
+  }
+  const phoneColumn = findServiceSheetColumn(sheetColumns, [
     "telefone",
     "contato",
     "phone",
   ]);
-  const birthColumn = findServiceSheetColumn(columns, [
+  const birthColumn = findServiceSheetColumn(sheetColumns, [
     "data de nascimento",
     "nascimento",
     "birth",
@@ -4672,6 +4682,11 @@ function buildServiceAssignmentsFromSheet(records, columns) {
       return;
     }
 
+    const nameValue = nameColumn
+      ? extractFirstNonEmptyValue(record, nameColumn)
+      : "";
+    const normalizedName = normalizeString(nameValue);
+
     let serviceKey = serviceKeyColumn
       ? extractFirstNonEmptyValue(record, serviceKeyColumn)
       : "";
@@ -4697,6 +4712,10 @@ function buildServiceAssignmentsFromSheet(records, columns) {
 
     if (legacyKey) {
       assignments.set(legacyKey, normalized);
+    }
+
+    if (normalizedName) {
+      assignments.set(normalizedName, normalized);
     }
 
     if (!serviceKey && !legacyKey) {
