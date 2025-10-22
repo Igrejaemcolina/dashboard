@@ -1,12 +1,79 @@
-const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
-const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
-const SERVICE_HTML_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true";
-const SERVICE_GVIZ_URL =
-  "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=2086743732";
+const SHEET_LINKS_CONFIG_URL = "sheet-links.json";
+// Atualize os links utilizados pela dashboard em sheet-links.json.
+const DEFAULT_SHEET_LINKS = {
+  mainSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
+  supplementalSheetId: "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
+  serviceHtmlUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true",
+  serviceGvizUrl:
+    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=2086743732",
+};
+
+let SHEET_ID = "";
+let SUPPLEMENTAL_SHEET_ID = "";
+let SERVICE_HTML_URL = "";
+let SERVICE_GVIZ_URL = "";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
-const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
+let GVIZ_URL = "";
+let SUPPLEMENTAL_GVIZ_URL = "";
+
+function updateDerivedSheetLinks() {
+  GVIZ_URL = SHEET_ID
+    ? `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`
+    : "";
+  SUPPLEMENTAL_GVIZ_URL = SUPPLEMENTAL_SHEET_ID
+    ? `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`
+    : "";
+}
+
+function applySheetLinksConfig(rawConfig) {
+  const config = {
+    ...DEFAULT_SHEET_LINKS,
+    ...(rawConfig && typeof rawConfig === "object" ? rawConfig : {}),
+  };
+
+  const nextMain =
+    typeof config.mainSheetId === "string" ? config.mainSheetId.trim() : "";
+  const nextSupplemental =
+    typeof config.supplementalSheetId === "string"
+      ? config.supplementalSheetId.trim()
+      : "";
+  const nextServiceHtml =
+    typeof config.serviceHtmlUrl === "string"
+      ? config.serviceHtmlUrl.trim()
+      : "";
+  const nextServiceGviz =
+    typeof config.serviceGvizUrl === "string"
+      ? config.serviceGvizUrl.trim()
+      : "";
+
+  SHEET_ID = nextMain || DEFAULT_SHEET_LINKS.mainSheetId;
+  SUPPLEMENTAL_SHEET_ID =
+    nextSupplemental || DEFAULT_SHEET_LINKS.supplementalSheetId;
+  SERVICE_HTML_URL = nextServiceHtml || DEFAULT_SHEET_LINKS.serviceHtmlUrl;
+  SERVICE_GVIZ_URL = nextServiceGviz || DEFAULT_SHEET_LINKS.serviceGvizUrl;
+  updateDerivedSheetLinks();
+}
+
+async function loadSheetLinksConfig() {
+  try {
+    const response = await fetch(SHEET_LINKS_CONFIG_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+    applySheetLinksConfig(payload);
+  } catch (error) {
+    console.warn(
+      "Failed to load sheet-links.json. Using built-in defaults instead.",
+      error
+    );
+    applySheetLinksConfig(DEFAULT_SHEET_LINKS);
+  }
+}
+
+applySheetLinksConfig(DEFAULT_SHEET_LINKS);
 const SERVICE_STORAGE_KEY = "igcolina-services";
 const SERVICE_FILTER_ALL = "all";
 const SERVICE_FILTER_UNASSIGNED = "unassigned";
@@ -4192,6 +4259,9 @@ async function fetchSheetData() {
 }
 
 async function fetchGvizTable(url) {
+  if (!url) {
+    throw new Error("Missing GViz URL");
+  }
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(
@@ -9466,6 +9536,7 @@ async function bootstrap() {
 }
 
 async function start() {
+  await loadSheetLinksConfig();
   await loadDefaultServiceOptions();
   initializeCustomServices();
   initializeServiceAssignments();
