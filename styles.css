@@ -521,7 +521,9 @@ main {
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 1rem;
+  min-height: clamp(160px, 19vh, 200px);
 }
 
 .card.restricted {
@@ -638,6 +640,10 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 }
 
 @media (max-width: 600px) {
+  .card {
+    min-height: 150px;
+  }
+
   .card--care-network .card-header {
     gap: 0.5rem;
   }

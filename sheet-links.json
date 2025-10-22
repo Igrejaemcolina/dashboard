@@ -1,10 +1,10 @@
 {
-  "_comment": "Atualize os links abaixo para apontar para as planilhas publicadas (principal, suplementar, serviços e rede de cuidado).",
+  "_comment": "Atualize os campos abaixo com o ID ou link padrão das planilhas (principal, suplementar, serviços e rede de cuidado). Para serviços, basta informar o link de edição em serviceSheetUrl.",
   "mainSheetId": "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
   "supplementalSheetId": "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
   "serviceSheetId": "1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4",
   "serviceSheetGid": "2086743732",
-  "serviceHtmlUrl": "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit?usp=sharing",
+  "serviceSheetUrl": "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit?usp=sharing",
   "serviceGvizUrl": "",
   "careNetworkHtmlUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKXTiT4vvLAFZI_vlrbJCCu3wrhuIhlUg517VSeJns1Sb5S9shxiOIeyuYAkpULVG661oS87NRxtMq/pubhtml?gid=457208564&single=true"
 }

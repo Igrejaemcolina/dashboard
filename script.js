@@ -5,8 +5,8 @@ const DEFAULT_SHEET_LINKS = {
   supplementalSheetId: "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
   serviceSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
   serviceSheetGid: "2086743732",
-  serviceHtmlUrl:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true",
+  serviceSheetUrl:
+    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/edit",
   serviceGvizUrl:
     "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=2086743732",
   careNetworkHtmlUrl:
@@ -15,7 +15,6 @@ const DEFAULT_SHEET_LINKS = {
 
 let SHEET_ID = "";
 let SUPPLEMENTAL_SHEET_ID = "";
-let SERVICE_HTML_URL = "";
 let SERVICE_GVIZ_URL = "";
 let SERVICE_SHEET_ID = "";
 let SERVICE_SHEET_GID = "";
@@ -179,33 +178,28 @@ function resolveCareNetworkHtmlUrl(rawUrl) {
 }
 
 function resolveServiceSheetConfig(config) {
-  const htmlInfo = extractSheetReference(config.serviceHtmlUrl);
+  const sheetInfo = extractSheetReference(config.serviceSheetUrl);
   const gvizInfo = extractSheetReference(config.serviceGvizUrl);
   const configId = sanitizeSheetId(config.serviceSheetId);
   const configGid = normalizeGid(config.serviceSheetGid);
 
-  let sheetId = configId || htmlInfo.id || gvizInfo.id;
+  let sheetId = configId || sheetInfo.id || gvizInfo.id;
   if (!sheetId) {
     sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId);
   }
 
-  let sheetGid = configGid || htmlInfo.gid || gvizInfo.gid;
+  let sheetGid = configGid || sheetInfo.gid || gvizInfo.gid;
   if (!sheetGid) {
     sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.serviceSheetGid);
   }
 
-  let htmlUrl = config.serviceHtmlUrl;
   let gvizUrl = config.serviceGvizUrl;
-
-  if (sheetId && needsPublishedHtmlReplacement(htmlUrl)) {
-    htmlUrl = buildPublishedHtmlUrl(sheetId, sheetGid);
-  }
 
   if (sheetId && needsGvizReplacement(gvizUrl)) {
     gvizUrl = buildGvizUrl(sheetId, sheetGid);
   }
 
-  return { htmlUrl, gvizUrl, sheetId, sheetGid };
+  return { gvizUrl, sheetId, sheetGid };
 }
 
 function updateDerivedSheetLinks() {
@@ -229,9 +223,9 @@ function applySheetLinksConfig(rawConfig) {
     typeof config.supplementalSheetId === "string"
       ? config.supplementalSheetId.trim()
       : "";
-  const nextServiceHtml =
-    typeof config.serviceHtmlUrl === "string"
-      ? config.serviceHtmlUrl.trim()
+  const nextServiceSheetUrl =
+    typeof config.serviceSheetUrl === "string"
+      ? config.serviceSheetUrl.trim()
       : "";
   const nextServiceGviz =
     typeof config.serviceGvizUrl === "string"
@@ -255,16 +249,14 @@ function applySheetLinksConfig(rawConfig) {
   SUPPLEMENTAL_SHEET_ID =
     nextSupplemental || DEFAULT_SHEET_LINKS.supplementalSheetId;
   const serviceConfig = resolveServiceSheetConfig({
-    serviceHtmlUrl: nextServiceHtml,
+    serviceSheetUrl: nextServiceSheetUrl,
     serviceGvizUrl: nextServiceGviz,
     serviceSheetId: nextServiceSheetId,
     serviceSheetGid: nextServiceSheetGid,
   });
   SERVICE_SHEET_ID = serviceConfig.sheetId || "";
   SERVICE_SHEET_GID = serviceConfig.sheetGid || "";
-  const fallbackServiceHtml = DEFAULT_SHEET_LINKS.serviceHtmlUrl || "";
   const fallbackServiceGviz = DEFAULT_SHEET_LINKS.serviceGvizUrl || "";
-  SERVICE_HTML_URL = serviceConfig.htmlUrl || fallbackServiceHtml;
   SERVICE_GVIZ_URL = serviceConfig.gvizUrl || fallbackServiceGviz;
   const fallbackCareNetworkHtml = resolveCareNetworkHtmlUrl(
     DEFAULT_SHEET_LINKS.careNetworkHtmlUrl || ""
@@ -4610,67 +4602,23 @@ async function fetchGvizTable(url) {
 }
 
 async function fetchServiceSheetTable() {
-  let lastError = null;
-
-  if (SERVICE_HTML_URL) {
-    try {
-      const htmlResult = await fetchServiceHtmlTable(SERVICE_HTML_URL);
-      const hasRecords = Array.isArray(htmlResult?.records)
-        ? htmlResult.records.length > 0
-        : false;
-      const hasColumns = Array.isArray(htmlResult?.columns)
-        ? htmlResult.columns.length > 0
-        : false;
-
-      if (hasRecords || hasColumns) {
-        return htmlResult;
-      }
-
-      lastError = new Error("Services HTML table did not contain any data.");
-      console.warn(lastError.message);
-    } catch (error) {
-      lastError = error;
-      console.warn("Failed to load services from HTML feed:", error);
-    }
+  if (!SERVICE_GVIZ_URL) {
+    throw new Error(translate("errors.serviceLoad"));
   }
 
-  if (SERVICE_GVIZ_URL) {
-    try {
-      const gvizResult = await fetchGvizTable(SERVICE_GVIZ_URL);
-      const hasRecords = Array.isArray(gvizResult?.records)
-        ? gvizResult.records.length > 0
-        : false;
-      const hasColumns = Array.isArray(gvizResult?.columns)
-        ? gvizResult.columns.length > 0
-        : false;
+  const result = await fetchGvizTable(SERVICE_GVIZ_URL);
+  const hasRecords = Array.isArray(result?.records)
+    ? result.records.length > 0
+    : false;
+  const hasColumns = Array.isArray(result?.columns)
+    ? result.columns.length > 0
+    : false;
 
-      if (hasRecords || hasColumns) {
-        return gvizResult;
-      }
-
-      lastError = new Error("Services GViz table did not contain any data.");
-      console.warn(lastError.message);
-    } catch (error) {
-      lastError = error;
-      console.warn("Failed to load services from GViz feed:", error);
-    }
+  if (!hasRecords && !hasColumns) {
+    throw new Error("Services GViz table did not contain any data.");
   }
 
-  if (lastError) {
-    throw lastError;
-  }
-
-  throw new Error(translate("errors.serviceLoad"));
-}
-
-async function fetchServiceHtmlTable(url) {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(translate("errors.fetchStatus", { status: response.status }));
-  }
-
-  const html = await response.text();
-  return parseServiceHtmlTable(html);
+  return result;
 }
 
 async function fetchCareNetworkHtmlTable(url) {
@@ -4685,30 +4633,6 @@ async function fetchCareNetworkHtmlTable(url) {
 
   const html = await response.text();
   return parsePublishedHtmlTable(html);
-}
-
-function parseServiceHtmlTable(html) {
-  if (typeof DOMParser === "undefined") {
-    throw new Error(translate("errors.unexpectedResponse"));
-  }
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  if (!doc) {
-    throw new Error(translate("errors.unexpectedResponse"));
-  }
-
-  const tables = Array.from(doc.querySelectorAll("table"));
-  if (!tables.length) {
-    throw new Error(translate("errors.unexpectedResponse"));
-  }
-
-  const candidateTable = findServiceHtmlTableCandidate(tables);
-  if (!candidateTable) {
-    throw new Error(translate("errors.unexpectedResponse"));
-  }
-
-  return extractServiceHtmlTable(candidateTable);
 }
 
 function parsePublishedHtmlTable(html) {
@@ -4742,42 +4666,6 @@ function parsePublishedHtmlTable(html) {
   }
 
   throw new Error(translate("errors.unexpectedResponse"));
-}
-
-function findServiceHtmlTableCandidate(tables) {
-  let fallback = null;
-
-  for (const table of tables) {
-    const headerRow = Array.from(table.querySelectorAll("tr")).find((row) => {
-      const cells = Array.from(row.querySelectorAll("th,td"));
-      return cells.some((cell) => sanitizeHeaderLabel(cell?.textContent ?? ""));
-    });
-
-    if (!headerRow) {
-      continue;
-    }
-
-    const headerValues = Array.from(headerRow.querySelectorAll("th,td"))
-      .map((cell) => normalizeString(cell?.textContent ?? ""))
-      .filter(Boolean);
-
-    if (!headerValues.length) {
-      continue;
-    }
-
-    const hasName = headerValues.some((value) => value.includes("nome"));
-    const hasService = headerValues.some((value) => value.includes("servico"));
-
-    if (hasName && hasService) {
-      return table;
-    }
-
-    if (!fallback) {
-      fallback = table;
-    }
-  }
-
-  return fallback ?? null;
 }
 
 function extractHtmlTable(table) {
@@ -4842,10 +4730,6 @@ function extractHtmlTable(table) {
   }
 
   return { columns, records };
-}
-
-function extractServiceHtmlTable(table) {
-  return extractHtmlTable(table);
 }
 
 function ensureUniqueColumnLabels(labels) {
