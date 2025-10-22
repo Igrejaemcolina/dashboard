@@ -157,6 +157,27 @@ function buildGvizUrl(sheetId, gid) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json${suffix}`;
 }
 
+function resolveCareNetworkHtmlUrl(rawUrl) {
+  const trimmed = typeof rawUrl === "string" ? rawUrl.trim() : "";
+  if (!trimmed) {
+    return "";
+  }
+
+  if (!needsPublishedHtmlReplacement(trimmed)) {
+    return trimmed;
+  }
+
+  const info = extractSheetReference(trimmed);
+  const sheetId = sanitizeSheetId(info.id);
+  const gid = normalizeGid(info.gid);
+
+  if (sheetId) {
+    return buildPublishedHtmlUrl(sheetId, gid);
+  }
+
+  return trimmed;
+}
+
 function resolveServiceSheetConfig(config) {
   const htmlInfo = extractSheetReference(config.serviceHtmlUrl);
   const gvizInfo = extractSheetReference(config.serviceGvizUrl);
@@ -245,8 +266,13 @@ function applySheetLinksConfig(rawConfig) {
   const fallbackServiceGviz = DEFAULT_SHEET_LINKS.serviceGvizUrl || "";
   SERVICE_HTML_URL = serviceConfig.htmlUrl || fallbackServiceHtml;
   SERVICE_GVIZ_URL = serviceConfig.gvizUrl || fallbackServiceGviz;
-  CARE_NETWORK_HTML_URL =
-    nextCareNetworkHtml || DEFAULT_SHEET_LINKS.careNetworkHtmlUrl;
+  const fallbackCareNetworkHtml = resolveCareNetworkHtmlUrl(
+    DEFAULT_SHEET_LINKS.careNetworkHtmlUrl || ""
+  );
+  const resolvedCareNetworkHtml = resolveCareNetworkHtmlUrl(
+    nextCareNetworkHtml
+  );
+  CARE_NETWORK_HTML_URL = resolvedCareNetworkHtml || fallbackCareNetworkHtml;
   updateDerivedSheetLinks();
 }
 

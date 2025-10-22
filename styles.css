@@ -629,8 +629,8 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 }
 
 .card-care-image {
-  width: 65px;
-  height: 65px;
+  width: 35px;
+  height: 35px;
   flex-shrink: 0;
   object-fit: cover;
   border-radius: 14px;
@@ -643,8 +643,8 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   }
 
   .card-care-image {
-    width: 56px;
-    height: 56px;
+    width: 32px;
+    height: 32px;
   }
 }
 
