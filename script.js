@@ -261,8 +261,19 @@ function resolveServiceSheetConfig(config) {
     sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId);
   }
 
-  let sheetGid = configGid || sheetInfo.gid || gvizInfo.gid;
-  if (!sheetGid) {
+  let sheetGid = "";
+  const explicitConfigGid =
+    config.serviceSheetGid !== undefined && config.serviceSheetGid !== null;
+
+  if (explicitConfigGid && configGid) {
+    sheetGid = configGid;
+  } else if (sheetInfo.gid) {
+    sheetGid = sheetInfo.gid;
+  } else if (gvizInfo.gid) {
+    sheetGid = gvizInfo.gid;
+  }
+
+  if (!sheetGid && sheetId === sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId)) {
     sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.serviceSheetGid);
   }
 
@@ -273,6 +284,35 @@ function resolveServiceSheetConfig(config) {
   }
 
   return { gvizUrl, sheetId, sheetGid };
+}
+
+function buildServiceGvizCandidates() {
+  const candidates = [];
+  const seen = new Set();
+
+  const register = (url) => {
+    if (!url) {
+      return;
+    }
+    const trimmed = String(url).trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+    seen.add(trimmed);
+    candidates.push(trimmed);
+  };
+
+  register(SERVICE_GVIZ_URL);
+
+  if (SERVICE_SHEET_ID) {
+    register(buildGvizUrl(SERVICE_SHEET_ID, SERVICE_SHEET_GID));
+    register(buildGvizUrl(SERVICE_SHEET_ID, ""));
+    if (SERVICE_SHEET_GID && SERVICE_SHEET_GID !== "0") {
+      register(buildGvizUrl(SERVICE_SHEET_ID, "0"));
+    }
+  }
+
+  return candidates;
 }
 
 function updateDerivedSheetLinks() {
@@ -4719,23 +4759,65 @@ async function fetchGvizTable(url) {
 }
 
 async function fetchServiceSheetTable() {
-  if (!SERVICE_GVIZ_URL) {
+  const candidates = buildServiceGvizCandidates();
+  if (!candidates.length) {
     throw new Error(translate("errors.serviceLoad"));
   }
 
-  const result = await fetchGvizTable(SERVICE_GVIZ_URL);
-  const hasRecords = Array.isArray(result?.records)
-    ? result.records.length > 0
-    : false;
-  const hasColumns = Array.isArray(result?.columns)
-    ? result.columns.length > 0
-    : false;
+  let fallbackResult = null;
+  let lastError = null;
 
-  if (!hasRecords && !hasColumns) {
-    throw new Error("Services GViz table did not contain any data.");
+  for (const candidate of candidates) {
+    try {
+      const result = await fetchGvizTable(candidate);
+      const hasColumns = Array.isArray(result?.columns)
+        ? result.columns.length > 0
+        : false;
+      const hasRecords = Array.isArray(result?.records)
+        ? result.records.length > 0
+        : false;
+
+      if (!hasColumns && !hasRecords) {
+        if (!fallbackResult) {
+          fallbackResult = result;
+        }
+        continue;
+      }
+
+      if (!hasRecords) {
+        fallbackResult = fallbackResult || result;
+        continue;
+      }
+
+      if (candidate !== SERVICE_GVIZ_URL) {
+        SERVICE_GVIZ_URL = candidate;
+        const reference = extractSheetReference(candidate);
+        if (reference.gid) {
+          SERVICE_SHEET_GID = reference.gid;
+        }
+        state.serviceSheet.config = {
+          ...state.serviceSheet.config,
+          gvizUrl: candidate,
+          sheetId: SERVICE_SHEET_ID,
+          sheetGid: SERVICE_SHEET_GID,
+        };
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  return result;
+  if (fallbackResult) {
+    return fallbackResult;
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(translate("errors.serviceLoad"));
 }
 
 async function fetchCareNetworkHtmlTable(url) {
@@ -8487,6 +8569,7 @@ function resolveCareNetworkFieldValue(entry, candidateKeys) {
 }
 
 function renderCareNetworkCards(entries, category) {
+  hideServiceSummary();
   const container = elements.categoryCards;
   if (!container || !elements.categoryEmpty) {
     return;
@@ -8543,12 +8626,13 @@ function renderCareNetworkCards(entries, category) {
 
     const missingText = translate("careNetwork.cardValueMissing");
     const addDetail = (label, value) => {
-      if (!label) {
+      const trimmedLabel = typeof label === "string" ? label.trim() : "";
+      if (!trimmedLabel) {
         return;
       }
 
       const dt = document.createElement("dt");
-      dt.textContent = label;
+      dt.textContent = trimmedLabel;
 
       const dd = document.createElement("dd");
       const isString = typeof value === "string";
