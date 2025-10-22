@@ -26,6 +26,31 @@ let SERVICE_SHEET_ID = "";
 let SERVICE_SHEET_GID = "";
 let CARE_NETWORK_GVIZ_URL = "";
 let CARE_NETWORK_HTML_URL = "";
+const CARE_NETWORK_PHONE_KEYS = [
+  "telefone",
+  "telefone principal",
+  "telefone cadastrado",
+  "telefone do cadastrado",
+  "telefone do cuidado",
+  "celular",
+  "contato",
+  "contato principal",
+  "phone",
+];
+const CARE_NETWORK_APPROACH_KEYS = [
+  "quem abordou",
+  "abordou",
+  "abordagem",
+  "abordagem feita por",
+  "quem fez a abordagem",
+  "responsavel pela abordagem",
+  "abordado por",
+  "responsavel",
+  "responsavel direto",
+  "quem acompanhou",
+  "acompanhador",
+  "acompanhante",
+];
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 let GVIZ_URL = "";
 let SUPPLEMENTAL_GVIZ_URL = "";
@@ -881,6 +906,9 @@ const TRANSLATIONS = {
       detailValueNone: "N.Serviço",
       servicesTitle: "Serviços atribuídos",
       fieldLabel: ({ field }) => `Rede de cuidado · ${field}`,
+      cardPhoneLabel: "Telefone",
+      cardApproachedByLabel: "Quem abordou",
+      cardValueMissing: "Não informado",
       cardImageAlt: "Rede de Cuidado",
       chartEmpty: "Não há dados disponíveis para a Rede de Cuidado.",
     },
@@ -1392,6 +1420,9 @@ const TRANSLATIONS = {
       detailValueNone: "No service",
       servicesTitle: "Assigned services",
       fieldLabel: ({ field }) => `Care Network · ${field}`,
+      cardPhoneLabel: "Phone",
+      cardApproachedByLabel: "Approached by",
+      cardValueMissing: "Not provided",
       cardImageAlt: "Care Network",
       chartEmpty: "No Care Network data is available.",
     },
@@ -1902,6 +1933,9 @@ const TRANSLATIONS = {
       detailValueNone: "Sin servicio",
       servicesTitle: "Servicios asignados",
       fieldLabel: ({ field }) => `Red de Cuidado · ${field}`,
+      cardPhoneLabel: "Teléfono",
+      cardApproachedByLabel: "Quién abordó",
+      cardValueMissing: "No informado",
       cardImageAlt: "Red de Cuidado",
       chartEmpty: "No hay datos disponibles para la Red de Cuidado.",
     },
@@ -5603,6 +5637,7 @@ function buildCareNetworkEntries(records, options = {}) {
     });
 
     const fields = [];
+    const fieldMap = new Map();
 
     normalizedColumns.forEach((column) => {
       if (column === nameColumn) {
@@ -5627,6 +5662,10 @@ function buildCareNetworkEntries(records, options = {}) {
 
       if (displayValue) {
         fields.push({ key: column, value: displayValue });
+        const normalizedKey = normalizeString(column);
+        if (normalizedKey && !fieldMap.has(normalizedKey)) {
+          fieldMap.set(normalizedKey, displayValue);
+        }
       }
     });
 
@@ -5636,6 +5675,7 @@ function buildCareNetworkEntries(records, options = {}) {
       services,
       serviceText: services.join(", "),
       fields,
+      fieldMap,
       raw: record,
       person: null,
     });
@@ -5778,6 +5818,10 @@ function applyCareNetworkDataToEntries() {
         name: matchedCare.name,
         serviceText:
           matchedCare.serviceText ?? matchedCare.services.join(", "),
+        fieldMap:
+          matchedCare.fieldMap instanceof Map
+            ? new Map(matchedCare.fieldMap)
+            : new Map(),
         raw: matchedCare.raw,
       };
       matchedCare.person = entry;
@@ -5787,6 +5831,7 @@ function applyCareNetworkDataToEntries() {
         fields: [],
         name: entry.name ?? "",
         serviceText: "",
+        fieldMap: new Map(),
         raw: null,
       };
     }
@@ -8375,6 +8420,72 @@ function getCareNetworkEntries() {
   return Array.isArray(entries) ? entries : [];
 }
 
+function resolveCareNetworkFieldValue(entry, candidateKeys) {
+  if (!entry || !Array.isArray(candidateKeys) || !candidateKeys.length) {
+    return "";
+  }
+
+  const normalizedCandidates = candidateKeys
+    .map((key) => normalizeString(key))
+    .filter(Boolean);
+
+  if (!normalizedCandidates.length) {
+    return "";
+  }
+
+  const map = entry.fieldMap instanceof Map ? entry.fieldMap : null;
+  if (map) {
+    for (const candidate of normalizedCandidates) {
+      for (const [key, value] of map.entries()) {
+        if (!key || value == null) {
+          continue;
+        }
+
+        if (
+          key === candidate ||
+          key.includes(candidate) ||
+          candidate.includes(key)
+        ) {
+          const stringValue =
+            typeof value === "string" ? value.trim() : String(value).trim();
+          if (stringValue) {
+            return stringValue;
+          }
+        }
+      }
+    }
+  }
+
+  const fields = Array.isArray(entry.fields) ? entry.fields : [];
+  for (const candidate of normalizedCandidates) {
+    for (const field of fields) {
+      const normalizedKey = normalizeString(field?.key);
+      if (!normalizedKey) {
+        continue;
+      }
+
+      if (
+        normalizedKey === candidate ||
+        normalizedKey.includes(candidate) ||
+        candidate.includes(normalizedKey)
+      ) {
+        const rawValue = field?.value;
+        const stringValue =
+          rawValue == null
+            ? ""
+            : typeof rawValue === "string"
+            ? rawValue.trim()
+            : String(rawValue).trim();
+        if (stringValue) {
+          return stringValue;
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
 function renderCareNetworkCards(entries, category) {
   const container = elements.categoryCards;
   if (!container || !elements.categoryEmpty) {
@@ -8430,23 +8541,49 @@ function renderCareNetworkCards(entries, category) {
     const details = document.createElement("dl");
     details.className = "care-card-details";
 
-    const serviceLabel = document.createElement("dt");
-    serviceLabel.textContent = translate("careNetwork.servicesTitle");
-    details.appendChild(serviceLabel);
+    const missingText = translate("careNetwork.cardValueMissing");
+    const addDetail = (label, value) => {
+      if (!label) {
+        return;
+      }
 
-    const serviceValue = document.createElement("dd");
-    serviceValue.textContent = entry.services.length
-      ? entry.services.join(", ")
-      : translate("careNetwork.detailValueNone");
-    details.appendChild(serviceValue);
+      const dt = document.createElement("dt");
+      dt.textContent = label;
 
-    entry.fields.forEach(({ key, value }) => {
-      const label = document.createElement("dt");
-      label.textContent = key;
-      const display = document.createElement("dd");
-      display.textContent = value;
-      details.append(label, display);
-    });
+      const dd = document.createElement("dd");
+      const isString = typeof value === "string";
+      const trimmed = isString ? value.trim() : value;
+      const displayValue =
+        trimmed == null || (isString && !trimmed)
+          ? missingText
+          : isString
+          ? trimmed
+          : String(value);
+      dd.textContent = displayValue;
+
+      details.append(dt, dd);
+    };
+
+    const phoneLabel = translate("careNetwork.cardPhoneLabel");
+    if (phoneLabel) {
+      const phoneValue = resolveCareNetworkFieldValue(
+        entry,
+        CARE_NETWORK_PHONE_KEYS
+      );
+      addDetail(phoneLabel, formatPhone(phoneValue));
+    }
+
+    const approachedLabel = translate("careNetwork.cardApproachedByLabel");
+    if (approachedLabel) {
+      const approachedValue = resolveCareNetworkFieldValue(
+        entry,
+        CARE_NETWORK_APPROACH_KEYS
+      );
+      addDetail(
+        approachedLabel,
+        approachedValue || missingText
+      );
+    }
 
     card.appendChild(details);
 
