@@ -6,9 +6,12 @@ const DEFAULT_SHEET_LINKS = {
   serviceSheetId: "",
   serviceSheetGid: "",
   serviceSheetUrl: "",
-  serviceHtmlUrl:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml",
+  serviceHtmlUrl: "",
   serviceGvizUrl: "",
+  serviceCsvUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pub?gid=2086743732&single=true&output=csv",
+  parentsCsvUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKe0sITHUBQQ9maOOcKKgAPPdF7v_ZR8Qb1ZdbRLsC5gqeDyhXjOEwbrnronhTSnFPIhlf3_7u-g0O/pub?gid=821736003&single=true&output=csv",
   careNetworkSheetId: "1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4",
   careNetworkSheetGid: "457208564",
   careNetworkSheetUrl:
@@ -17,12 +20,34 @@ const DEFAULT_SHEET_LINKS = {
   careNetworkHtmlUrl: "",
 };
 
+const SERVICE_SHEET_HEADERS = {
+  name: "Nomes:",
+  services: "Serviços",
+};
+
+const PARENT_SHEET_HEADERS = {
+  childName: "Nome do Adolescente(a)",
+  childBirthday: "Aniversário do Adolescente",
+  motherName: "Nome da Mãe",
+  motherBirthday: "Aniversário da Mãe",
+  motherPhone: "Telefone da Mãe",
+  fatherName: "Nome do Pai",
+  fatherBirthday: "Aniversário do Pai",
+  fatherPhone: "Telefone do Pai",
+  siblingStatus: "Possui Irmão(s)?",
+  siblingParticipation: "Irmão participa na Casa?",
+  siblingsList: "Irmãos (nome — data)",
+  childPhone: "Telefone do Adolescente",
+};
+
 let SHEET_ID = "";
 let SUPPLEMENTAL_SHEET_ID = "";
 let SERVICE_GVIZ_URL = "";
 let SERVICE_HTML_URL = "";
 let SERVICE_SHEET_ID = "";
 let SERVICE_SHEET_GID = "";
+let SERVICE_CSV_URL = "";
+let PARENTS_CSV_URL = "";
 let CARE_NETWORK_GVIZ_URL = "";
 let CARE_NETWORK_HTML_URL = "";
 const CARE_NETWORK_PHONE_KEYS = [
@@ -403,6 +428,10 @@ function applySheetLinksConfig(rawConfig) {
     typeof config.serviceSheetGid === "number"
       ? String(config.serviceSheetGid).trim()
       : normalizeGid(config.serviceSheetGid);
+  const nextServiceCsv =
+    typeof config.serviceCsvUrl === "string" ? config.serviceCsvUrl.trim() : "";
+  const nextParentsCsv =
+    typeof config.parentsCsvUrl === "string" ? config.parentsCsvUrl.trim() : "";
   const nextCareNetworkHtml =
     typeof config.careNetworkHtmlUrl === "string"
       ? config.careNetworkHtmlUrl.trim()
@@ -451,6 +480,8 @@ function applySheetLinksConfig(rawConfig) {
   SERVICE_GVIZ_URL = fallbackServiceGviz;
   SERVICE_HTML_URL =
     serviceConfig.htmlUrl || fallbackServiceConfig.htmlUrl || "";
+  SERVICE_CSV_URL = nextServiceCsv || DEFAULT_SHEET_LINKS.serviceCsvUrl;
+  PARENTS_CSV_URL = nextParentsCsv || DEFAULT_SHEET_LINKS.parentsCsvUrl;
   const fallbackCareConfig = resolveCareNetworkSheetConfig({
     htmlUrl: DEFAULT_SHEET_LINKS.careNetworkHtmlUrl,
     sheetUrl: DEFAULT_SHEET_LINKS.careNetworkSheetUrl,
@@ -488,7 +519,11 @@ async function loadSheetLinksConfig() {
         sheetGid: SERVICE_SHEET_GID,
         htmlUrl: SERVICE_HTML_URL,
         gvizUrl: SERVICE_GVIZ_URL,
+        csvUrl: SERVICE_CSV_URL,
       };
+    }
+    if (state && state.parentSheet) {
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
     }
   } catch (error) {
     console.warn(
@@ -503,7 +538,11 @@ async function loadSheetLinksConfig() {
         sheetGid: SERVICE_SHEET_GID,
         htmlUrl: SERVICE_HTML_URL,
         gvizUrl: SERVICE_GVIZ_URL,
+        csvUrl: SERVICE_CSV_URL,
       };
+    }
+    if (state && state.parentSheet) {
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
     }
   }
 }
@@ -2667,6 +2706,7 @@ const DEFAULT_SERVICE_SHEET_CONFIG = {
   sheetGid: "",
   htmlUrl: "",
   gvizUrl: "",
+  csvUrl: "",
 };
 
 function loadServiceSheetConfig() {
@@ -2738,6 +2778,11 @@ const state = {
     columns: [],
     records: [],
     config: loadServiceSheetConfig(),
+  },
+  parentSheet: {
+    columns: [],
+    records: [],
+    csvUrl: "",
   },
   careNetwork: createEmptyCareNetworkState(),
 };
@@ -4670,12 +4715,19 @@ async function fetchSheetData() {
       careNetworkPromise = Promise.resolve({ columns: [], records: [] });
     }
 
-    const [primaryResult, supplementalResult, serviceResult, careNetworkResult] =
+    const [
+      primaryResult,
+      supplementalResult,
+      serviceResult,
+      careNetworkResult,
+      parentResult,
+    ] =
       await Promise.allSettled([
         fetchGvizTable(GVIZ_URL),
         fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
         fetchServiceSheetTable(),
         careNetworkPromise,
+        fetchParentSheetTable(),
       ]);
 
     if (primaryResult.status !== "fulfilled") {
@@ -4771,6 +4823,10 @@ async function fetchSheetData() {
         serviceResult.value;
       state.serviceSheet.columns = serviceColumns;
       state.serviceSheet.records = serviceRecords;
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        csvUrl: SERVICE_CSV_URL,
+      };
       applyRemoteServiceAssignments(serviceRecords, serviceColumns);
     } else {
       console.warn(
@@ -4779,6 +4835,10 @@ async function fetchSheetData() {
       );
       state.serviceSheet.columns = [];
       state.serviceSheet.records = [];
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        csvUrl: SERVICE_CSV_URL,
+      };
     }
 
     if (careNetworkResult.status === "fulfilled") {
@@ -4793,11 +4853,29 @@ async function fetchSheetData() {
       resetCareNetworkState();
     }
 
+    if (parentResult.status === "fulfilled") {
+      const { records: parentRecords, columns: parentColumns } =
+        parentResult.value ?? { records: [], columns: [] };
+      state.parentSheet.columns = parentColumns;
+      state.parentSheet.records = parentRecords;
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
+      state.parentEntries = buildParentEntries(parentRecords);
+      state.parentSummary = summarizeParentEntries(state.parentEntries);
+    } else {
+      console.warn(
+        "Unable to load the parents tab:",
+        parentResult.reason
+      );
+      state.parentSheet.columns = [];
+      state.parentSheet.records = [];
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
+      state.parentEntries = [];
+      state.parentSummary = { parents: 0, families: 0 };
+    }
+
     state.enrichedRecords = buildEnrichedRecords(records);
     applyServiceAssignmentsToEntries();
     applyCareNetworkDataToEntries();
-    state.parentEntries = buildParentEntries(state.enrichedRecords);
-    state.parentSummary = summarizeParentEntries(state.parentEntries);
     buildSuggestions();
 
     if (!CATEGORY_BY_ID[state.activeCategory]) {
@@ -4843,111 +4921,157 @@ async function fetchGvizTable(url) {
 }
 
 async function fetchServiceSheetTable() {
-  const htmlCandidates = buildServiceHtmlCandidates();
-  let fallbackResult = null;
-  let lastError = null;
+  if (!SERVICE_CSV_URL) {
+    return { columns: [], records: [] };
+  }
 
-  for (const candidate of htmlCandidates) {
-    try {
-      const result = await fetchServiceHtmlTable(candidate);
-      const hasColumns = Array.isArray(result?.columns)
-        ? result.columns.length > 0
-        : false;
-      const hasRecords = Array.isArray(result?.records)
-        ? result.records.length > 0
-        : false;
+  const table = await fetchCsvTable(SERVICE_CSV_URL);
+  ensureRequiredColumns(table.columns, [
+    SERVICE_SHEET_HEADERS.name,
+    SERVICE_SHEET_HEADERS.services,
+  ]);
+  return table;
+}
 
-      if (!hasColumns && !hasRecords) {
-        if (!fallbackResult) {
-          fallbackResult = result;
-        }
-        continue;
-      }
+async function fetchParentSheetTable() {
+  if (!PARENTS_CSV_URL) {
+    return { columns: [], records: [] };
+  }
 
-      if (!hasRecords) {
-        fallbackResult = fallbackResult || result;
-        continue;
-      }
+  return fetchCsvTable(PARENTS_CSV_URL);
+}
 
-      if (candidate !== SERVICE_HTML_URL) {
-        SERVICE_HTML_URL = candidate;
-        const reference = extractSheetReference(candidate);
-        if (reference.gid) {
-          SERVICE_SHEET_GID = reference.gid;
-        }
-        if (reference.id && !isPublishedSheetId(reference.id)) {
-          SERVICE_SHEET_ID = reference.id;
-        }
-        state.serviceSheet.config = {
-          ...state.serviceSheet.config,
-          htmlUrl: candidate,
-          sheetId: SERVICE_SHEET_ID,
-          sheetGid: SERVICE_SHEET_GID,
-        };
-      }
+async function fetchCsvTable(url) {
+  if (!url) {
+    return { columns: [], records: [] };
+  }
 
-      return result;
-    } catch (error) {
-      lastError = error;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(translate("errors.fetchStatus", { status: response.status }));
+  }
+
+  const text = await response.text();
+  return parseCsvTable(text);
+}
+
+function ensureRequiredColumns(columns, requiredColumns) {
+  if (!Array.isArray(columns) || !Array.isArray(requiredColumns)) {
+    return;
+  }
+
+  requiredColumns.forEach((header) => {
+    if (!header) {
+      return;
     }
-  }
-
-  const gvizCandidates = buildServiceGvizCandidates();
-
-  for (const candidate of gvizCandidates) {
-    try {
-      const result = await fetchGvizTable(candidate);
-      const hasColumns = Array.isArray(result?.columns)
-        ? result.columns.length > 0
-        : false;
-      const hasRecords = Array.isArray(result?.records)
-        ? result.records.length > 0
-        : false;
-
-      if (!hasColumns && !hasRecords) {
-        if (!fallbackResult) {
-          fallbackResult = result;
-        }
-        continue;
-      }
-
-      if (!hasRecords) {
-        fallbackResult = fallbackResult || result;
-        continue;
-      }
-
-      if (candidate !== SERVICE_GVIZ_URL) {
-        SERVICE_GVIZ_URL = candidate;
-        const reference = extractSheetReference(candidate);
-        if (reference.gid) {
-          SERVICE_SHEET_GID = reference.gid;
-        }
-        if (reference.id) {
-          SERVICE_SHEET_ID = reference.id;
-        }
-        state.serviceSheet.config = {
-          ...state.serviceSheet.config,
-          gvizUrl: candidate,
-          sheetId: SERVICE_SHEET_ID,
-          sheetGid: SERVICE_SHEET_GID,
-        };
-      }
-
-      return result;
-    } catch (error) {
-      lastError = error;
+    if (!columns.includes(header)) {
+      throw new Error(`CSV response is missing required column "${header}".`);
     }
+  });
+}
+
+function parseCsvRows(text) {
+  if (typeof text !== "string") {
+    return [];
   }
 
-  if (fallbackResult) {
-    return fallbackResult;
+  const normalized = text.replace(/^\ufeff/, "");
+  const rows = [];
+  let currentRow = [];
+  let currentValue = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const char = normalized[index];
+
+    if (char === '"') {
+      const nextChar = normalized[index + 1];
+      if (inQuotes && nextChar === '"') {
+        currentValue += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      currentRow.push(currentValue);
+      currentValue = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      currentRow.push(currentValue);
+      currentValue = "";
+      rows.push(currentRow);
+      currentRow = [];
+      if (char === "\r" && normalized[index + 1] === "\n") {
+        index += 1;
+      }
+      continue;
+    }
+
+    currentValue += char;
   }
 
-  if (lastError) {
-    throw lastError;
+  currentRow.push(currentValue);
+  rows.push(currentRow);
+
+  while (
+    rows.length &&
+    rows[rows.length - 1].every((cell) => String(cell ?? "").trim() === "")
+  ) {
+    rows.pop();
   }
 
-  throw new Error(translate("errors.serviceLoad"));
+  return rows.map((row) =>
+    row.map((cell) => (cell == null ? "" : String(cell)))
+  );
+}
+
+function parseCsvTable(text) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) {
+    return { columns: [], records: [] };
+  }
+
+  const headerLabels = rows[0].map((cell, index) => {
+    const trimmed = String(cell ?? "").trim();
+    return trimmed || `Coluna ${index + 1}`;
+  });
+  const columns = ensureUniqueColumnLabels(headerLabels);
+
+  const records = [];
+
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex] ?? [];
+    const values = columns.map((_, columnIndex) => {
+      if (columnIndex < row.length) {
+        return row[columnIndex] ?? "";
+      }
+      return "";
+    });
+
+    const hasValue = values.some((value) => String(value ?? "").trim() !== "");
+    if (!hasValue) {
+      continue;
+    }
+
+    const entry = {};
+    const raw = {};
+
+    columns.forEach((column, columnIndex) => {
+      const value = values[columnIndex] ?? "";
+      entry[column] = value;
+      raw[column] = value;
+    });
+
+    entry.__raw = raw;
+    records.push(entry);
+  }
+
+  return { columns, records };
 }
 
 async function fetchPublishedHtmlTable(url, contextLabel = "table") {
@@ -7623,41 +7747,121 @@ function createParentProfile(details, role) {
   };
 }
 
-function buildParentEntries(enrichedRecords) {
-  if (!Array.isArray(enrichedRecords) || !enrichedRecords.length) {
+function buildParentEntries(parentRecords) {
+  if (!Array.isArray(parentRecords) || !parentRecords.length) {
     return [];
   }
 
-  const entries = [];
+  return parentRecords
+    .map((record) => {
+      if (!record || typeof record !== "object") {
+        return null;
+      }
 
-  enrichedRecords.forEach((entry) => {
-    if (!Number.isFinite(entry.age) || entry.age < 11 || entry.age > 17) {
-      return;
-    }
+      const childName = String(
+        record[PARENT_SHEET_HEADERS.childName] ?? ""
+      ).trim();
+      const rawBirthday =
+        record.__raw?.[PARENT_SHEET_HEADERS.childBirthday] ??
+        record[PARENT_SHEET_HEADERS.childBirthday] ??
+        "";
+      const childBirthday = String(rawBirthday ?? "").trim();
+      const birthDate = parseDate(rawBirthday);
+      const childAge =
+        birthDate instanceof Date && !Number.isNaN(birthDate.getTime())
+          ? calculateAge(birthDate)
+          : null;
+      const childPhone = String(
+        record[PARENT_SHEET_HEADERS.childPhone] ?? ""
+      ).trim();
 
-    const supplementalRecord = entry.supplemental?.record ?? null;
-    const mergedDetails = mergeRecordDetails(entry.record, supplementalRecord, entry);
-    const fatherDetails = filterParentDetails(mergedDetails, "father");
-    const motherDetails = filterParentDetails(mergedDetails, "mother");
-    const father = createParentProfile(fatherDetails, "father");
-    const mother = createParentProfile(motherDetails, "mother");
+      const fatherDetails = [];
+      const fatherNameValue = String(
+        record[PARENT_SHEET_HEADERS.fatherName] ?? ""
+      ).trim();
+      if (fatherNameValue) {
+        fatherDetails.push({
+          key: PARENT_SHEET_HEADERS.fatherName,
+          value: fatherNameValue,
+        });
+      }
+      const fatherBirthdayValue = String(
+        record[PARENT_SHEET_HEADERS.fatherBirthday] ?? ""
+      ).trim();
+      if (fatherBirthdayValue) {
+        fatherDetails.push({
+          key: PARENT_SHEET_HEADERS.fatherBirthday,
+          value: fatherBirthdayValue,
+        });
+      }
+      const fatherPhoneValue = String(
+        record[PARENT_SHEET_HEADERS.fatherPhone] ?? ""
+      ).trim();
+      if (fatherPhoneValue) {
+        fatherDetails.push({
+          key: PARENT_SHEET_HEADERS.fatherPhone,
+          value: fatherPhoneValue,
+        });
+      }
+      const father = createParentProfile(fatherDetails, "father");
 
-    if (!father && !mother) {
-      return;
-    }
+      const motherDetails = [];
+      const motherNameValue = String(
+        record[PARENT_SHEET_HEADERS.motherName] ?? ""
+      ).trim();
+      if (motherNameValue) {
+        motherDetails.push({
+          key: PARENT_SHEET_HEADERS.motherName,
+          value: motherNameValue,
+        });
+      }
+      const motherBirthdayValue = String(
+        record[PARENT_SHEET_HEADERS.motherBirthday] ?? ""
+      ).trim();
+      if (motherBirthdayValue) {
+        motherDetails.push({
+          key: PARENT_SHEET_HEADERS.motherBirthday,
+          value: motherBirthdayValue,
+        });
+      }
+      const motherPhoneValue = String(
+        record[PARENT_SHEET_HEADERS.motherPhone] ?? ""
+      ).trim();
+      if (motherPhoneValue) {
+        motherDetails.push({
+          key: PARENT_SHEET_HEADERS.motherPhone,
+          value: motherPhoneValue,
+        });
+      }
+      const mother = createParentProfile(motherDetails, "mother");
 
-    entries.push({
-      entry,
-      record: entry.record,
-      childName: entry.name,
-      childAge: entry.age,
-      childPhone: entry.phone,
-      father,
-      mother,
-    });
-  });
+      if (!father && !mother) {
+        return null;
+      }
 
-  return entries;
+      const siblingStatus = String(
+        record[PARENT_SHEET_HEADERS.siblingStatus] ?? ""
+      ).trim();
+      const siblingParticipation = String(
+        record[PARENT_SHEET_HEADERS.siblingParticipation] ?? ""
+      ).trim();
+      const siblingsList = String(
+        record[PARENT_SHEET_HEADERS.siblingsList] ?? ""
+      ).trim();
+
+      return {
+        childName,
+        childAge,
+        childPhone,
+        childBirthday,
+        siblingStatus,
+        siblingParticipation,
+        siblingsList,
+        father,
+        mother,
+      };
+    })
+    .filter(Boolean);
 }
 
 function summarizeParentEntries(entries) {
@@ -10623,6 +10827,31 @@ function openParentDetail(entry, role) {
         : translate("format.phoneMissing"),
     },
   ];
+
+  if (entry.childBirthday) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.childBirthday,
+      value: entry.childBirthday,
+    });
+  }
+  if (entry.siblingStatus) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.siblingStatus,
+      value: entry.siblingStatus,
+    });
+  }
+  if (entry.siblingParticipation) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.siblingParticipation,
+      value: entry.siblingParticipation,
+    });
+  }
+  if (entry.siblingsList) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.siblingsList,
+      value: entry.siblingsList,
+    });
+  }
 
   if (Array.isArray(parent.details) && parent.details.length) {
     parent.details.forEach(({ key, value }) => {
