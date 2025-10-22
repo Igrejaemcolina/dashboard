@@ -416,8 +416,7 @@ const TRANSLATIONS = {
       },
       careNetwork: {
         title: "Rede de Cuidado",
-        description:
-          "Acompanhe os irmãos cadastrados na Rede de Cuidado e visualize os dados de acompanhamento.",
+        description: "Cadastrados da Rede de Cuidado",
         chartLabel: "Registros da Rede de Cuidado",
         empty: "Nenhum registro encontrado na Rede de Cuidado.",
       },
