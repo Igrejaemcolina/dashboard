@@ -5315,12 +5315,205 @@ function findServiceSheetColumn(columns, labels) {
   return null;
 }
 
-function buildServiceAssignmentsFromSheet(records, columns) {
+function getKnownServiceIds() {
+  const ids = new Set(DEFAULT_SERVICE_OPTION_IDS);
+  customServiceOptions.forEach((_, id) => ids.add(id));
+  dynamicServiceOptions.forEach((_, id) => ids.add(id));
+  return ids;
+}
+
+function normalizeServiceCellValue(value) {
+  if (value == null) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value
+      .replace(/[\u2713\u2714\u2705✅✔️]/g, "")
+      .replace(/[•·]/g, ",")
+      .replace(/\s+/g, " ")
+      .replace(/\s+,/g, ",")
+      .replace(/,\s+/g, ",")
+      .trim();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => normalizeServiceCellValue(entry))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value || {})
+      .map((entry) => normalizeServiceCellValue(entry))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    return String(value);
+  }
+
+  return String(value ?? "").trim();
+}
+
+function collectServiceIdsFromColumn(record, column) {
+  if (!record || !column) {
+    return [];
+  }
+
+  const values = collectColumnValues(record, column);
+  if (!values.length) {
+    return [];
+  }
+
+  const ids = [];
+  values.forEach((value) => {
+    const normalized = normalizeServiceCellValue(value);
+    if (!normalized) {
+      return;
+    }
+    const parsed = parseServiceList(normalized);
+    if (Array.isArray(parsed) && parsed.length) {
+      parsed.forEach((serviceId) => ids.push(serviceId));
+    }
+  });
+
+  return Array.from(new Set(ids)).filter(Boolean);
+}
+
+function detectRosterServiceColumn(records, columns, nameColumn) {
   if (!Array.isArray(records) || !records.length) {
     return null;
   }
 
-  clearDynamicServiceOptions();
+  if (!Array.isArray(columns) || !columns.length) {
+    return null;
+  }
+
+  const knownServiceIds = getKnownServiceIds();
+  let bestColumn = null;
+  let bestScore = 0;
+
+  columns.forEach((column) => {
+    if (!column || column === nameColumn) {
+      return;
+    }
+
+    let recognized = 0;
+
+    records.forEach((record) => {
+      const values = collectColumnValues(record, column);
+      for (const value of values) {
+        const normalized = normalizeServiceCellValue(value);
+        if (!normalized) {
+          continue;
+        }
+        const ids = normalized
+          .split(/[,;\n]+/)
+          .map((chunk) => normalizeServiceId(chunk))
+          .filter(Boolean);
+        if (ids.some((id) => knownServiceIds.has(id))) {
+          recognized += 1;
+          break;
+        }
+      }
+    });
+
+    if (recognized > bestScore) {
+      bestScore = recognized;
+      bestColumn = column;
+    }
+  });
+
+  return bestColumn;
+}
+
+function buildRosterServiceAssignments(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
+
+  const sheetColumns = Array.isArray(columns) ? columns.filter(Boolean) : [];
+
+  if (!sheetColumns.length) {
+    return null;
+  }
+
+  let nameColumn = findServiceSheetColumn(sheetColumns, [
+    "nome",
+    "nome do irmão",
+    "nome do irmao",
+    "name",
+  ]);
+
+  if (!nameColumn) {
+    nameColumn = sheetColumns[0];
+  }
+
+  if (!nameColumn) {
+    return null;
+  }
+
+  let servicesColumn = findServiceSheetColumn(sheetColumns, [
+    "serviços",
+    "servicos",
+    "services",
+    "serviços (ids)",
+    "servicos (ids)",
+    "services (ids)",
+  ]);
+
+  if (!servicesColumn) {
+    servicesColumn = detectRosterServiceColumn(records, sheetColumns, nameColumn);
+  }
+
+  if (!servicesColumn && sheetColumns.length > 1) {
+    servicesColumn = sheetColumns[1];
+  }
+
+  if (!servicesColumn) {
+    return null;
+  }
+
+  const assignments = new Map();
+
+  records.forEach((record) => {
+    if (!record) {
+      return;
+    }
+
+    const nameValue = extractFirstNonEmptyValue(record, nameColumn);
+    const normalizedName = normalizeString(nameValue);
+    if (!normalizedName) {
+      return;
+    }
+
+    const serviceIds = collectServiceIdsFromColumn(record, servicesColumn);
+    if (!serviceIds.length) {
+      return;
+    }
+
+    const normalized = normalizeServiceAssignment({
+      active: true,
+      services: serviceIds,
+    });
+
+    if (!normalized.active || !normalized.services.length) {
+      return;
+    }
+
+    assignments.set(normalizedName, normalized);
+  });
+
+  return assignments.size ? assignments : null;
+}
+
+function buildDetailedServiceAssignments(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
 
   const sheetColumns = Array.isArray(columns) ? columns.slice() : [];
 
@@ -5335,7 +5528,6 @@ function buildServiceAssignmentsFromSheet(records, columns) {
     ]) ?? null;
 
   if (!servicesColumn && sheetColumns.length > 1) {
-    // Fallback: a primeira coluna é o nome e a segunda concentra os serviços
     servicesColumn = sheetColumns[1];
   }
 
@@ -5388,14 +5580,11 @@ function buildServiceAssignmentsFromSheet(records, columns) {
   const fallbackAssignments = new Map();
 
   records.forEach((record) => {
-    if (!record) return;
+    if (!record) {
+      return;
+    }
 
-    const aggregatedServices = servicesColumn
-      ? mergeServiceIdLists(
-          parseServiceList(record[servicesColumn]),
-          parseServiceList(record.__raw?.[servicesColumn])
-        )
-      : [];
+    const aggregatedServices = collectServiceIdsFromColumn(record, servicesColumn);
     const columnServices = checkboxColumns.length
       ? extractServiceIdsFromColumns(record, checkboxColumns)
       : [];
@@ -5460,10 +5649,10 @@ function buildServiceAssignmentsFromSheet(records, columns) {
     if (!serviceKey && !legacyKey) {
       const fallback = [];
       if (nameColumn) {
-        const nameValue = extractFirstNonEmptyValue(record, nameColumn);
-        const normalizedName = normalizeString(nameValue);
-        if (normalizedName) {
-          fallback.push(normalizedName);
+        const fallbackName = extractFirstNonEmptyValue(record, nameColumn);
+        const normalizedFallback = normalizeString(fallbackName);
+        if (normalizedFallback) {
+          fallback.push(normalizedFallback);
         }
       }
 
@@ -5500,8 +5689,37 @@ function buildServiceAssignmentsFromSheet(records, columns) {
     });
   }
 
-  return assignments;
+  return assignments.size ? assignments : null;
 }
+
+function buildServiceAssignmentsFromSheet(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    clearDynamicServiceOptions();
+    return null;
+  }
+
+  clearDynamicServiceOptions();
+
+  const rosterAssignments = buildRosterServiceAssignments(records, columns);
+  const detailedAssignments = buildDetailedServiceAssignments(records, columns);
+
+  if (detailedAssignments && detailedAssignments.size) {
+    if (rosterAssignments && rosterAssignments.size) {
+      detailedAssignments.forEach((assignment, key) => {
+        rosterAssignments.set(key, assignment);
+      });
+      return rosterAssignments;
+    }
+    return detailedAssignments;
+  }
+
+  if (rosterAssignments && rosterAssignments.size) {
+    return rosterAssignments;
+  }
+
+  return null;
+}
+
 
 function applyRemoteServiceAssignments(records, columns) {
   const remoteAssignments = buildServiceAssignmentsFromSheet(records, columns);
