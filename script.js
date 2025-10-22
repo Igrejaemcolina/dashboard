@@ -3,6 +3,8 @@ const SHEET_LINKS_CONFIG_URL = "sheet-links.json";
 const DEFAULT_SHEET_LINKS = {
   mainSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
   supplementalSheetId: "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
+  serviceSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
+  serviceSheetGid: "2086743732",
   serviceHtmlUrl:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true",
   serviceGvizUrl:
@@ -15,10 +17,175 @@ let SHEET_ID = "";
 let SUPPLEMENTAL_SHEET_ID = "";
 let SERVICE_HTML_URL = "";
 let SERVICE_GVIZ_URL = "";
+let SERVICE_SHEET_ID = "";
+let SERVICE_SHEET_GID = "";
 let CARE_NETWORK_HTML_URL = "";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 let GVIZ_URL = "";
 let SUPPLEMENTAL_GVIZ_URL = "";
+
+function sanitizeSheetId(value) {
+  if (value == null) {
+    return "";
+  }
+  const trimmed = String(value).trim();
+  return trimmed || "";
+}
+
+function normalizeGid(value) {
+  if (value == null) {
+    return "";
+  }
+  const trimmed = String(value).trim();
+  return trimmed || "";
+}
+
+function extractSheetReference(value) {
+  const result = { id: "", gid: "", url: "" };
+  if (value == null) {
+    return result;
+  }
+
+  const stringValue = String(value).trim();
+  if (!stringValue) {
+    return result;
+  }
+
+  result.url = stringValue;
+
+  if (/^https?:\/\//i.test(stringValue)) {
+    try {
+      const url = new URL(stringValue);
+      const segments = url.pathname.split("/").filter(Boolean);
+      const dIndex = segments.indexOf("d");
+      if (dIndex >= 0) {
+        const next = segments[dIndex + 1] ?? "";
+        if (next === "e" && segments.length > dIndex + 2) {
+          result.id = segments[dIndex + 2];
+        } else if (next) {
+          result.id = next;
+        }
+      }
+      const gidParam = url.searchParams.get("gid");
+      if (gidParam) {
+        result.gid = gidParam;
+      }
+    } catch (error) {
+      return result;
+    }
+  } else {
+    result.id = stringValue;
+  }
+
+  return result;
+}
+
+function needsPublishedHtmlReplacement(url) {
+  if (!url) {
+    return true;
+  }
+
+  const stringValue = String(url).trim();
+  if (!stringValue) {
+    return true;
+  }
+
+  if (!/^https?:\/\//i.test(stringValue)) {
+    return true;
+  }
+
+  const normalized = stringValue.toLowerCase();
+  if (!normalized.includes("docs.google.com")) {
+    return false;
+  }
+  if (normalized.includes("/pubhtml")) {
+    return false;
+  }
+  if (normalized.includes("/d/e/")) {
+    return false;
+  }
+  if (normalized.includes("/pub") && normalized.includes("output=html")) {
+    return false;
+  }
+
+  return (
+    normalized.includes("/edit") ||
+    normalized.includes("/view") ||
+    normalized.includes("/preview") ||
+    normalized.endsWith("/d") ||
+    normalized.endsWith("/d/")
+  );
+}
+
+function needsGvizReplacement(url) {
+  if (!url) {
+    return true;
+  }
+
+  const stringValue = String(url).trim();
+  if (!stringValue) {
+    return true;
+  }
+
+  if (!/^https?:\/\//i.test(stringValue)) {
+    return true;
+  }
+
+  const normalized = stringValue.toLowerCase();
+  if (!normalized.includes("docs.google.com")) {
+    return false;
+  }
+
+  return !normalized.includes("/gviz/");
+}
+
+function buildPublishedHtmlUrl(sheetId, gid) {
+  if (!sheetId) {
+    return "";
+  }
+
+  const suffix = gid ? `?gid=${gid}&single=true` : "?single=true";
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml${suffix}`;
+}
+
+function buildGvizUrl(sheetId, gid) {
+  if (!sheetId) {
+    return "";
+  }
+
+  const suffix = gid ? `&gid=${gid}` : "";
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json${suffix}`;
+}
+
+function resolveServiceSheetConfig(config) {
+  const htmlInfo = extractSheetReference(config.serviceHtmlUrl);
+  const gvizInfo = extractSheetReference(config.serviceGvizUrl);
+  const configId = sanitizeSheetId(config.serviceSheetId);
+  const configGid = normalizeGid(config.serviceSheetGid);
+
+  let sheetId = configId || htmlInfo.id || gvizInfo.id;
+  if (!sheetId) {
+    sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId);
+  }
+
+  let sheetGid = configGid || htmlInfo.gid || gvizInfo.gid;
+  if (!sheetGid) {
+    sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.serviceSheetGid);
+  }
+
+  let htmlUrl = config.serviceHtmlUrl;
+  let gvizUrl = config.serviceGvizUrl;
+
+  if (sheetId && needsPublishedHtmlReplacement(htmlUrl)) {
+    htmlUrl = buildPublishedHtmlUrl(sheetId, sheetGid);
+  }
+
+  if (sheetId && needsGvizReplacement(gvizUrl)) {
+    gvizUrl = buildGvizUrl(sheetId, sheetGid);
+  }
+
+  return { htmlUrl, gvizUrl, sheetId, sheetGid };
+}
 
 function updateDerivedSheetLinks() {
   GVIZ_URL = SHEET_ID
@@ -49,6 +216,15 @@ function applySheetLinksConfig(rawConfig) {
     typeof config.serviceGvizUrl === "string"
       ? config.serviceGvizUrl.trim()
       : "";
+  const nextServiceSheetId =
+    typeof config.serviceSheetId === "string"
+      ? config.serviceSheetId.trim()
+      : sanitizeSheetId(config.serviceSheetId);
+  const nextServiceSheetGid =
+    typeof config.serviceSheetGid === "string" ||
+    typeof config.serviceSheetGid === "number"
+      ? String(config.serviceSheetGid).trim()
+      : normalizeGid(config.serviceSheetGid);
   const nextCareNetworkHtml =
     typeof config.careNetworkHtmlUrl === "string"
       ? config.careNetworkHtmlUrl.trim()
@@ -57,8 +233,18 @@ function applySheetLinksConfig(rawConfig) {
   SHEET_ID = nextMain || DEFAULT_SHEET_LINKS.mainSheetId;
   SUPPLEMENTAL_SHEET_ID =
     nextSupplemental || DEFAULT_SHEET_LINKS.supplementalSheetId;
-  SERVICE_HTML_URL = nextServiceHtml || DEFAULT_SHEET_LINKS.serviceHtmlUrl;
-  SERVICE_GVIZ_URL = nextServiceGviz || DEFAULT_SHEET_LINKS.serviceGvizUrl;
+  const serviceConfig = resolveServiceSheetConfig({
+    serviceHtmlUrl: nextServiceHtml,
+    serviceGvizUrl: nextServiceGviz,
+    serviceSheetId: nextServiceSheetId,
+    serviceSheetGid: nextServiceSheetGid,
+  });
+  SERVICE_SHEET_ID = serviceConfig.sheetId || "";
+  SERVICE_SHEET_GID = serviceConfig.sheetGid || "";
+  const fallbackServiceHtml = DEFAULT_SHEET_LINKS.serviceHtmlUrl || "";
+  const fallbackServiceGviz = DEFAULT_SHEET_LINKS.serviceGvizUrl || "";
+  SERVICE_HTML_URL = serviceConfig.htmlUrl || fallbackServiceHtml;
+  SERVICE_GVIZ_URL = serviceConfig.gvizUrl || fallbackServiceGviz;
   CARE_NETWORK_HTML_URL =
     nextCareNetworkHtml || DEFAULT_SHEET_LINKS.careNetworkHtmlUrl;
   updateDerivedSheetLinks();
@@ -8224,23 +8410,25 @@ function renderCareNetworkCards(entries, category) {
     card.className = "care-card";
 
     const hasRecord = Boolean(entry.person?.record);
-    if (hasRecord) {
-      card.classList.add("care-card--interactive");
-      card.tabIndex = 0;
-      card.removeAttribute("aria-disabled");
-      card.addEventListener("click", () => {
+    const handleOpen = () => {
+      if (hasRecord) {
         openRecord(entry.person.record);
-      });
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openRecord(entry.person.record);
-        }
-      });
-    } else {
-      card.tabIndex = -1;
-      card.setAttribute("aria-disabled", "true");
-    }
+      } else {
+        openCareNetworkEntryDetail(entry);
+      }
+    };
+
+    card.classList.add("care-card--interactive");
+    card.setAttribute("role", "button");
+    card.tabIndex = 0;
+    card.removeAttribute("aria-disabled");
+    card.addEventListener("click", handleOpen);
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleOpen();
+      }
+    });
 
     const title = document.createElement("strong");
     title.textContent = entry.name || translate("modal.noName");
@@ -8306,6 +8494,47 @@ function renderCareNetworkCategory(category) {
   }
 
   renderCareNetworkCards(entries, category);
+}
+
+function openCareNetworkEntryDetail(entry) {
+  if (!entry) {
+    return;
+  }
+
+  const detailItems = [];
+  const servicesLabel = translate("careNetwork.servicesTitle");
+  if (servicesLabel) {
+    const serviceList = Array.isArray(entry.services) ? entry.services : [];
+    const combinedText = serviceList.length
+      ? serviceList.join(", ")
+      : String(entry.serviceText ?? "").trim();
+    const displayServices = combinedText
+      ? combinedText
+      : translate("careNetwork.detailValueNone");
+    detailItems.push({ key: servicesLabel, value: displayServices });
+  }
+
+  if (Array.isArray(entry.fields)) {
+    entry.fields.forEach(({ key, value }) => {
+      if (value == null) {
+        return;
+      }
+      const stringValue = typeof value === "string" ? value.trim() : String(value);
+      if (!stringValue) {
+        return;
+      }
+      const label = translate("careNetwork.fieldLabel", { field: key }) || key || "";
+      detailItems.push({ key: label, value: stringValue });
+    });
+  }
+
+  state.activeDetailEntry = null;
+  hideServiceControls();
+  openDetailModal(
+    entry.name?.trim() || translate("modal.noName"),
+    detailItems,
+    { searchValue: entry.name ?? "" }
+  );
 }
 
 function renderParentsCategory(category) {
