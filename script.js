@@ -3,25 +3,24 @@ const SHEET_LINKS_CONFIG_URL = "sheet-links.json";
 const DEFAULT_SHEET_LINKS = {
   mainSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
   supplementalSheetId: "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
-  serviceSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
-  serviceSheetGid: "2086743732",
-  serviceSheetUrl:
-    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/edit",
-  serviceGvizUrl:
-    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=2086743732",
-  careNetworkSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
+  serviceSheetId: "",
+  serviceSheetGid: "",
+  serviceSheetUrl: "",
+  serviceHtmlUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml",
+  serviceGvizUrl: "",
+  careNetworkSheetId: "1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4",
   careNetworkSheetGid: "457208564",
   careNetworkSheetUrl:
-    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/edit",
-  careNetworkGvizUrl:
-    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=457208564",
-  careNetworkHtmlUrl:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKXTiT4vvLAFZI_vlrbJCCu3wrhuIhlUg517VSeJns1Sb5S9shxiOIeyuYAkpULVG661oS87NRxtMq/pubhtml?gid=457208564&single=true",
+    "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit",
+  careNetworkGvizUrl: "",
+  careNetworkHtmlUrl: "",
 };
 
 let SHEET_ID = "";
 let SUPPLEMENTAL_SHEET_ID = "";
 let SERVICE_GVIZ_URL = "";
+let SERVICE_HTML_URL = "";
 let SERVICE_SHEET_ID = "";
 let SERVICE_SHEET_GID = "";
 let CARE_NETWORK_GVIZ_URL = "";
@@ -69,6 +68,17 @@ function normalizeGid(value) {
   }
   const trimmed = String(value).trim();
   return trimmed || "";
+}
+
+function isPublishedSheetId(sheetId) {
+  if (!sheetId) {
+    return false;
+  }
+  const value = String(sheetId).trim();
+  if (!value) {
+    return false;
+  }
+  return /^2pacx-/i.test(value);
 }
 
 function extractSheetReference(value) {
@@ -253,10 +263,11 @@ function resolveCareNetworkSheetConfig(config) {
 function resolveServiceSheetConfig(config) {
   const sheetInfo = extractSheetReference(config.serviceSheetUrl);
   const gvizInfo = extractSheetReference(config.serviceGvizUrl);
+  const htmlInfo = extractSheetReference(config.serviceHtmlUrl);
   const configId = sanitizeSheetId(config.serviceSheetId);
   const configGid = normalizeGid(config.serviceSheetGid);
 
-  let sheetId = configId || sheetInfo.id || gvizInfo.id;
+  let sheetId = configId || sheetInfo.id || gvizInfo.id || htmlInfo.id;
   if (!sheetId) {
     sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId);
   }
@@ -271,19 +282,28 @@ function resolveServiceSheetConfig(config) {
     sheetGid = sheetInfo.gid;
   } else if (gvizInfo.gid) {
     sheetGid = gvizInfo.gid;
+  } else if (htmlInfo.gid) {
+    sheetGid = htmlInfo.gid;
   }
 
   if (!sheetGid && sheetId === sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId)) {
     sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.serviceSheetGid);
   }
 
+  const publishedId = isPublishedSheetId(sheetId);
+
+  let htmlUrl = config.serviceHtmlUrl || config.serviceSheetUrl || config.serviceGvizUrl || "";
+  if (sheetId && !publishedId && needsPublishedHtmlReplacement(htmlUrl)) {
+    htmlUrl = buildPublishedHtmlUrl(sheetId, sheetGid);
+  }
+
   let gvizUrl = config.serviceGvizUrl;
 
-  if (sheetId && needsGvizReplacement(gvizUrl)) {
+  if (sheetId && !publishedId && needsGvizReplacement(gvizUrl)) {
     gvizUrl = buildGvizUrl(sheetId, sheetGid);
   }
 
-  return { gvizUrl, sheetId, sheetGid };
+  return { gvizUrl, htmlUrl, sheetId, sheetGid };
 }
 
 function buildServiceGvizCandidates() {
@@ -304,12 +324,38 @@ function buildServiceGvizCandidates() {
 
   register(SERVICE_GVIZ_URL);
 
-  if (SERVICE_SHEET_ID) {
+  if (SERVICE_SHEET_ID && !isPublishedSheetId(SERVICE_SHEET_ID)) {
     register(buildGvizUrl(SERVICE_SHEET_ID, SERVICE_SHEET_GID));
     register(buildGvizUrl(SERVICE_SHEET_ID, ""));
     if (SERVICE_SHEET_GID && SERVICE_SHEET_GID !== "0") {
       register(buildGvizUrl(SERVICE_SHEET_ID, "0"));
     }
+  }
+
+  return candidates;
+}
+
+function buildServiceHtmlCandidates() {
+  const candidates = [];
+  const seen = new Set();
+
+  const register = (url) => {
+    if (!url) {
+      return;
+    }
+    const trimmed = String(url).trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+    seen.add(trimmed);
+    candidates.push(trimmed);
+  };
+
+  register(SERVICE_HTML_URL);
+
+  if (SERVICE_SHEET_ID && !isPublishedSheetId(SERVICE_SHEET_ID)) {
+    register(buildPublishedHtmlUrl(SERVICE_SHEET_ID, SERVICE_SHEET_GID));
+    register(buildPublishedHtmlUrl(SERVICE_SHEET_ID, ""));
   }
 
   return candidates;
@@ -343,6 +389,10 @@ function applySheetLinksConfig(rawConfig) {
   const nextServiceGviz =
     typeof config.serviceGvizUrl === "string"
       ? config.serviceGvizUrl.trim()
+      : "";
+  const nextServiceHtml =
+    typeof config.serviceHtmlUrl === "string"
+      ? config.serviceHtmlUrl.trim()
       : "";
   const nextServiceSheetId =
     typeof config.serviceSheetId === "string"
@@ -378,16 +428,29 @@ function applySheetLinksConfig(rawConfig) {
   SHEET_ID = nextMain || DEFAULT_SHEET_LINKS.mainSheetId;
   SUPPLEMENTAL_SHEET_ID =
     nextSupplemental || DEFAULT_SHEET_LINKS.supplementalSheetId;
+  const fallbackServiceConfig = resolveServiceSheetConfig({
+    serviceSheetUrl: DEFAULT_SHEET_LINKS.serviceSheetUrl,
+    serviceGvizUrl: DEFAULT_SHEET_LINKS.serviceGvizUrl,
+    serviceSheetId: DEFAULT_SHEET_LINKS.serviceSheetId,
+    serviceSheetGid: DEFAULT_SHEET_LINKS.serviceSheetGid,
+    serviceHtmlUrl: DEFAULT_SHEET_LINKS.serviceHtmlUrl,
+  });
   const serviceConfig = resolveServiceSheetConfig({
     serviceSheetUrl: nextServiceSheetUrl,
     serviceGvizUrl: nextServiceGviz,
     serviceSheetId: nextServiceSheetId,
     serviceSheetGid: nextServiceSheetGid,
+    serviceHtmlUrl: nextServiceHtml,
   });
-  SERVICE_SHEET_ID = serviceConfig.sheetId || "";
-  SERVICE_SHEET_GID = serviceConfig.sheetGid || "";
-  const fallbackServiceGviz = DEFAULT_SHEET_LINKS.serviceGvizUrl || "";
-  SERVICE_GVIZ_URL = serviceConfig.gvizUrl || fallbackServiceGviz;
+  SERVICE_SHEET_ID =
+    serviceConfig.sheetId || fallbackServiceConfig.sheetId || "";
+  SERVICE_SHEET_GID =
+    serviceConfig.sheetGid || fallbackServiceConfig.sheetGid || "";
+  const fallbackServiceGviz =
+    serviceConfig.gvizUrl || fallbackServiceConfig.gvizUrl || "";
+  SERVICE_GVIZ_URL = fallbackServiceGviz;
+  SERVICE_HTML_URL =
+    serviceConfig.htmlUrl || fallbackServiceConfig.htmlUrl || "";
   const fallbackCareConfig = resolveCareNetworkSheetConfig({
     htmlUrl: DEFAULT_SHEET_LINKS.careNetworkHtmlUrl,
     sheetUrl: DEFAULT_SHEET_LINKS.careNetworkSheetUrl,
@@ -418,12 +481,30 @@ async function loadSheetLinksConfig() {
 
     const payload = await response.json();
     applySheetLinksConfig(payload);
+    if (state && state.serviceSheet) {
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        sheetId: SERVICE_SHEET_ID,
+        sheetGid: SERVICE_SHEET_GID,
+        htmlUrl: SERVICE_HTML_URL,
+        gvizUrl: SERVICE_GVIZ_URL,
+      };
+    }
   } catch (error) {
     console.warn(
       "Failed to load sheet-links.json. Using built-in defaults instead.",
       error
     );
     applySheetLinksConfig(DEFAULT_SHEET_LINKS);
+    if (state && state.serviceSheet) {
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        sheetId: SERVICE_SHEET_ID,
+        sheetGid: SERVICE_SHEET_GID,
+        htmlUrl: SERVICE_HTML_URL,
+        gvizUrl: SERVICE_GVIZ_URL,
+      };
+    }
   }
 }
 
@@ -2583,6 +2664,9 @@ const DEFAULT_SERVICE_SHEET_CONFIG = {
   sheetId: "",
   tabName: "",
   clientId: "",
+  sheetGid: "",
+  htmlUrl: "",
+  gvizUrl: "",
 };
 
 function loadServiceSheetConfig() {
@@ -4759,15 +4843,58 @@ async function fetchGvizTable(url) {
 }
 
 async function fetchServiceSheetTable() {
-  const candidates = buildServiceGvizCandidates();
-  if (!candidates.length) {
-    throw new Error(translate("errors.serviceLoad"));
-  }
-
+  const htmlCandidates = buildServiceHtmlCandidates();
   let fallbackResult = null;
   let lastError = null;
 
-  for (const candidate of candidates) {
+  for (const candidate of htmlCandidates) {
+    try {
+      const result = await fetchServiceHtmlTable(candidate);
+      const hasColumns = Array.isArray(result?.columns)
+        ? result.columns.length > 0
+        : false;
+      const hasRecords = Array.isArray(result?.records)
+        ? result.records.length > 0
+        : false;
+
+      if (!hasColumns && !hasRecords) {
+        if (!fallbackResult) {
+          fallbackResult = result;
+        }
+        continue;
+      }
+
+      if (!hasRecords) {
+        fallbackResult = fallbackResult || result;
+        continue;
+      }
+
+      if (candidate !== SERVICE_HTML_URL) {
+        SERVICE_HTML_URL = candidate;
+        const reference = extractSheetReference(candidate);
+        if (reference.gid) {
+          SERVICE_SHEET_GID = reference.gid;
+        }
+        if (reference.id && !isPublishedSheetId(reference.id)) {
+          SERVICE_SHEET_ID = reference.id;
+        }
+        state.serviceSheet.config = {
+          ...state.serviceSheet.config,
+          htmlUrl: candidate,
+          sheetId: SERVICE_SHEET_ID,
+          sheetGid: SERVICE_SHEET_GID,
+        };
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const gvizCandidates = buildServiceGvizCandidates();
+
+  for (const candidate of gvizCandidates) {
     try {
       const result = await fetchGvizTable(candidate);
       const hasColumns = Array.isArray(result?.columns)
@@ -4795,6 +4922,9 @@ async function fetchServiceSheetTable() {
         if (reference.gid) {
           SERVICE_SHEET_GID = reference.gid;
         }
+        if (reference.id) {
+          SERVICE_SHEET_ID = reference.id;
+        }
         state.serviceSheet.config = {
           ...state.serviceSheet.config,
           gvizUrl: candidate,
@@ -4820,9 +4950,9 @@ async function fetchServiceSheetTable() {
   throw new Error(translate("errors.serviceLoad"));
 }
 
-async function fetchCareNetworkHtmlTable(url) {
+async function fetchPublishedHtmlTable(url, contextLabel = "table") {
   if (!url) {
-    throw new Error("Missing care network URL");
+    throw new Error(`Missing ${contextLabel}`);
   }
 
   const response = await fetch(url, { cache: "no-store" });
@@ -4832,6 +4962,14 @@ async function fetchCareNetworkHtmlTable(url) {
 
   const html = await response.text();
   return parsePublishedHtmlTable(html);
+}
+
+async function fetchCareNetworkHtmlTable(url) {
+  return fetchPublishedHtmlTable(url, "care network URL");
+}
+
+async function fetchServiceHtmlTable(url) {
+  return fetchPublishedHtmlTable(url, "services URL");
 }
 
 function parsePublishedHtmlTable(html) {
