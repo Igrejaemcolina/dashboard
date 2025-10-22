@@ -9,6 +9,12 @@ const DEFAULT_SHEET_LINKS = {
     "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/edit",
   serviceGvizUrl:
     "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=2086743732",
+  careNetworkSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
+  careNetworkSheetGid: "457208564",
+  careNetworkSheetUrl:
+    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/edit",
+  careNetworkGvizUrl:
+    "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=457208564",
   careNetworkHtmlUrl:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKXTiT4vvLAFZI_vlrbJCCu3wrhuIhlUg517VSeJns1Sb5S9shxiOIeyuYAkpULVG661oS87NRxtMq/pubhtml?gid=457208564&single=true",
 };
@@ -18,6 +24,7 @@ let SUPPLEMENTAL_SHEET_ID = "";
 let SERVICE_GVIZ_URL = "";
 let SERVICE_SHEET_ID = "";
 let SERVICE_SHEET_GID = "";
+let CARE_NETWORK_GVIZ_URL = "";
 let CARE_NETWORK_HTML_URL = "";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 let GVIZ_URL = "";
@@ -177,6 +184,47 @@ function resolveCareNetworkHtmlUrl(rawUrl) {
   return trimmed;
 }
 
+function resolveCareNetworkSheetConfig(config) {
+  const sheetInfo = extractSheetReference(config.sheetUrl);
+  const htmlInfo = extractSheetReference(config.htmlUrl);
+  const gvizInfo = extractSheetReference(config.gvizUrl);
+  const configId = sanitizeSheetId(config.sheetId);
+  const configGid = normalizeGid(config.sheetGid);
+
+  let sheetId = configId || sheetInfo.id || htmlInfo.id || gvizInfo.id;
+  if (!sheetId) {
+    sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.careNetworkSheetId);
+  }
+
+  let sheetGid = configGid || sheetInfo.gid || htmlInfo.gid || gvizInfo.gid;
+  if (!sheetGid) {
+    sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.careNetworkSheetGid);
+  }
+
+  let htmlUrl = config.htmlUrl || config.sheetUrl || config.gvizUrl || "";
+  if (sheetId && needsPublishedHtmlReplacement(htmlUrl)) {
+    htmlUrl = buildPublishedHtmlUrl(sheetId, sheetGid);
+  }
+
+  let gvizUrl = config.gvizUrl || "";
+  if (!gvizUrl && config.sheetUrl) {
+    gvizUrl = config.sheetUrl;
+  }
+  if (!gvizUrl && config.htmlUrl) {
+    gvizUrl = config.htmlUrl;
+  }
+  if (sheetId && needsGvizReplacement(gvizUrl)) {
+    gvizUrl = buildGvizUrl(sheetId, sheetGid);
+  }
+
+  return {
+    sheetId,
+    sheetGid,
+    htmlUrl,
+    gvizUrl,
+  };
+}
+
 function resolveServiceSheetConfig(config) {
   const sheetInfo = extractSheetReference(config.serviceSheetUrl);
   const gvizInfo = extractSheetReference(config.serviceGvizUrl);
@@ -244,6 +292,23 @@ function applySheetLinksConfig(rawConfig) {
     typeof config.careNetworkHtmlUrl === "string"
       ? config.careNetworkHtmlUrl.trim()
       : "";
+  const nextCareNetworkSheetUrl =
+    typeof config.careNetworkSheetUrl === "string"
+      ? config.careNetworkSheetUrl.trim()
+      : "";
+  const nextCareNetworkGviz =
+    typeof config.careNetworkGvizUrl === "string"
+      ? config.careNetworkGvizUrl.trim()
+      : "";
+  const nextCareNetworkSheetId =
+    typeof config.careNetworkSheetId === "string"
+      ? config.careNetworkSheetId.trim()
+      : sanitizeSheetId(config.careNetworkSheetId);
+  const nextCareNetworkSheetGid =
+    typeof config.careNetworkSheetGid === "string" ||
+    typeof config.careNetworkSheetGid === "number"
+      ? String(config.careNetworkSheetGid).trim()
+      : normalizeGid(config.careNetworkSheetGid);
 
   SHEET_ID = nextMain || DEFAULT_SHEET_LINKS.mainSheetId;
   SUPPLEMENTAL_SHEET_ID =
@@ -258,13 +323,24 @@ function applySheetLinksConfig(rawConfig) {
   SERVICE_SHEET_GID = serviceConfig.sheetGid || "";
   const fallbackServiceGviz = DEFAULT_SHEET_LINKS.serviceGvizUrl || "";
   SERVICE_GVIZ_URL = serviceConfig.gvizUrl || fallbackServiceGviz;
-  const fallbackCareNetworkHtml = resolveCareNetworkHtmlUrl(
-    DEFAULT_SHEET_LINKS.careNetworkHtmlUrl || ""
-  );
-  const resolvedCareNetworkHtml = resolveCareNetworkHtmlUrl(
-    nextCareNetworkHtml
-  );
-  CARE_NETWORK_HTML_URL = resolvedCareNetworkHtml || fallbackCareNetworkHtml;
+  const fallbackCareConfig = resolveCareNetworkSheetConfig({
+    htmlUrl: DEFAULT_SHEET_LINKS.careNetworkHtmlUrl,
+    sheetUrl: DEFAULT_SHEET_LINKS.careNetworkSheetUrl,
+    gvizUrl: DEFAULT_SHEET_LINKS.careNetworkGvizUrl,
+    sheetId: DEFAULT_SHEET_LINKS.careNetworkSheetId,
+    sheetGid: DEFAULT_SHEET_LINKS.careNetworkSheetGid,
+  });
+  const resolvedCareConfig = resolveCareNetworkSheetConfig({
+    htmlUrl: nextCareNetworkHtml,
+    sheetUrl: nextCareNetworkSheetUrl,
+    gvizUrl: nextCareNetworkGviz,
+    sheetId: nextCareNetworkSheetId,
+    sheetGid: nextCareNetworkSheetGid,
+  });
+  CARE_NETWORK_HTML_URL =
+    resolvedCareConfig.htmlUrl || fallbackCareConfig.htmlUrl || "";
+  CARE_NETWORK_GVIZ_URL =
+    resolvedCareConfig.gvizUrl || fallbackCareConfig.gvizUrl || "";
   updateDerivedSheetLinks();
 }
 
@@ -4427,14 +4503,21 @@ async function initializeAccessControl() {
 async function fetchSheetData() {
   setStatusFromKey("status.loading");
   try {
+    let careNetworkPromise;
+    if (CARE_NETWORK_GVIZ_URL) {
+      careNetworkPromise = fetchGvizTable(CARE_NETWORK_GVIZ_URL);
+    } else if (CARE_NETWORK_HTML_URL) {
+      careNetworkPromise = fetchCareNetworkHtmlTable(CARE_NETWORK_HTML_URL);
+    } else {
+      careNetworkPromise = Promise.resolve({ columns: [], records: [] });
+    }
+
     const [primaryResult, supplementalResult, serviceResult, careNetworkResult] =
       await Promise.allSettled([
         fetchGvizTable(GVIZ_URL),
         fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
         fetchServiceSheetTable(),
-        CARE_NETWORK_HTML_URL
-          ? fetchCareNetworkHtmlTable(CARE_NETWORK_HTML_URL)
-          : Promise.resolve({ columns: [], records: [] }),
+        careNetworkPromise,
       ]);
 
     if (primaryResult.status !== "fulfilled") {

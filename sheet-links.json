@@ -6,5 +6,9 @@
   "serviceSheetGid": "2086743732",
   "serviceSheetUrl": "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit?usp=sharing",
   "serviceGvizUrl": "",
-  "careNetworkHtmlUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKXTiT4vvLAFZI_vlrbJCCu3wrhuIhlUg517VSeJns1Sb5S9shxiOIeyuYAkpULVG661oS87NRxtMq/pubhtml?gid=457208564&single=true"
+  "careNetworkSheetUrl": "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit?usp=sharing",
+  "careNetworkSheetId": "1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4",
+  "careNetworkSheetGid": "457208564",
+  "careNetworkGvizUrl": "",
+  "careNetworkHtmlUrl": ""
 }
