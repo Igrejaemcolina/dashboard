@@ -7,12 +7,15 @@ const DEFAULT_SHEET_LINKS = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pubhtml?gid=2086743732&single=true",
   serviceGvizUrl:
     "https://docs.google.com/spreadsheets/d/1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk/gviz/tq?tqx=out:json&gid=2086743732",
+  careNetworkHtmlUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKXTiT4vvLAFZI_vlrbJCCu3wrhuIhlUg517VSeJns1Sb5S9shxiOIeyuYAkpULVG661oS87NRxtMq/pubhtml?gid=457208564&single=true",
 };
 
 let SHEET_ID = "";
 let SUPPLEMENTAL_SHEET_ID = "";
 let SERVICE_HTML_URL = "";
 let SERVICE_GVIZ_URL = "";
+let CARE_NETWORK_HTML_URL = "";
 const REFRESH_INTERVAL = 60_000; // 1 minuto
 let GVIZ_URL = "";
 let SUPPLEMENTAL_GVIZ_URL = "";
@@ -46,12 +49,18 @@ function applySheetLinksConfig(rawConfig) {
     typeof config.serviceGvizUrl === "string"
       ? config.serviceGvizUrl.trim()
       : "";
+  const nextCareNetworkHtml =
+    typeof config.careNetworkHtmlUrl === "string"
+      ? config.careNetworkHtmlUrl.trim()
+      : "";
 
   SHEET_ID = nextMain || DEFAULT_SHEET_LINKS.mainSheetId;
   SUPPLEMENTAL_SHEET_ID =
     nextSupplemental || DEFAULT_SHEET_LINKS.supplementalSheetId;
   SERVICE_HTML_URL = nextServiceHtml || DEFAULT_SHEET_LINKS.serviceHtmlUrl;
   SERVICE_GVIZ_URL = nextServiceGviz || DEFAULT_SHEET_LINKS.serviceGvizUrl;
+  CARE_NETWORK_HTML_URL =
+    nextCareNetworkHtml || DEFAULT_SHEET_LINKS.careNetworkHtmlUrl;
   updateDerivedSheetLinks();
 }
 
@@ -405,6 +414,13 @@ const TRANSLATIONS = {
         chartLabel: "Responsáveis pelos adolescentes",
         empty: "Nenhum pai ou mãe encontrado nesta categoria.",
       },
+      careNetwork: {
+        title: "Rede de Cuidado",
+        description:
+          "Acompanhe os irmãos cadastrados na Rede de Cuidado e visualize os dados de acompanhamento.",
+        chartLabel: "Registros da Rede de Cuidado",
+        empty: "Nenhum registro encontrado na Rede de Cuidado.",
+      },
       services: {
         title: "Serviços",
         description:
@@ -571,6 +587,23 @@ const TRANSLATIONS = {
         active: "Servindo",
       },
       chartLabelUnassigned: "Idades dos irmãos sem serviço",
+    },
+    careNetwork: {
+      meta: ({ assigned, total }) => {
+        const assignedLabel =
+          assigned === 1
+            ? "1 irmão acompanhado"
+            : `${assigned} irmãos acompanhados`;
+        const totalLabel =
+          total === 1 ? "1 registro" : `${total} registros`;
+        return `${assignedLabel} · ${totalLabel}`;
+      },
+      detailLabel: "Rede de cuidado",
+      detailValueNone: "N.Serviço",
+      servicesTitle: "Serviços atribuídos",
+      fieldLabel: ({ field }) => `Rede de cuidado · ${field}`,
+      cardImageAlt: "Rede de Cuidado",
+      chartEmpty: "Não há dados disponíveis para a Rede de Cuidado.",
     },
     access: {
       modalTitle: "Selecione a seguir sua função:",
@@ -894,6 +927,13 @@ const TRANSLATIONS = {
         chartLabel: "Guardians of the teens",
         empty: "No parents were found in this category.",
       },
+      careNetwork: {
+        title: "Care Network",
+        description:
+          "Review the members listed in the Care Network and see the related follow-up details.",
+        chartLabel: "Care Network records",
+        empty: "No Care Network records were found.",
+      },
       services: {
         title: "Services",
         description: "Track who is serving and in which ministry.",
@@ -1059,6 +1099,22 @@ const TRANSLATIONS = {
         active: "Serving",
       },
       chartLabelUnassigned: "Ages of members without a service",
+    },
+    careNetwork: {
+      meta: ({ assigned, total }) => {
+        const assignedLabel =
+          assigned === 1
+            ? "1 member being followed"
+            : `${assigned} members being followed`;
+        const totalLabel = total === 1 ? "1 record" : `${total} records`;
+        return `${assignedLabel} · ${totalLabel}`;
+      },
+      detailLabel: "Care Network",
+      detailValueNone: "No service",
+      servicesTitle: "Assigned services",
+      fieldLabel: ({ field }) => `Care Network · ${field}`,
+      cardImageAlt: "Care Network",
+      chartEmpty: "No Care Network data is available.",
     },
     access: {
       modalTitle: "Select your role below:",
@@ -1379,6 +1435,13 @@ const TRANSLATIONS = {
         chartLabel: "Responsables de los adolescentes",
         empty: "No se encontraron padres o madres en esta categoría.",
       },
+      careNetwork: {
+        title: "Red de Cuidado",
+        description:
+          "Consulta los hermanos registrados en la Red de Cuidado y revisa los datos de acompañamiento.",
+        chartLabel: "Registros de la Red de Cuidado",
+        empty: "No se encontraron registros en la Red de Cuidado.",
+      },
       services: {
         title: "Servicios",
         description: "Revisa quiénes sirven y en qué áreas.",
@@ -1545,6 +1608,23 @@ const TRANSLATIONS = {
         active: "Sirviendo",
       },
       chartLabelUnassigned: "Edades de los hermanos sin servicio",
+    },
+    careNetwork: {
+      meta: ({ assigned, total }) => {
+        const assignedLabel =
+          assigned === 1
+            ? "1 hermano acompañado"
+            : `${assigned} hermanos acompañados`;
+        const totalLabel =
+          total === 1 ? "1 registro" : `${total} registros`;
+        return `${assignedLabel} · ${totalLabel}`;
+      },
+      detailLabel: "Red de Cuidado",
+      detailValueNone: "Sin servicio",
+      servicesTitle: "Servicios asignados",
+      fieldLabel: ({ field }) => `Red de Cuidado · ${field}`,
+      cardImageAlt: "Red de Cuidado",
+      chartEmpty: "No hay datos disponibles para la Red de Cuidado.",
     },
     access: {
       modalTitle: "Selecciona a continuación tu función:",
@@ -1894,6 +1974,7 @@ const elements = {
   children: document.getElementById("children-count"),
   teens: document.getElementById("teens-count"),
   parents: document.getElementById("parents-count"),
+  careNetwork: document.getElementById("care-network-count"),
   services: document.getElementById("services-count"),
   captains: document.getElementById("captains-count"),
   braves: document.getElementById("braves-count"),
@@ -2000,6 +2081,7 @@ const elements = {
   passwordModalNew: document.getElementById("password-modal-new"),
   passwordModalConfirm: document.getElementById("password-modal-confirm"),
   passwordModalFeedback: document.getElementById("password-modal-feedback"),
+  careNetworkImage: document.getElementById("care-network-image"),
   profileModal: document.getElementById("profile-modal"),
   profileModalDialog: document.getElementById("profile-modal-dialog"),
   profileModalForm: document.getElementById("profile-modal-form"),
@@ -2098,6 +2180,15 @@ const CATEGORY_CONFIG = [
     isParentCategory: true,
   },
   {
+    id: "care-network",
+    titleKey: "categories.careNetwork.title",
+    descriptionKey: "categories.careNetwork.description",
+    chartLabelKey: "categories.careNetwork.chartLabel",
+    emptyMessageKey: "categories.careNetwork.empty",
+    filter: () => true,
+    isCareNetworkCategory: true,
+  },
+  {
     id: "services",
     titleKey: "categories.services.title",
     descriptionKey: "categories.services.description",
@@ -2146,6 +2237,18 @@ function loadServiceSheetConfig() {
 }
 
 function saveServiceSheetConfig() {}
+
+function createEmptyCareNetworkState() {
+  return {
+    columns: [],
+    records: [],
+    nameColumn: null,
+    serviceColumns: [],
+    entries: [],
+    index: new Map(),
+    summary: { total: 0, assigned: 0 },
+  };
+}
 
 const state = {
   records: [],
@@ -2199,6 +2302,7 @@ const state = {
     records: [],
     config: loadServiceSheetConfig(),
   },
+  careNetwork: createEmptyCareNetworkState(),
 };
 
 function hasFullAccessRole(role) {
@@ -2562,6 +2666,10 @@ function applyLanguage(options = {}) {
       hintElement.textContent = translate("cards.hint");
     }
   });
+
+  if (elements.careNetworkImage) {
+    elements.careNetworkImage.alt = translate("careNetwork.cardImageAlt");
+  }
 
   if (elements.overviewTitle) {
     elements.overviewTitle.textContent = translate("overview.title");
@@ -4116,11 +4224,14 @@ async function initializeAccessControl() {
 async function fetchSheetData() {
   setStatusFromKey("status.loading");
   try {
-    const [primaryResult, supplementalResult, serviceResult] =
+    const [primaryResult, supplementalResult, serviceResult, careNetworkResult] =
       await Promise.allSettled([
         fetchGvizTable(GVIZ_URL),
         fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
         fetchServiceSheetTable(),
+        CARE_NETWORK_HTML_URL
+          ? fetchCareNetworkHtmlTable(CARE_NETWORK_HTML_URL)
+          : Promise.resolve({ columns: [], records: [] }),
       ]);
 
     if (primaryResult.status !== "fulfilled") {
@@ -4226,8 +4337,21 @@ async function fetchSheetData() {
       state.serviceSheet.records = [];
     }
 
+    if (careNetworkResult.status === "fulfilled") {
+      const { records: careRecords, columns: careColumns } =
+        careNetworkResult.value ?? { records: [], columns: [] };
+      applyCareNetworkSheet(careRecords, careColumns);
+    } else {
+      console.warn(
+        "Unable to load the care network table:",
+        careNetworkResult.reason
+      );
+      resetCareNetworkState();
+    }
+
     state.enrichedRecords = buildEnrichedRecords(records);
     applyServiceAssignmentsToEntries();
+    applyCareNetworkDataToEntries();
     state.parentEntries = buildParentEntries(state.enrichedRecords);
     state.parentSummary = summarizeParentEntries(state.parentEntries);
     buildSuggestions();
@@ -4338,6 +4462,20 @@ async function fetchServiceHtmlTable(url) {
   return parseServiceHtmlTable(html);
 }
 
+async function fetchCareNetworkHtmlTable(url) {
+  if (!url) {
+    throw new Error("Missing care network URL");
+  }
+
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(translate("errors.fetchStatus", { status: response.status }));
+  }
+
+  const html = await response.text();
+  return parsePublishedHtmlTable(html);
+}
+
 function parseServiceHtmlTable(html) {
   if (typeof DOMParser === "undefined") {
     throw new Error(translate("errors.unexpectedResponse"));
@@ -4360,6 +4498,39 @@ function parseServiceHtmlTable(html) {
   }
 
   return extractServiceHtmlTable(candidateTable);
+}
+
+function parsePublishedHtmlTable(html) {
+  if (typeof DOMParser === "undefined") {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  if (!doc) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const tables = Array.from(doc.querySelectorAll("table"));
+  if (!tables.length) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  for (const table of tables) {
+    const result = extractHtmlTable(table);
+    const hasColumns = Array.isArray(result.columns)
+      ? result.columns.length > 0
+      : false;
+    const hasRecords = Array.isArray(result.records)
+      ? result.records.length > 0
+      : false;
+
+    if (hasColumns || hasRecords) {
+      return result;
+    }
+  }
+
+  throw new Error(translate("errors.unexpectedResponse"));
 }
 
 function findServiceHtmlTableCandidate(tables) {
@@ -4398,7 +4569,7 @@ function findServiceHtmlTableCandidate(tables) {
   return fallback ?? null;
 }
 
-function extractServiceHtmlTable(table) {
+function extractHtmlTable(table) {
   const rows = Array.from(table.querySelectorAll("tr"));
   if (!rows.length) {
     return { columns: [], records: [] };
@@ -4442,7 +4613,7 @@ function extractServiceHtmlTable(table) {
       continue;
     }
 
-    const values = columns.map((_, cellIndex) => sanitizeServiceCellValue(cells[cellIndex] ?? null));
+    const values = columns.map((_, cellIndex) => sanitizeHtmlCellValue(cells[cellIndex] ?? null));
     const hasValue = values.some((value) => value);
     if (!hasValue) {
       continue;
@@ -4460,6 +4631,10 @@ function extractServiceHtmlTable(table) {
   }
 
   return { columns, records };
+}
+
+function extractServiceHtmlTable(table) {
+  return extractHtmlTable(table);
 }
 
 function ensureUniqueColumnLabels(labels) {
@@ -4482,7 +4657,7 @@ function sanitizeHeaderLabel(value) {
   return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function sanitizeServiceCellValue(cell) {
+function sanitizeHtmlCellValue(cell) {
   if (!cell) {
     return "";
   }
@@ -5062,6 +5237,382 @@ function extractFirstNonEmptyValue(record, column) {
     }
   }
   return "";
+}
+
+function detectCareNetworkNameColumn(columns) {
+  if (!Array.isArray(columns) || !columns.length) {
+    return null;
+  }
+
+  for (const column of columns) {
+    const normalized = normalizeString(column);
+    if (!normalized) {
+      continue;
+    }
+    if (normalized.includes("nome") || normalized.includes("name")) {
+      return column;
+    }
+  }
+
+  return columns[0] ?? null;
+}
+
+function detectCareNetworkServiceColumns(columns, nameColumn) {
+  if (!Array.isArray(columns) || !columns.length) {
+    return [];
+  }
+
+  const result = [];
+
+  columns.forEach((column, index) => {
+    if (!column || column === nameColumn) {
+      return;
+    }
+
+    const normalized = normalizeString(column);
+    if (!normalized) {
+      return;
+    }
+
+    const matches =
+      normalized.includes("servico") ||
+      normalized.includes("servicio") ||
+      normalized.includes("ministerio") ||
+      normalized.includes("ministerial") ||
+      normalized.includes("rede") ||
+      normalized.includes("cuidado") ||
+      normalized.includes("area") ||
+      normalized.includes("frente") ||
+      normalized.includes("atuacao") ||
+      normalized.includes("acompanhamento");
+
+    if (matches) {
+      result.push(column);
+    }
+  });
+
+  if (!result.length) {
+    const fallback = columns.find((column, index) => {
+      if (!column || column === nameColumn) {
+        return false;
+      }
+      return index > 0;
+    });
+    if (fallback) {
+      result.push(fallback);
+    }
+  }
+
+  return result;
+}
+
+function splitCareNetworkServices(value) {
+  if (value == null) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => splitCareNetworkServices(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap((item) =>
+      splitCareNetworkServices(item)
+    );
+  }
+
+  const text = String(value ?? "").replace(/\r/g, "\n");
+  if (!text.trim()) {
+    return [];
+  }
+
+  const segments = text
+    .split(/[,;\/\\\n]+/)
+    .map((segment) => segment.replace(/\u00a0/g, " ").trim())
+    .filter(Boolean);
+
+  const seen = new Set();
+  const results = [];
+
+  const pushSegment = (segment) => {
+    if (!segment) {
+      return;
+    }
+    const normalized = normalizeString(segment);
+    if (!normalized) {
+      return;
+    }
+    const compact = normalized.replace(/\s+/g, "");
+    if (NO_SERVICE_LABELS.has(normalized) || NO_SERVICE_LABELS.has(compact)) {
+      return;
+    }
+    if (seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    results.push(segment);
+  };
+
+  segments.forEach(pushSegment);
+
+  if (!results.length) {
+    pushSegment(text.trim());
+  }
+
+  return results;
+}
+
+function buildCareNetworkEntries(records, options = {}) {
+  const { nameColumn = null, serviceColumns = [], columns = [] } = options;
+
+  if (!Array.isArray(records) || !records.length) {
+    return [];
+  }
+
+  const normalizedServiceColumns = Array.isArray(serviceColumns)
+    ? serviceColumns.filter((column) => typeof column === "string")
+    : [];
+
+  const normalizedColumns = Array.isArray(columns)
+    ? columns.filter((column) => typeof column === "string")
+    : [];
+
+  const entries = [];
+
+  records.forEach((record) => {
+    if (!record) {
+      return;
+    }
+
+    const nameValue = nameColumn
+      ? extractFirstNonEmptyValue(record, nameColumn)
+      : "";
+    const displayName = typeof nameValue === "string"
+      ? nameValue.trim()
+      : String(nameValue ?? "").trim();
+
+    if (!displayName) {
+      return;
+    }
+
+    const normalizedName = normalizeString(displayName);
+    if (!normalizedName) {
+      return;
+    }
+
+    const services = [];
+    const serviceSeen = new Set();
+
+    normalizedServiceColumns.forEach((column) => {
+      const values = collectColumnValues(record, column);
+      values.forEach((value) => {
+        splitCareNetworkServices(value).forEach((service) => {
+          const normalizedService = normalizeString(service);
+          if (!normalizedService || serviceSeen.has(normalizedService)) {
+            return;
+          }
+          const compact = normalizedService.replace(/\s+/g, "");
+          if (
+            NO_SERVICE_LABELS.has(normalizedService) ||
+            NO_SERVICE_LABELS.has(compact)
+          ) {
+            return;
+          }
+          serviceSeen.add(normalizedService);
+          services.push(service);
+        });
+      });
+    });
+
+    const fields = [];
+
+    normalizedColumns.forEach((column) => {
+      if (column === nameColumn) {
+        return;
+      }
+      if (normalizedServiceColumns.includes(column)) {
+        return;
+      }
+
+      const values = collectColumnValues(record, column);
+      const displayValue = values
+        .map((value) => {
+          if (value == null) {
+            return "";
+          }
+          if (typeof value === "string") {
+            return value.trim();
+          }
+          return String(value).trim();
+        })
+        .find((value) => value.length > 0);
+
+      if (displayValue) {
+        fields.push({ key: column, value: displayValue });
+      }
+    });
+
+    entries.push({
+      name: displayName,
+      normalizedName,
+      services,
+      serviceText: services.join(", "),
+      fields,
+      raw: record,
+      person: null,
+    });
+  });
+
+  return entries;
+}
+
+function buildCareNetworkIndex(entries) {
+  const index = new Map();
+  if (!Array.isArray(entries)) {
+    return index;
+  }
+
+  entries.forEach((entry) => {
+    const normalized = entry?.normalizedName;
+    if (!normalized) {
+      return;
+    }
+    const list = index.get(normalized);
+    if (list) {
+      list.push(entry);
+    } else {
+      index.set(normalized, [entry]);
+    }
+  });
+
+  return index;
+}
+
+function applyCareNetworkSheet(records, columns) {
+  const safeColumns = Array.isArray(columns) ? columns : [];
+  const safeRecords = Array.isArray(records) ? records : [];
+
+  const nameColumn = detectCareNetworkNameColumn(safeColumns);
+  const serviceColumns = detectCareNetworkServiceColumns(
+    safeColumns,
+    nameColumn
+  );
+
+  const entries = buildCareNetworkEntries(safeRecords, {
+    nameColumn,
+    serviceColumns,
+    columns: safeColumns,
+  });
+
+  const index = buildCareNetworkIndex(entries);
+  const assigned = entries.filter((entry) => entry.services.length > 0).length;
+
+  state.careNetwork = {
+    columns: safeColumns,
+    records: safeRecords,
+    nameColumn,
+    serviceColumns,
+    entries,
+    index,
+    summary: { total: entries.length, assigned },
+  };
+}
+
+function resetCareNetworkState() {
+  state.careNetwork = createEmptyCareNetworkState();
+}
+
+function collectEntryNameCandidates(entry) {
+  const candidates = new Set();
+  if (!entry) {
+    return [];
+  }
+
+  if (entry.name) {
+    candidates.add(entry.name);
+  }
+
+  const record = entry.record ?? null;
+  if (record && state.nameColumn && record[state.nameColumn]) {
+    candidates.add(record[state.nameColumn]);
+  }
+  if (record?.__raw && state.nameColumn && record.__raw[state.nameColumn]) {
+    candidates.add(record.__raw[state.nameColumn]);
+  }
+
+  const supplemental = entry.supplemental ?? null;
+  if (supplemental?.name) {
+    candidates.add(supplemental.name);
+  }
+
+  const supplementalRecord = supplemental?.record ?? null;
+  if (
+    supplementalRecord &&
+    state.supplementalNameColumn &&
+    supplementalRecord[state.supplementalNameColumn]
+  ) {
+    candidates.add(supplementalRecord[state.supplementalNameColumn]);
+  }
+  if (
+    supplementalRecord?.__raw &&
+    state.supplementalNameColumn &&
+    supplementalRecord.__raw[state.supplementalNameColumn]
+  ) {
+    candidates.add(supplementalRecord.__raw[state.supplementalNameColumn]);
+  }
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+function applyCareNetworkDataToEntries() {
+  const entries = Array.isArray(state.enrichedRecords)
+    ? state.enrichedRecords
+    : [];
+  const careState = state.careNetwork ?? createEmptyCareNetworkState();
+  const index = careState.index ?? new Map();
+
+  if (Array.isArray(careState.entries)) {
+    careState.entries.forEach((entry) => {
+      entry.person = null;
+    });
+  }
+
+  entries.forEach((entry) => {
+    const nameCandidates = collectEntryNameCandidates(entry);
+    let matchedCare = null;
+
+    for (const candidate of nameCandidates) {
+      const normalized = normalizeString(candidate);
+      if (!normalized) {
+        continue;
+      }
+      const matches = index.get(normalized);
+      if (Array.isArray(matches) && matches.length) {
+        matchedCare = matches[0];
+        break;
+      }
+    }
+
+    if (matchedCare) {
+      entry.careNetwork = {
+        services: [...matchedCare.services],
+        fields: matchedCare.fields.map((field) => ({ ...field })),
+        name: matchedCare.name,
+        serviceText:
+          matchedCare.serviceText ?? matchedCare.services.join(", "),
+        raw: matchedCare.raw,
+      };
+      matchedCare.person = entry;
+    } else {
+      entry.careNetwork = {
+        services: [],
+        fields: [],
+        name: entry.name ?? "",
+        serviceText: "",
+        raw: null,
+      };
+    }
+  });
 }
 
 function mergeServiceIdLists(primary, secondary) {
@@ -6501,6 +7052,9 @@ function updateDashboard() {
   if (elements.teens) elements.teens.textContent = counters.teens;
   if (elements.parents)
     elements.parents.textContent = state.parentSummary?.parents ?? 0;
+  if (elements.careNetwork)
+    elements.careNetwork.textContent =
+      state.careNetwork?.summary?.assigned ?? 0;
   if (elements.services)
     elements.services.textContent = accessibleServiceSummary.total;
   if (elements.captains) elements.captains.textContent = counters.captains;
@@ -7638,6 +8192,123 @@ function renderParentCards(entries, category) {
   });
 }
 
+function getCareNetworkEntries() {
+  const entries = state.careNetwork?.entries;
+  return Array.isArray(entries) ? entries : [];
+}
+
+function renderCareNetworkCards(entries, category) {
+  const container = elements.categoryCards;
+  if (!container || !elements.categoryEmpty) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  if (!entries.length) {
+    elements.categoryEmpty.textContent = translateCategoryField(
+      category,
+      "emptyMessage"
+    );
+    elements.categoryEmpty.classList.add("visible");
+    return;
+  }
+
+  elements.categoryEmpty.classList.remove("visible");
+
+  const sortedEntries = [...entries].sort((a, b) =>
+    collator.compare(a.name || "", b.name || "")
+  );
+
+  sortedEntries.forEach((entry) => {
+    const card = document.createElement("article");
+    card.className = "care-card";
+
+    const hasRecord = Boolean(entry.person?.record);
+    if (hasRecord) {
+      card.classList.add("care-card--interactive");
+      card.tabIndex = 0;
+      card.removeAttribute("aria-disabled");
+      card.addEventListener("click", () => {
+        openRecord(entry.person.record);
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openRecord(entry.person.record);
+        }
+      });
+    } else {
+      card.tabIndex = -1;
+      card.setAttribute("aria-disabled", "true");
+    }
+
+    const title = document.createElement("strong");
+    title.textContent = entry.name || translate("modal.noName");
+    card.appendChild(title);
+
+    const details = document.createElement("dl");
+    details.className = "care-card-details";
+
+    const serviceLabel = document.createElement("dt");
+    serviceLabel.textContent = translate("careNetwork.servicesTitle");
+    details.appendChild(serviceLabel);
+
+    const serviceValue = document.createElement("dd");
+    serviceValue.textContent = entry.services.length
+      ? entry.services.join(", ")
+      : translate("careNetwork.detailValueNone");
+    details.appendChild(serviceValue);
+
+    entry.fields.forEach(({ key, value }) => {
+      const label = document.createElement("dt");
+      label.textContent = key;
+      const display = document.createElement("dd");
+      display.textContent = value;
+      details.append(label, display);
+    });
+
+    card.appendChild(details);
+
+    container.appendChild(card);
+  });
+}
+
+function renderCareNetworkCategory(category) {
+  if (elements.teensFilter) {
+    elements.teensFilter.hidden = true;
+  }
+
+  hideServiceSummary();
+
+  if (state.charts.category) {
+    state.charts.category.destroy();
+    state.charts.category = null;
+  }
+
+  if (elements.categoryChart) {
+    elements.categoryChart.style.display = "none";
+  }
+
+  if (elements.categoryChartEmpty) {
+    elements.categoryChartEmpty.textContent = translate("careNetwork.chartEmpty");
+    elements.categoryChartEmpty.classList.add("visible");
+  }
+
+  const entries = getCareNetworkEntries();
+
+  if (elements.categoryMeta) {
+    const assigned = state.careNetwork?.summary?.assigned ?? 0;
+    const total = state.careNetwork?.summary?.total ?? entries.length;
+    elements.categoryMeta.textContent = translate("careNetwork.meta", {
+      assigned,
+      total,
+    });
+  }
+
+  renderCareNetworkCards(entries, category);
+}
+
 function renderParentsCategory(category) {
   if (elements.teensFilter) {
     elements.teensFilter.hidden = true;
@@ -8584,6 +9255,11 @@ function renderCategory(categoryId = "total") {
     return;
   }
 
+  if (category.isCareNetworkCategory) {
+    renderCareNetworkCategory(category);
+    return;
+  }
+
   if (category.isServiceCategory) {
     renderServicesCategory(category);
     return;
@@ -8890,6 +9566,38 @@ function mergeRecordDetails(primaryRecord, supplementalRecord, entry) {
       value: serviceValue,
       normalizedKey: "__service_detail__",
     });
+  }
+
+  const careLabel = translate("careNetwork.detailLabel");
+  if (careLabel) {
+    const careEntry = entry?.careNetwork ?? null;
+    let careValue = translate("careNetwork.detailValueNone");
+    if (careEntry) {
+      if (Array.isArray(careEntry.services) && careEntry.services.length) {
+        careValue = careEntry.services.join(", ");
+      } else if (careEntry.serviceText) {
+        const trimmed = String(careEntry.serviceText).trim();
+        if (trimmed) {
+          careValue = trimmed;
+        }
+      }
+    }
+
+    merged.splice(1, 0, {
+      key: careLabel,
+      value: careValue,
+      normalizedKey: "__care_network_detail__",
+    });
+
+    if (careEntry && Array.isArray(careEntry.fields)) {
+      careEntry.fields.forEach(({ key, value }) => {
+        if (!value) {
+          return;
+        }
+        const label = translate("careNetwork.fieldLabel", { field: key });
+        addValue(label, value);
+      });
+    }
   }
 
   return merged.map(({ key, value }) => ({ key, value }));
