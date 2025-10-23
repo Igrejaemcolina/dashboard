@@ -1,12 +1,602 @@
-const SHEET_ID = "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk";
-const SUPPLEMENTAL_SHEET_ID = "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ";
+const SHEET_LINKS_CONFIG_URL = "sheet-links.json";
+// Atualize os links utilizados pela dashboard em sheet-links.json.
+const DEFAULT_SHEET_LINKS = {
+  mainSheetId: "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
+  supplementalSheetId: "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
+  serviceSheetId: "",
+  serviceSheetGid: "",
+  serviceSheetUrl: "",
+  serviceHtmlUrl: "",
+  serviceGvizUrl: "",
+  serviceCsvUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pub?gid=2086743732&single=true&output=csv",
+  parentsCsvUrl:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKe0sITHUBQQ9maOOcKKgAPPdF7v_ZR8Qb1ZdbRLsC5gqeDyhXjOEwbrnronhTSnFPIhlf3_7u-g0O/pub?gid=821736003&single=true&output=csv",
+  careNetworkSheetId: "1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4",
+  careNetworkSheetGid: "457208564",
+  careNetworkSheetUrl:
+    "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit",
+  careNetworkGvizUrl: "",
+  careNetworkHtmlUrl: "",
+};
+
+const SERVICE_SHEET_HEADERS = {
+  name: "Nomes:",
+  services: "Serviços",
+};
+
+const PARENT_SHEET_HEADERS = {
+  childName: "Nome do Adolescente(a)",
+  childBirthday: "Aniversário do Adolescente",
+  motherName: "Nome da Mãe",
+  motherBirthday: "Aniversário da Mãe",
+  motherPhone: "Telefone da Mãe",
+  fatherName: "Nome do Pai",
+  fatherBirthday: "Aniversário do Pai",
+  fatherPhone: "Telefone do Pai",
+  siblingStatus: "Possui Irmão(s)?",
+  siblingParticipation: "Irmão participa na Casa?",
+  siblingsList: "Irmãos (nome — data)",
+  childPhone: "Telefone do Adolescente",
+};
+
+let SHEET_ID = "";
+let SUPPLEMENTAL_SHEET_ID = "";
+let SERVICE_GVIZ_URL = "";
+let SERVICE_HTML_URL = "";
+let SERVICE_SHEET_ID = "";
+let SERVICE_SHEET_GID = "";
+let SERVICE_CSV_URL = "";
+let PARENTS_CSV_URL = "";
+let CARE_NETWORK_GVIZ_URL = "";
+let CARE_NETWORK_HTML_URL = "";
+const CARE_NETWORK_PHONE_KEYS = [
+  "telefone",
+  "telefone principal",
+  "telefone cadastrado",
+  "telefone do cadastrado",
+  "telefone do cuidado",
+  "celular",
+  "contato",
+  "contato principal",
+  "phone",
+];
+const CARE_NETWORK_APPROACH_KEYS = [
+  "quem abordou",
+  "abordou",
+  "abordagem",
+  "abordagem feita por",
+  "quem fez a abordagem",
+  "responsavel pela abordagem",
+  "abordado por",
+  "responsavel",
+  "responsavel direto",
+  "quem acompanhou",
+  "acompanhador",
+  "acompanhante",
+];
 const REFRESH_INTERVAL = 60_000; // 1 minuto
-const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SUPPLEMENTAL_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`;
+let GVIZ_URL = "";
+let SUPPLEMENTAL_GVIZ_URL = "";
+
+function sanitizeSheetId(value) {
+  if (value == null) {
+    return "";
+  }
+  const trimmed = String(value).trim();
+  return trimmed || "";
+}
+
+function normalizeGid(value) {
+  if (value == null) {
+    return "";
+  }
+  const trimmed = String(value).trim();
+  return trimmed || "";
+}
+
+function isPublishedSheetId(sheetId) {
+  if (!sheetId) {
+    return false;
+  }
+  const value = String(sheetId).trim();
+  if (!value) {
+    return false;
+  }
+  return /^2pacx-/i.test(value);
+}
+
+function extractSheetReference(value) {
+  const result = { id: "", gid: "", url: "" };
+  if (value == null) {
+    return result;
+  }
+
+  const stringValue = String(value).trim();
+  if (!stringValue) {
+    return result;
+  }
+
+  result.url = stringValue;
+
+  if (/^https?:\/\//i.test(stringValue)) {
+    try {
+      const url = new URL(stringValue);
+      const segments = url.pathname.split("/").filter(Boolean);
+      const dIndex = segments.indexOf("d");
+      if (dIndex >= 0) {
+        const next = segments[dIndex + 1] ?? "";
+        if (next === "e" && segments.length > dIndex + 2) {
+          result.id = segments[dIndex + 2];
+        } else if (next) {
+          result.id = next;
+        }
+      }
+      const gidParam = url.searchParams.get("gid");
+      if (gidParam) {
+        result.gid = gidParam;
+      }
+    } catch (error) {
+      return result;
+    }
+  } else {
+    result.id = stringValue;
+  }
+
+  return result;
+}
+
+function needsPublishedHtmlReplacement(url) {
+  if (!url) {
+    return true;
+  }
+
+  const stringValue = String(url).trim();
+  if (!stringValue) {
+    return true;
+  }
+
+  if (!/^https?:\/\//i.test(stringValue)) {
+    return true;
+  }
+
+  const normalized = stringValue.toLowerCase();
+  if (!normalized.includes("docs.google.com")) {
+    return false;
+  }
+  if (normalized.includes("/pubhtml")) {
+    return false;
+  }
+  if (normalized.includes("/d/e/")) {
+    return false;
+  }
+  if (normalized.includes("/pub") && normalized.includes("output=html")) {
+    return false;
+  }
+
+  return (
+    normalized.includes("/edit") ||
+    normalized.includes("/view") ||
+    normalized.includes("/preview") ||
+    normalized.endsWith("/d") ||
+    normalized.endsWith("/d/")
+  );
+}
+
+function needsGvizReplacement(url) {
+  if (!url) {
+    return true;
+  }
+
+  const stringValue = String(url).trim();
+  if (!stringValue) {
+    return true;
+  }
+
+  if (!/^https?:\/\//i.test(stringValue)) {
+    return true;
+  }
+
+  const normalized = stringValue.toLowerCase();
+  if (!normalized.includes("docs.google.com")) {
+    return false;
+  }
+
+  return !normalized.includes("/gviz/");
+}
+
+function buildPublishedHtmlUrl(sheetId, gid) {
+  if (!sheetId) {
+    return "";
+  }
+
+  const suffix = gid ? `?gid=${gid}&single=true` : "?single=true";
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml${suffix}`;
+}
+
+function buildGvizUrl(sheetId, gid) {
+  if (!sheetId) {
+    return "";
+  }
+
+  const suffix = gid ? `&gid=${gid}` : "";
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json${suffix}`;
+}
+
+function resolveCareNetworkHtmlUrl(rawUrl) {
+  const trimmed = typeof rawUrl === "string" ? rawUrl.trim() : "";
+  if (!trimmed) {
+    return "";
+  }
+
+  if (!needsPublishedHtmlReplacement(trimmed)) {
+    return trimmed;
+  }
+
+  const info = extractSheetReference(trimmed);
+  const sheetId = sanitizeSheetId(info.id);
+  const gid = normalizeGid(info.gid);
+
+  if (sheetId) {
+    return buildPublishedHtmlUrl(sheetId, gid);
+  }
+
+  return trimmed;
+}
+
+function resolveCareNetworkSheetConfig(config) {
+  const sheetInfo = extractSheetReference(config.sheetUrl);
+  const htmlInfo = extractSheetReference(config.htmlUrl);
+  const gvizInfo = extractSheetReference(config.gvizUrl);
+  const configId = sanitizeSheetId(config.sheetId);
+  const configGid = normalizeGid(config.sheetGid);
+
+  let sheetId = configId || sheetInfo.id || htmlInfo.id || gvizInfo.id;
+  if (!sheetId) {
+    sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.careNetworkSheetId);
+  }
+
+  let sheetGid = configGid || sheetInfo.gid || htmlInfo.gid || gvizInfo.gid;
+  if (!sheetGid) {
+    sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.careNetworkSheetGid);
+  }
+
+  let htmlUrl = config.htmlUrl || config.sheetUrl || config.gvizUrl || "";
+  if (sheetId && needsPublishedHtmlReplacement(htmlUrl)) {
+    htmlUrl = buildPublishedHtmlUrl(sheetId, sheetGid);
+  }
+
+  let gvizUrl = config.gvizUrl || "";
+  if (!gvizUrl && config.sheetUrl) {
+    gvizUrl = config.sheetUrl;
+  }
+  if (!gvizUrl && config.htmlUrl) {
+    gvizUrl = config.htmlUrl;
+  }
+  if (sheetId && needsGvizReplacement(gvizUrl)) {
+    gvizUrl = buildGvizUrl(sheetId, sheetGid);
+  }
+
+  return {
+    sheetId,
+    sheetGid,
+    htmlUrl,
+    gvizUrl,
+  };
+}
+
+function resolveServiceSheetConfig(config) {
+  const sheetInfo = extractSheetReference(config.serviceSheetUrl);
+  const gvizInfo = extractSheetReference(config.serviceGvizUrl);
+  const htmlInfo = extractSheetReference(config.serviceHtmlUrl);
+  const configId = sanitizeSheetId(config.serviceSheetId);
+  const configGid = normalizeGid(config.serviceSheetGid);
+
+  let sheetId = configId || sheetInfo.id || gvizInfo.id || htmlInfo.id;
+  if (!sheetId) {
+    sheetId = sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId);
+  }
+
+  let sheetGid = "";
+  const explicitConfigGid =
+    config.serviceSheetGid !== undefined && config.serviceSheetGid !== null;
+
+  if (explicitConfigGid && configGid) {
+    sheetGid = configGid;
+  } else if (sheetInfo.gid) {
+    sheetGid = sheetInfo.gid;
+  } else if (gvizInfo.gid) {
+    sheetGid = gvizInfo.gid;
+  } else if (htmlInfo.gid) {
+    sheetGid = htmlInfo.gid;
+  }
+
+  if (!sheetGid && sheetId === sanitizeSheetId(DEFAULT_SHEET_LINKS.serviceSheetId)) {
+    sheetGid = normalizeGid(DEFAULT_SHEET_LINKS.serviceSheetGid);
+  }
+
+  const publishedId = isPublishedSheetId(sheetId);
+
+  let htmlUrl = config.serviceHtmlUrl || config.serviceSheetUrl || config.serviceGvizUrl || "";
+  if (sheetId && !publishedId && needsPublishedHtmlReplacement(htmlUrl)) {
+    htmlUrl = buildPublishedHtmlUrl(sheetId, sheetGid);
+  }
+
+  let gvizUrl = config.serviceGvizUrl;
+
+  if (sheetId && !publishedId && needsGvizReplacement(gvizUrl)) {
+    gvizUrl = buildGvizUrl(sheetId, sheetGid);
+  }
+
+  return { gvizUrl, htmlUrl, sheetId, sheetGid };
+}
+
+function buildServiceGvizCandidates() {
+  const candidates = [];
+  const seen = new Set();
+
+  const register = (url) => {
+    if (!url) {
+      return;
+    }
+    const trimmed = String(url).trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+    seen.add(trimmed);
+    candidates.push(trimmed);
+  };
+
+  register(SERVICE_GVIZ_URL);
+
+  if (SERVICE_SHEET_ID && !isPublishedSheetId(SERVICE_SHEET_ID)) {
+    register(buildGvizUrl(SERVICE_SHEET_ID, SERVICE_SHEET_GID));
+    register(buildGvizUrl(SERVICE_SHEET_ID, ""));
+    if (SERVICE_SHEET_GID && SERVICE_SHEET_GID !== "0") {
+      register(buildGvizUrl(SERVICE_SHEET_ID, "0"));
+    }
+  }
+
+  return candidates;
+}
+
+function buildServiceHtmlCandidates() {
+  const candidates = [];
+  const seen = new Set();
+
+  const register = (url) => {
+    if (!url) {
+      return;
+    }
+    const trimmed = String(url).trim();
+    if (!trimmed || seen.has(trimmed)) {
+      return;
+    }
+    seen.add(trimmed);
+    candidates.push(trimmed);
+  };
+
+  register(SERVICE_HTML_URL);
+
+  if (SERVICE_SHEET_ID && !isPublishedSheetId(SERVICE_SHEET_ID)) {
+    register(buildPublishedHtmlUrl(SERVICE_SHEET_ID, SERVICE_SHEET_GID));
+    register(buildPublishedHtmlUrl(SERVICE_SHEET_ID, ""));
+  }
+
+  return candidates;
+}
+
+function updateDerivedSheetLinks() {
+  GVIZ_URL = SHEET_ID
+    ? `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`
+    : "";
+  SUPPLEMENTAL_GVIZ_URL = SUPPLEMENTAL_SHEET_ID
+    ? `https://docs.google.com/spreadsheets/d/${SUPPLEMENTAL_SHEET_ID}/gviz/tq?tqx=out:json`
+    : "";
+}
+
+function applySheetLinksConfig(rawConfig) {
+  const config = {
+    ...DEFAULT_SHEET_LINKS,
+    ...(rawConfig && typeof rawConfig === "object" ? rawConfig : {}),
+  };
+
+  const nextMain =
+    typeof config.mainSheetId === "string" ? config.mainSheetId.trim() : "";
+  const nextSupplemental =
+    typeof config.supplementalSheetId === "string"
+      ? config.supplementalSheetId.trim()
+      : "";
+  const nextServiceSheetUrl =
+    typeof config.serviceSheetUrl === "string"
+      ? config.serviceSheetUrl.trim()
+      : "";
+  const nextServiceGviz =
+    typeof config.serviceGvizUrl === "string"
+      ? config.serviceGvizUrl.trim()
+      : "";
+  const nextServiceHtml =
+    typeof config.serviceHtmlUrl === "string"
+      ? config.serviceHtmlUrl.trim()
+      : "";
+  const nextServiceSheetId =
+    typeof config.serviceSheetId === "string"
+      ? config.serviceSheetId.trim()
+      : sanitizeSheetId(config.serviceSheetId);
+  const nextServiceSheetGid =
+    typeof config.serviceSheetGid === "string" ||
+    typeof config.serviceSheetGid === "number"
+      ? String(config.serviceSheetGid).trim()
+      : normalizeGid(config.serviceSheetGid);
+  const nextServiceCsv =
+    typeof config.serviceCsvUrl === "string" ? config.serviceCsvUrl.trim() : "";
+  const nextParentsCsv =
+    typeof config.parentsCsvUrl === "string" ? config.parentsCsvUrl.trim() : "";
+  const nextCareNetworkHtml =
+    typeof config.careNetworkHtmlUrl === "string"
+      ? config.careNetworkHtmlUrl.trim()
+      : "";
+  const nextCareNetworkSheetUrl =
+    typeof config.careNetworkSheetUrl === "string"
+      ? config.careNetworkSheetUrl.trim()
+      : "";
+  const nextCareNetworkGviz =
+    typeof config.careNetworkGvizUrl === "string"
+      ? config.careNetworkGvizUrl.trim()
+      : "";
+  const nextCareNetworkSheetId =
+    typeof config.careNetworkSheetId === "string"
+      ? config.careNetworkSheetId.trim()
+      : sanitizeSheetId(config.careNetworkSheetId);
+  const nextCareNetworkSheetGid =
+    typeof config.careNetworkSheetGid === "string" ||
+    typeof config.careNetworkSheetGid === "number"
+      ? String(config.careNetworkSheetGid).trim()
+      : normalizeGid(config.careNetworkSheetGid);
+
+  SHEET_ID = nextMain || DEFAULT_SHEET_LINKS.mainSheetId;
+  SUPPLEMENTAL_SHEET_ID =
+    nextSupplemental || DEFAULT_SHEET_LINKS.supplementalSheetId;
+  const fallbackServiceConfig = resolveServiceSheetConfig({
+    serviceSheetUrl: DEFAULT_SHEET_LINKS.serviceSheetUrl,
+    serviceGvizUrl: DEFAULT_SHEET_LINKS.serviceGvizUrl,
+    serviceSheetId: DEFAULT_SHEET_LINKS.serviceSheetId,
+    serviceSheetGid: DEFAULT_SHEET_LINKS.serviceSheetGid,
+    serviceHtmlUrl: DEFAULT_SHEET_LINKS.serviceHtmlUrl,
+  });
+  const serviceConfig = resolveServiceSheetConfig({
+    serviceSheetUrl: nextServiceSheetUrl,
+    serviceGvizUrl: nextServiceGviz,
+    serviceSheetId: nextServiceSheetId,
+    serviceSheetGid: nextServiceSheetGid,
+    serviceHtmlUrl: nextServiceHtml,
+  });
+  SERVICE_SHEET_ID =
+    serviceConfig.sheetId || fallbackServiceConfig.sheetId || "";
+  SERVICE_SHEET_GID =
+    serviceConfig.sheetGid || fallbackServiceConfig.sheetGid || "";
+  const fallbackServiceGviz =
+    serviceConfig.gvizUrl || fallbackServiceConfig.gvizUrl || "";
+  SERVICE_GVIZ_URL = fallbackServiceGviz;
+  SERVICE_HTML_URL =
+    serviceConfig.htmlUrl || fallbackServiceConfig.htmlUrl || "";
+  SERVICE_CSV_URL = nextServiceCsv || DEFAULT_SHEET_LINKS.serviceCsvUrl;
+  PARENTS_CSV_URL = nextParentsCsv || DEFAULT_SHEET_LINKS.parentsCsvUrl;
+  const fallbackCareConfig = resolveCareNetworkSheetConfig({
+    htmlUrl: DEFAULT_SHEET_LINKS.careNetworkHtmlUrl,
+    sheetUrl: DEFAULT_SHEET_LINKS.careNetworkSheetUrl,
+    gvizUrl: DEFAULT_SHEET_LINKS.careNetworkGvizUrl,
+    sheetId: DEFAULT_SHEET_LINKS.careNetworkSheetId,
+    sheetGid: DEFAULT_SHEET_LINKS.careNetworkSheetGid,
+  });
+  const resolvedCareConfig = resolveCareNetworkSheetConfig({
+    htmlUrl: nextCareNetworkHtml,
+    sheetUrl: nextCareNetworkSheetUrl,
+    gvizUrl: nextCareNetworkGviz,
+    sheetId: nextCareNetworkSheetId,
+    sheetGid: nextCareNetworkSheetGid,
+  });
+  CARE_NETWORK_HTML_URL =
+    resolvedCareConfig.htmlUrl || fallbackCareConfig.htmlUrl || "";
+  CARE_NETWORK_GVIZ_URL =
+    resolvedCareConfig.gvizUrl || fallbackCareConfig.gvizUrl || "";
+  updateDerivedSheetLinks();
+}
+
+async function loadSheetLinksConfig() {
+  try {
+    const response = await fetch(SHEET_LINKS_CONFIG_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+    applySheetLinksConfig(payload);
+    if (state && state.serviceSheet) {
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        sheetId: SERVICE_SHEET_ID,
+        sheetGid: SERVICE_SHEET_GID,
+        htmlUrl: SERVICE_HTML_URL,
+        gvizUrl: SERVICE_GVIZ_URL,
+        csvUrl: SERVICE_CSV_URL,
+      };
+    }
+    if (state && state.parentSheet) {
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
+    }
+  } catch (error) {
+    console.warn(
+      "Failed to load sheet-links.json. Using built-in defaults instead.",
+      error
+    );
+    applySheetLinksConfig(DEFAULT_SHEET_LINKS);
+    if (state && state.serviceSheet) {
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        sheetId: SERVICE_SHEET_ID,
+        sheetGid: SERVICE_SHEET_GID,
+        htmlUrl: SERVICE_HTML_URL,
+        gvizUrl: SERVICE_GVIZ_URL,
+        csvUrl: SERVICE_CSV_URL,
+      };
+    }
+    if (state && state.parentSheet) {
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
+    }
+  }
+}
+
+applySheetLinksConfig(DEFAULT_SHEET_LINKS);
 const SERVICE_STORAGE_KEY = "igcolina-services";
 const SERVICE_FILTER_ALL = "all";
 const SERVICE_FILTER_UNASSIGNED = "unassigned";
+const SERVICE_CATALOG_URL = "services.json";
 const DEFAULT_SERVICE_OPTIONS = [];
+const DEFAULT_SERVICE_OPTION_IDS = new Set();
+const dynamicServiceOptions = new Map();
+let dynamicServiceOptionsDirty = false;
+const SERVICE_SELECTION_POSITIVE_VALUES = new Set([
+  "true",
+  "sim",
+  "yes",
+  "ativo",
+  "activa",
+  "active",
+  "si",
+  "checked",
+  "marcado",
+  "selecionado",
+  "ok",
+  "1",
+]);
+
+const NO_SERVICE_LABELS = new Set([
+  "n servico",
+  "n ministerio",
+  "n servicio",
+  "nenhum servico",
+  "nenhum ministerio",
+  "ningun servicio",
+  "ningun ministerio",
+  "sem servico",
+  "sem ministerio",
+  "semservico",
+  "semservicio",
+  "semservice",
+  "sin servicio",
+  "sin ministerio",
+  "nao serve",
+  "nao servindo",
+  "no service",
+  "n s",
+  "ns",
+  "nservico",
+  "nservicio",
+  "n servicio",
+  "nservice",
+  "none",
+]);
 
 const CUSTOM_SERVICE_STORAGE_KEY = "igcolina-custom-service-options";
 const RESERVED_SERVICE_IDS = new Set([
@@ -14,12 +604,201 @@ const RESERVED_SERVICE_IDS = new Set([
   SERVICE_FILTER_UNASSIGNED,
   "active",
 ]);
-const DEFAULT_SERVICE_OPTION_IDS = new Set(
-  DEFAULT_SERVICE_OPTIONS.map((option) => option.id)
-);
 const customServiceOptions = new Map();
 
 const EMPTY_SERVICE_ASSIGNMENT = { active: false, services: [] };
+
+function applyDefaultServiceOptions(options) {
+  DEFAULT_SERVICE_OPTIONS.length = 0;
+  DEFAULT_SERVICE_OPTION_IDS.clear();
+
+  options.forEach((option) => {
+    DEFAULT_SERVICE_OPTIONS.push(option);
+    DEFAULT_SERVICE_OPTION_IDS.add(option.id);
+  });
+
+  refreshDefaultServiceConsumers();
+}
+
+function refreshDefaultServiceConsumers() {
+  ensureServiceManagerFilterOptions();
+  recalculateServiceSummaries();
+  refreshActiveServiceInterfaces({ preserveSelection: true });
+  if (isServiceManagerPage) {
+    renderServiceManager();
+  }
+}
+
+function registerDynamicServiceOption(value) {
+  const normalized = normalizeServiceId(value);
+  if (!normalized || RESERVED_SERVICE_IDS.has(normalized)) {
+    return "";
+  }
+
+  if (
+    DEFAULT_SERVICE_OPTION_IDS.has(normalized) ||
+    customServiceOptions.has(normalized) ||
+    dynamicServiceOptions.has(normalized)
+  ) {
+    return normalized;
+  }
+
+  const rawLabel = typeof value === "string" ? value.trim() : "";
+  const fallbackLabel = normalized
+    .split("-")
+    .map((segment) =>
+      segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : ""
+    )
+    .join(" ")
+    .trim();
+  const baseLabel = rawLabel || fallbackLabel || normalized;
+
+  const labels = {
+    pt: baseLabel,
+    en: baseLabel,
+    es: baseLabel,
+  };
+
+  dynamicServiceOptions.set(normalized, {
+    id: normalized,
+    label: baseLabel,
+    labels,
+  });
+  dynamicServiceOptionsDirty = true;
+  return normalized;
+}
+
+function clearDynamicServiceOptions() {
+  if (!dynamicServiceOptions.size) {
+    return;
+  }
+  dynamicServiceOptions.clear();
+  dynamicServiceOptionsDirty = true;
+}
+
+function flushDynamicServiceOptions() {
+  if (!dynamicServiceOptionsDirty) {
+    return;
+  }
+  dynamicServiceOptionsDirty = false;
+  refreshDefaultServiceConsumers();
+}
+
+function normalizeDefaultServiceOption(rawOption) {
+  if (typeof rawOption === "string") {
+    const base = rawOption.trim();
+    if (!base) {
+      return null;
+    }
+
+    const id = normalizeServiceId(base);
+    if (!id || RESERVED_SERVICE_IDS.has(id)) {
+      return null;
+    }
+
+    return {
+      id,
+      label: base,
+      labels: { pt: base, en: base, es: base },
+    };
+  }
+
+  if (!rawOption || typeof rawOption !== "object") {
+    return null;
+  }
+
+  const idSource =
+    typeof rawOption.id === "string" && rawOption.id.trim()
+      ? rawOption.id.trim()
+      : "";
+
+  const preferredPtLabels = [
+    typeof rawOption.label === "string" ? rawOption.label.trim() : "",
+    typeof rawOption.pt === "string" ? rawOption.pt.trim() : "",
+    typeof rawOption.name === "string" ? rawOption.name.trim() : "",
+    rawOption.labels && typeof rawOption.labels === "object"
+      ? typeof rawOption.labels.pt === "string"
+        ? rawOption.labels.pt.trim()
+        : ""
+      : "",
+  ];
+
+  const baseLabel = preferredPtLabels.find((value) => value);
+  if (!baseLabel) {
+    return null;
+  }
+
+  const normalizedId = normalizeServiceId(idSource || baseLabel);
+  if (!normalizedId || RESERVED_SERVICE_IDS.has(normalizedId)) {
+    return null;
+  }
+
+  const extractLabel = (value) =>
+    typeof value === "string" && value.trim() ? value.trim() : "";
+
+  const labels = { pt: baseLabel };
+  const enCandidate =
+    (rawOption.labels && extractLabel(rawOption.labels.en)) ||
+    extractLabel(rawOption.en) ||
+    extractLabel(rawOption.english) ||
+    baseLabel;
+  const esCandidate =
+    (rawOption.labels && extractLabel(rawOption.labels.es)) ||
+    extractLabel(rawOption.es) ||
+    extractLabel(rawOption.spanish) ||
+    baseLabel;
+
+  labels.en = enCandidate || baseLabel;
+  labels.es = esCandidate || baseLabel;
+
+  return { id: normalizedId, label: baseLabel, labels };
+}
+
+async function loadDefaultServiceOptions() {
+  try {
+    const response = await fetch(SERVICE_CATALOG_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+    let entries = [];
+    if (Array.isArray(payload)) {
+      entries = payload;
+    } else if (Array.isArray(payload?.services)) {
+      entries = payload.services;
+    } else if (payload != null) {
+      console.warn(
+        "Service catalog payload must be an array or an object with a services array."
+      );
+    }
+
+    if (!entries.length) {
+      applyDefaultServiceOptions([]);
+      return;
+    }
+
+    const seen = new Set();
+    const options = [];
+
+    entries.forEach((rawOption) => {
+      const option = normalizeDefaultServiceOption(rawOption);
+      if (!option) {
+        return;
+      }
+      if (seen.has(option.id)) {
+        return;
+      }
+      seen.add(option.id);
+      options.push(option);
+    });
+
+    applyDefaultServiceOptions(options);
+  } catch (error) {
+    console.warn("Failed to load service catalog:", error);
+    refreshDefaultServiceConsumers();
+  }
+}
 
 function hasActiveServices(entry) {
   return Boolean(
@@ -100,6 +879,12 @@ const TRANSLATIONS = {
         chartLabel: "Responsáveis pelos adolescentes",
         empty: "Nenhum pai ou mãe encontrado nesta categoria.",
       },
+      careNetwork: {
+        title: "Rede de Cuidado",
+        description: "Cadastrados da Rede de Cuidado",
+        chartLabel: "Registros da Rede de Cuidado",
+        empty: "Nenhum registro encontrado na Rede de Cuidado.",
+      },
       services: {
         title: "Serviços",
         description:
@@ -159,6 +944,7 @@ const TRANSLATIONS = {
       primaryLoad: "Não foi possível carregar a planilha principal.",
       fetchStatus: ({ status }) => `Erro ao acessar a planilha (status ${status})`,
       unexpectedResponse: "Resposta inesperada da API do Google Sheets.",
+      serviceLoad: "Não foi possível carregar a aba de serviços.",
     },
     category: {
       loadingTitle: "Carregando categoria...",
@@ -258,11 +1044,33 @@ const TRANSLATIONS = {
       },
       tagsLabel: "Serviços desempenhados",
       selectLabel: "Selecione os serviços",
+      detailLabel: "Onde serve",
+      detailValueNone: "N.Serviço",
       feedback: {
         inactive: "N.Serviço",
         active: "Servindo",
       },
       chartLabelUnassigned: "Idades dos irmãos sem serviço",
+    },
+    careNetwork: {
+      meta: ({ assigned, total }) => {
+        const assignedLabel =
+          assigned === 1
+            ? "1 irmão acompanhado"
+            : `${assigned} irmãos acompanhados`;
+        const totalLabel =
+          total === 1 ? "1 registro" : `${total} registros`;
+        return `${assignedLabel} · ${totalLabel}`;
+      },
+      detailLabel: "Rede de cuidado",
+      detailValueNone: "N.Serviço",
+      servicesTitle: "Serviços atribuídos",
+      fieldLabel: ({ field }) => `Rede de cuidado · ${field}`,
+      cardPhoneLabel: "Telefone",
+      cardApproachedByLabel: "Quem abordou",
+      cardValueMissing: "Não informado",
+      cardImageAlt: "Rede de Cuidado",
+      chartEmpty: "Não há dados disponíveis para a Rede de Cuidado.",
     },
     access: {
       modalTitle: "Selecione a seguir sua função:",
@@ -491,6 +1299,32 @@ const TRANSLATIONS = {
       empty: "Nenhum irmão encontrado para os filtros selecionados.",
       restricted:
         "Atribuição de serviços disponível apenas para o perfil Serviços.",
+      sync: {
+        title: "Sincronização com planilha",
+        description:
+          "Conecte com o Google Sheets para compartilhar as atribuições em todos os dispositivos.",
+        buttons: {
+          connect: "Atualizar planilha",
+          authorize: "Autorizar Google",
+          syncing: "Sincronizando...",
+          configure: "Configurar planilha",
+        },
+        status: {
+          ready: "Planilha conectada e pronta para receber atualizações.",
+          syncing: "Enviando dados para a planilha...",
+          success: "Serviços atualizados na planilha.",
+          error: "Não foi possível atualizar a planilha. Tente novamente.",
+          unauthorized: "Autorize o acesso do Google para salvar as alterações.",
+          missingClient: "Informe o Client ID OAuth 2.0 para conectar.",
+          missingTab: "Informe o nome da aba da planilha.",
+        },
+        prompt: {
+          clientId:
+            "Cole o Client ID OAuth 2.0 configurado no console do Google Cloud.",
+          tabName:
+            "Informe o nome da aba da planilha onde os serviços serão salvos.",
+        },
+      },
     },
     serviceAssignment: {
       title: ({ name }) => `Gerenciar serviços de ${name}`,
@@ -560,6 +1394,13 @@ const TRANSLATIONS = {
         chartLabel: "Guardians of the teens",
         empty: "No parents were found in this category.",
       },
+      careNetwork: {
+        title: "Care Network",
+        description:
+          "Review the members listed in the Care Network and see the related follow-up details.",
+        chartLabel: "Care Network records",
+        empty: "No Care Network records were found.",
+      },
       services: {
         title: "Services",
         description: "Track who is serving and in which ministry.",
@@ -618,6 +1459,7 @@ const TRANSLATIONS = {
       primaryLoad: "Unable to load the primary spreadsheet.",
       fetchStatus: ({ status }) => `Spreadsheet request failed (status ${status}).`,
       unexpectedResponse: "Unexpected response from the Google Sheets API.",
+      serviceLoad: "Unable to load the services tab.",
     },
     category: {
       loadingTitle: "Loading category...",
@@ -717,11 +1559,32 @@ const TRANSLATIONS = {
       },
       tagsLabel: "Serving in",
       selectLabel: "Choose the services",
+      detailLabel: "Serving in",
+      detailValueNone: "No service",
       feedback: {
         inactive: "No service",
         active: "Serving",
       },
       chartLabelUnassigned: "Ages of members without a service",
+    },
+    careNetwork: {
+      meta: ({ assigned, total }) => {
+        const assignedLabel =
+          assigned === 1
+            ? "1 member being followed"
+            : `${assigned} members being followed`;
+        const totalLabel = total === 1 ? "1 record" : `${total} records`;
+        return `${assignedLabel} · ${totalLabel}`;
+      },
+      detailLabel: "Care Network",
+      detailValueNone: "No service",
+      servicesTitle: "Assigned services",
+      fieldLabel: ({ field }) => `Care Network · ${field}`,
+      cardPhoneLabel: "Phone",
+      cardApproachedByLabel: "Approached by",
+      cardValueMissing: "Not provided",
+      cardImageAlt: "Care Network",
+      chartEmpty: "No Care Network data is available.",
     },
     access: {
       modalTitle: "Select your role below:",
@@ -948,6 +1811,30 @@ const TRANSLATIONS = {
       empty: "No members found for the selected filters.",
       restricted:
         "Service assignments are available only for the Services profile.",
+      sync: {
+        title: "Spreadsheet sync",
+        description:
+          "Connect to Google Sheets so every device keeps the latest service assignments.",
+        buttons: {
+          connect: "Update spreadsheet",
+          authorize: "Authorize Google",
+          syncing: "Syncing...",
+          configure: "Configure sheet",
+        },
+        status: {
+          ready: "Spreadsheet connected and ready for updates.",
+          syncing: "Sending data to the spreadsheet...",
+          success: "Services updated in the spreadsheet.",
+          error: "Unable to update the spreadsheet. Try again.",
+          unauthorized: "Authorize Google access to save the changes.",
+          missingClient: "Provide the OAuth 2.0 Client ID to connect.",
+          missingTab: "Provide the sheet tab name.",
+        },
+        prompt: {
+          clientId: "Paste the OAuth 2.0 Client ID configured in Google Cloud.",
+          tabName: "Inform the sheet tab name where services will be stored.",
+        },
+      },
     },
     serviceAssignment: {
       title: ({ name }) => `Manage services for ${name}`,
@@ -1018,6 +1905,13 @@ const TRANSLATIONS = {
         chartLabel: "Responsables de los adolescentes",
         empty: "No se encontraron padres o madres en esta categoría.",
       },
+      careNetwork: {
+        title: "Red de Cuidado",
+        description:
+          "Consulta los hermanos registrados en la Red de Cuidado y revisa los datos de acompañamiento.",
+        chartLabel: "Registros de la Red de Cuidado",
+        empty: "No se encontraron registros en la Red de Cuidado.",
+      },
       services: {
         title: "Servicios",
         description: "Revisa quiénes sirven y en qué áreas.",
@@ -1076,6 +1970,7 @@ const TRANSLATIONS = {
       primaryLoad: "No se pudo cargar la planilla principal.",
       fetchStatus: ({ status }) => `No fue posible acceder a la planilla (estado ${status}).`,
       unexpectedResponse: "Respuesta inesperada de la API de Google Sheets.",
+      serviceLoad: "No fue posible cargar la pestaña de servicios.",
     },
     category: {
       loadingTitle: "Cargando categoría...",
@@ -1176,11 +2071,33 @@ const TRANSLATIONS = {
       },
       tagsLabel: "Servicios en los que participa",
       selectLabel: "Elige los servicios",
+      detailLabel: "Dónde sirve",
+      detailValueNone: "Sin servicio",
       feedback: {
         inactive: "Sin servicio",
         active: "Sirviendo",
       },
       chartLabelUnassigned: "Edades de los hermanos sin servicio",
+    },
+    careNetwork: {
+      meta: ({ assigned, total }) => {
+        const assignedLabel =
+          assigned === 1
+            ? "1 hermano acompañado"
+            : `${assigned} hermanos acompañados`;
+        const totalLabel =
+          total === 1 ? "1 registro" : `${total} registros`;
+        return `${assignedLabel} · ${totalLabel}`;
+      },
+      detailLabel: "Red de Cuidado",
+      detailValueNone: "Sin servicio",
+      servicesTitle: "Servicios asignados",
+      fieldLabel: ({ field }) => `Red de Cuidado · ${field}`,
+      cardPhoneLabel: "Teléfono",
+      cardApproachedByLabel: "Quién abordó",
+      cardValueMissing: "No informado",
+      cardImageAlt: "Red de Cuidado",
+      chartEmpty: "No hay datos disponibles para la Red de Cuidado.",
     },
     access: {
       modalTitle: "Selecciona a continuación tu función:",
@@ -1410,6 +2327,30 @@ const TRANSLATIONS = {
       empty: "No se encontraron hermanos para los filtros seleccionados.",
       restricted:
         "La asignación de servicios está disponible solo para el perfil Servicios.",
+      sync: {
+        title: "Sincronización con planilla",
+        description:
+          "Conéctate con Google Sheets para que todos los dispositivos reciban las últimas asignaciones.",
+        buttons: {
+          connect: "Actualizar planilla",
+          authorize: "Autorizar Google",
+          syncing: "Sincronizando...",
+          configure: "Configurar planilla",
+        },
+        status: {
+          ready: "Planilla conectada y lista para recibir actualizaciones.",
+          syncing: "Enviando datos a la planilla...",
+          success: "Servicios actualizados en la planilla.",
+          error: "No fue posible actualizar la planilla. Inténtalo nuevamente.",
+          unauthorized: "Autoriza el acceso de Google para guardar los cambios.",
+          missingClient: "Informa el Client ID OAuth 2.0 para conectar.",
+          missingTab: "Informa el nombre de la pestaña de la planilla.",
+        },
+        prompt: {
+          clientId: "Pega el Client ID OAuth 2.0 configurado en Google Cloud.",
+          tabName: "Indica el nombre de la pestaña donde se guardarán los servicios.",
+        },
+      },
     },
     serviceAssignment: {
       title: ({ name }) => `Gestionar servicios de ${name}`,
@@ -1506,6 +2447,7 @@ const elements = {
   children: document.getElementById("children-count"),
   teens: document.getElementById("teens-count"),
   parents: document.getElementById("parents-count"),
+  careNetwork: document.getElementById("care-network-count"),
   services: document.getElementById("services-count"),
   captains: document.getElementById("captains-count"),
   braves: document.getElementById("braves-count"),
@@ -1612,6 +2554,7 @@ const elements = {
   passwordModalNew: document.getElementById("password-modal-new"),
   passwordModalConfirm: document.getElementById("password-modal-confirm"),
   passwordModalFeedback: document.getElementById("password-modal-feedback"),
+  careNetworkImage: document.getElementById("care-network-image"),
   profileModal: document.getElementById("profile-modal"),
   profileModalDialog: document.getElementById("profile-modal-dialog"),
   profileModalForm: document.getElementById("profile-modal-form"),
@@ -1630,28 +2573,10 @@ const elements = {
   serviceManagerDescription: document.getElementById("service-manager-description"),
   serviceManagerFilterLabel: document.getElementById("service-manager-filter-label"),
   serviceManagerFilter: document.getElementById("service-manager-filter"),
-  serviceManagerAddForm: document.getElementById("service-manager-add-form"),
-  serviceManagerAddTitle: document.getElementById("service-manager-add-title"),
-  serviceManagerAddLabel: document.getElementById("service-manager-add-label"),
-  serviceManagerAddInput: document.getElementById("service-manager-add-input"),
-  serviceManagerAddLabelEn: document.getElementById("service-manager-add-label-en"),
-  serviceManagerAddInputEn: document.getElementById("service-manager-add-input-en"),
-  serviceManagerAddLabelEs: document.getElementById("service-manager-add-label-es"),
-  serviceManagerAddInputEs: document.getElementById("service-manager-add-input-es"),
-  serviceManagerAddButton: document.getElementById("service-manager-add-button"),
-  serviceManagerAddCancel: document.getElementById("service-manager-add-cancel"),
-  serviceManagerAddHint: document.getElementById("service-manager-add-hint"),
   serviceManagerList: document.getElementById("service-manager-list"),
   serviceManagerEmpty: document.getElementById("service-manager-empty"),
   serviceManagerBack: document.getElementById("service-manager-back"),
   serviceManagerNotice: document.getElementById("service-manager-notice"),
-  serviceManagerCustomSection: document.getElementById("service-manager-custom"),
-  serviceManagerCustomTitle: document.getElementById("service-manager-custom-title"),
-  serviceManagerCustomDescription: document.getElementById(
-    "service-manager-custom-description"
-  ),
-  serviceManagerCustomList: document.getElementById("service-manager-custom-list"),
-  serviceManagerCustomEmpty: document.getElementById("service-manager-custom-empty"),
   serviceAssignmentModal: document.getElementById("service-assignment-modal"),
   serviceAssignmentDialog: document.getElementById("service-assignment-dialog"),
   serviceAssignmentTitle: document.getElementById("service-assignment-title"),
@@ -1728,6 +2653,15 @@ const CATEGORY_CONFIG = [
     isParentCategory: true,
   },
   {
+    id: "care-network",
+    titleKey: "categories.careNetwork.title",
+    descriptionKey: "categories.careNetwork.description",
+    chartLabelKey: "categories.careNetwork.chartLabel",
+    emptyMessageKey: "categories.careNetwork.empty",
+    filter: () => true,
+    isCareNetworkCategory: true,
+  },
+  {
     id: "services",
     titleKey: "categories.services.title",
     descriptionKey: "categories.services.description",
@@ -1764,6 +2698,34 @@ const SUPPLEMENTAL_EXCLUDED_KEYS = new Set(
     "Telefone do adolescente:",
   ].map((label) => normalizeColumnLabel(label))
 );
+
+const DEFAULT_SERVICE_SHEET_CONFIG = {
+  sheetId: "",
+  tabName: "",
+  clientId: "",
+  sheetGid: "",
+  htmlUrl: "",
+  gvizUrl: "",
+  csvUrl: "",
+};
+
+function loadServiceSheetConfig() {
+  return { ...DEFAULT_SERVICE_SHEET_CONFIG };
+}
+
+function saveServiceSheetConfig() {}
+
+function createEmptyCareNetworkState() {
+  return {
+    columns: [],
+    records: [],
+    nameColumn: null,
+    serviceColumns: [],
+    entries: [],
+    index: new Map(),
+    summary: { total: 0, assigned: 0 },
+  };
+}
 
 const state = {
   records: [],
@@ -1812,6 +2774,17 @@ const state = {
     questionsRendered: false,
   },
   language: null,
+  serviceSheet: {
+    columns: [],
+    records: [],
+    config: loadServiceSheetConfig(),
+  },
+  parentSheet: {
+    columns: [],
+    records: [],
+    csvUrl: "",
+  },
+  careNetwork: createEmptyCareNetworkState(),
 };
 
 function hasFullAccessRole(role) {
@@ -2176,6 +3149,10 @@ function applyLanguage(options = {}) {
     }
   });
 
+  if (elements.careNetworkImage) {
+    elements.careNetworkImage.alt = translate("careNetwork.cardImageAlt");
+  }
+
   if (elements.overviewTitle) {
     elements.overviewTitle.textContent = translate("overview.title");
   }
@@ -2372,59 +3349,6 @@ function applyLanguage(options = {}) {
       "serviceManager.restricted"
     );
   }
-  if (elements.serviceManagerAddTitle) {
-    elements.serviceManagerAddTitle.textContent = state.editingServiceId
-      ? translate("serviceManager.edit.title", {
-          name: translateServiceName(state.editingServiceId),
-        })
-      : translate("serviceManager.add.title");
-  }
-  if (elements.serviceManagerAddLabel) {
-    elements.serviceManagerAddLabel.textContent = translate(
-      "serviceManager.add.label"
-    );
-  }
-  if (elements.serviceManagerAddInput) {
-    elements.serviceManagerAddInput.placeholder = translate(
-      "serviceManager.add.placeholder"
-    );
-  }
-  if (elements.serviceManagerAddLabelEn) {
-    elements.serviceManagerAddLabelEn.textContent = translate(
-      "serviceManager.add.labelEn"
-    );
-  }
-  if (elements.serviceManagerAddInputEn) {
-    elements.serviceManagerAddInputEn.placeholder = translate(
-      "serviceManager.add.placeholderEn"
-    );
-  }
-  if (elements.serviceManagerAddLabelEs) {
-    elements.serviceManagerAddLabelEs.textContent = translate(
-      "serviceManager.add.labelEs"
-    );
-  }
-  if (elements.serviceManagerAddInputEs) {
-    elements.serviceManagerAddInputEs.placeholder = translate(
-      "serviceManager.add.placeholderEs"
-    );
-  }
-  if (elements.serviceManagerAddButton) {
-    elements.serviceManagerAddButton.textContent = state.editingServiceId
-      ? translate("serviceManager.edit.button")
-      : translate("serviceManager.add.button");
-  }
-  if (elements.serviceManagerAddCancel) {
-    elements.serviceManagerAddCancel.textContent = translate(
-      "serviceManager.edit.cancelButton"
-    );
-  }
-  if (elements.serviceManagerAddHint) {
-    elements.serviceManagerAddHint.textContent = translate(
-      "serviceManager.add.helper"
-    );
-  }
-  renderCustomServiceList();
   renderProfileRoleOptions();
 
   if (elements.passwordModalTitle) {
@@ -2515,6 +3439,8 @@ function applyLanguage(options = {}) {
       translate("serviceAssignment.close")
     );
   }
+
+  updateServiceSyncUI();
 
   if (
     elements.serviceAssignmentModal &&
@@ -3780,10 +4706,29 @@ async function initializeAccessControl() {
 async function fetchSheetData() {
   setStatusFromKey("status.loading");
   try {
-    const [primaryResult, supplementalResult] = await Promise.allSettled([
-      fetchGvizTable(GVIZ_URL),
-      fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
-    ]);
+    let careNetworkPromise;
+    if (CARE_NETWORK_GVIZ_URL) {
+      careNetworkPromise = fetchGvizTable(CARE_NETWORK_GVIZ_URL);
+    } else if (CARE_NETWORK_HTML_URL) {
+      careNetworkPromise = fetchCareNetworkHtmlTable(CARE_NETWORK_HTML_URL);
+    } else {
+      careNetworkPromise = Promise.resolve({ columns: [], records: [] });
+    }
+
+    const [
+      primaryResult,
+      supplementalResult,
+      serviceResult,
+      careNetworkResult,
+      parentResult,
+    ] =
+      await Promise.allSettled([
+        fetchGvizTable(GVIZ_URL),
+        fetchGvizTable(SUPPLEMENTAL_GVIZ_URL),
+        fetchServiceSheetTable(),
+        careNetworkPromise,
+        fetchParentSheetTable(),
+      ]);
 
     if (primaryResult.status !== "fulfilled") {
       throw (
@@ -3873,10 +4818,64 @@ async function fetchSheetData() {
       state.supplementalIndex = new Map();
     }
 
+    if (serviceResult.status === "fulfilled") {
+      const { records: serviceRecords, columns: serviceColumns } =
+        serviceResult.value;
+      state.serviceSheet.columns = serviceColumns;
+      state.serviceSheet.records = serviceRecords;
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        csvUrl: SERVICE_CSV_URL,
+      };
+      applyRemoteServiceAssignments(serviceRecords, serviceColumns);
+    } else {
+      console.warn(
+        "Unable to load the services tab:",
+        serviceResult.reason
+      );
+      state.serviceSheet.columns = [];
+      state.serviceSheet.records = [];
+      state.serviceSheet.config = {
+        ...state.serviceSheet.config,
+        csvUrl: SERVICE_CSV_URL,
+      };
+    }
+
+    if (careNetworkResult.status === "fulfilled") {
+      const { records: careRecords, columns: careColumns } =
+        careNetworkResult.value ?? { records: [], columns: [] };
+      applyCareNetworkSheet(careRecords, careColumns);
+    } else {
+      console.warn(
+        "Unable to load the care network table:",
+        careNetworkResult.reason
+      );
+      resetCareNetworkState();
+    }
+
+    if (parentResult.status === "fulfilled") {
+      const { records: parentRecords, columns: parentColumns } =
+        parentResult.value ?? { records: [], columns: [] };
+      state.parentSheet.columns = parentColumns;
+      state.parentSheet.records = parentRecords;
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
+      state.parentEntries = buildParentEntries(parentRecords);
+      state.parentSummary = summarizeParentEntries(state.parentEntries);
+    } else {
+      console.warn(
+        "Unable to load the parents tab:",
+        parentResult.reason
+      );
+      state.parentSheet.columns = [];
+      state.parentSheet.records = [];
+      state.parentSheet.csvUrl = PARENTS_CSV_URL;
+      state.parentEntries = [];
+      state.parentSummary = { parents: 0, families: 0 };
+    }
+
     state.enrichedRecords = buildEnrichedRecords(records);
     applyServiceAssignmentsToEntries();
-    state.parentEntries = buildParentEntries(state.enrichedRecords);
-    state.parentSummary = summarizeParentEntries(state.parentEntries);
+    applyCareNetworkDataToEntries();
     buildSuggestions();
 
     if (!CATEGORY_BY_ID[state.activeCategory]) {
@@ -3906,6 +4905,9 @@ async function fetchSheetData() {
 }
 
 async function fetchGvizTable(url) {
+  if (!url) {
+    throw new Error("Missing GViz URL");
+  }
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(
@@ -3916,6 +4918,318 @@ async function fetchGvizTable(url) {
   const text = await response.text();
   const payload = extractGvizPayload(text);
   return parseTable(payload.table);
+}
+
+async function fetchServiceSheetTable() {
+  if (!SERVICE_CSV_URL) {
+    return { columns: [], records: [] };
+  }
+
+  const table = await fetchCsvTable(SERVICE_CSV_URL);
+  ensureRequiredColumns(table.columns, [
+    SERVICE_SHEET_HEADERS.name,
+    SERVICE_SHEET_HEADERS.services,
+  ]);
+  return table;
+}
+
+async function fetchParentSheetTable() {
+  if (!PARENTS_CSV_URL) {
+    return { columns: [], records: [] };
+  }
+
+  return fetchCsvTable(PARENTS_CSV_URL);
+}
+
+async function fetchCsvTable(url) {
+  if (!url) {
+    return { columns: [], records: [] };
+  }
+
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(translate("errors.fetchStatus", { status: response.status }));
+  }
+
+  const text = await response.text();
+  return parseCsvTable(text);
+}
+
+function ensureRequiredColumns(columns, requiredColumns) {
+  if (!Array.isArray(columns) || !Array.isArray(requiredColumns)) {
+    return;
+  }
+
+  requiredColumns.forEach((header) => {
+    if (!header) {
+      return;
+    }
+    if (!columns.includes(header)) {
+      throw new Error(`CSV response is missing required column "${header}".`);
+    }
+  });
+}
+
+function parseCsvRows(text) {
+  if (typeof text !== "string") {
+    return [];
+  }
+
+  const normalized = text.replace(/^\ufeff/, "");
+  const rows = [];
+  let currentRow = [];
+  let currentValue = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const char = normalized[index];
+
+    if (char === '"') {
+      const nextChar = normalized[index + 1];
+      if (inQuotes && nextChar === '"') {
+        currentValue += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      currentRow.push(currentValue);
+      currentValue = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      currentRow.push(currentValue);
+      currentValue = "";
+      rows.push(currentRow);
+      currentRow = [];
+      if (char === "\r" && normalized[index + 1] === "\n") {
+        index += 1;
+      }
+      continue;
+    }
+
+    currentValue += char;
+  }
+
+  currentRow.push(currentValue);
+  rows.push(currentRow);
+
+  while (
+    rows.length &&
+    rows[rows.length - 1].every((cell) => String(cell ?? "").trim() === "")
+  ) {
+    rows.pop();
+  }
+
+  return rows.map((row) =>
+    row.map((cell) => (cell == null ? "" : String(cell)))
+  );
+}
+
+function parseCsvTable(text) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) {
+    return { columns: [], records: [] };
+  }
+
+  const headerLabels = rows[0].map((cell, index) => {
+    const trimmed = String(cell ?? "").trim();
+    return trimmed || `Coluna ${index + 1}`;
+  });
+  const columns = ensureUniqueColumnLabels(headerLabels);
+
+  const records = [];
+
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex] ?? [];
+    const values = columns.map((_, columnIndex) => {
+      if (columnIndex < row.length) {
+        return row[columnIndex] ?? "";
+      }
+      return "";
+    });
+
+    const hasValue = values.some((value) => String(value ?? "").trim() !== "");
+    if (!hasValue) {
+      continue;
+    }
+
+    const entry = {};
+    const raw = {};
+
+    columns.forEach((column, columnIndex) => {
+      const value = values[columnIndex] ?? "";
+      entry[column] = value;
+      raw[column] = value;
+    });
+
+    entry.__raw = raw;
+    records.push(entry);
+  }
+
+  return { columns, records };
+}
+
+async function fetchPublishedHtmlTable(url, contextLabel = "table") {
+  if (!url) {
+    throw new Error(`Missing ${contextLabel}`);
+  }
+
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(translate("errors.fetchStatus", { status: response.status }));
+  }
+
+  const html = await response.text();
+  return parsePublishedHtmlTable(html);
+}
+
+async function fetchCareNetworkHtmlTable(url) {
+  return fetchPublishedHtmlTable(url, "care network URL");
+}
+
+async function fetchServiceHtmlTable(url) {
+  return fetchPublishedHtmlTable(url, "services URL");
+}
+
+function parsePublishedHtmlTable(html) {
+  if (typeof DOMParser === "undefined") {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  if (!doc) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  const tables = Array.from(doc.querySelectorAll("table"));
+  if (!tables.length) {
+    throw new Error(translate("errors.unexpectedResponse"));
+  }
+
+  for (const table of tables) {
+    const result = extractHtmlTable(table);
+    const hasColumns = Array.isArray(result.columns)
+      ? result.columns.length > 0
+      : false;
+    const hasRecords = Array.isArray(result.records)
+      ? result.records.length > 0
+      : false;
+
+    if (hasColumns || hasRecords) {
+      return result;
+    }
+  }
+
+  throw new Error(translate("errors.unexpectedResponse"));
+}
+
+function extractHtmlTable(table) {
+  const rows = Array.from(table.querySelectorAll("tr"));
+  if (!rows.length) {
+    return { columns: [], records: [] };
+  }
+
+  let headerRowIndex = -1;
+  let columns = [];
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    const cells = Array.from(row.querySelectorAll("th,td"));
+    if (!cells.length) {
+      continue;
+    }
+
+    const labels = cells.map((cell, cellIndex) => {
+      const label = sanitizeHeaderLabel(cell?.textContent ?? "");
+      return label || `Coluna ${cellIndex + 1}`;
+    });
+
+    const hasContent = labels.some((label) => label.trim().length);
+    if (!hasContent) {
+      continue;
+    }
+
+    columns = ensureUniqueColumnLabels(labels);
+    headerRowIndex = index;
+    break;
+  }
+
+  if (headerRowIndex === -1) {
+    return { columns: [], records: [] };
+  }
+
+  const records = [];
+
+  for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    const cells = Array.from(row.querySelectorAll("td,th"));
+    if (!cells.length) {
+      continue;
+    }
+
+    const values = columns.map((_, cellIndex) => sanitizeHtmlCellValue(cells[cellIndex] ?? null));
+    const hasValue = values.some((value) => value);
+    if (!hasValue) {
+      continue;
+    }
+
+    const entry = {};
+    const raw = {};
+    values.forEach((value, cellIndex) => {
+      const columnName = columns[cellIndex];
+      entry[columnName] = value;
+      raw[columnName] = value;
+    });
+    entry.__raw = raw;
+    records.push(entry);
+  }
+
+  return { columns, records };
+}
+
+function ensureUniqueColumnLabels(labels) {
+  const counts = new Map();
+  return labels.map((label, index) => {
+    const base = label && label.trim() ? label.trim() : `Coluna ${index + 1}`;
+    const count = counts.get(base) ?? 0;
+    counts.set(base, count + 1);
+    if (count > 0) {
+      return `${base} (${count + 1})`;
+    }
+    return base;
+  });
+}
+
+function sanitizeHeaderLabel(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function sanitizeHtmlCellValue(cell) {
+  if (!cell) {
+    return "";
+  }
+
+  const text = (cell.textContent ?? "").replace(/\u00a0/g, " ").replace(/\r/g, "");
+  const segments = text
+    .split(/\n+/)
+    .map((segment) => segment.replace(/\s+/g, " ").replace(/,\s*$/g, "").trim())
+    .filter(Boolean);
+
+  if (!segments.length) {
+    return "";
+  }
+
+  const combined = segments.join(", ");
+  return combined.replace(/\s+,/g, ", ").replace(/,\s+/g, ", ").trim();
 }
 
 function extractGvizPayload(rawText) {
@@ -4101,17 +5415,469 @@ function buildSupplementalIndex(entries) {
   return index;
 }
 
+function findServiceSheetColumn(columns, labels) {
+  if (!Array.isArray(columns) || !columns.length) {
+    return null;
+  }
+
+  const normalizedTargets = labels
+    .map((label) => normalizeColumnLabel(label))
+    .filter(Boolean);
+
+  for (const column of columns) {
+    const normalized = normalizeColumnLabel(column);
+    if (!normalized) continue;
+    if (
+      normalizedTargets.some(
+        (target) => normalized === target || normalized.includes(target)
+      )
+    ) {
+      return column;
+    }
+  }
+
+  return null;
+}
+
+function getKnownServiceIds() {
+  const ids = new Set(DEFAULT_SERVICE_OPTION_IDS);
+  customServiceOptions.forEach((_, id) => ids.add(id));
+  dynamicServiceOptions.forEach((_, id) => ids.add(id));
+  return ids;
+}
+
+function normalizeServiceCellValue(value) {
+  if (value == null) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value
+      .replace(/[\u2713\u2714\u2705✅✔️]/g, "")
+      .replace(/[•·]/g, ",")
+      .replace(/\s+/g, " ")
+      .replace(/\s+,/g, ",")
+      .replace(/,\s+/g, ",")
+      .trim();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => normalizeServiceCellValue(entry))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value || {})
+      .map((entry) => normalizeServiceCellValue(entry))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    return String(value);
+  }
+
+  return String(value ?? "").trim();
+}
+
+function collectServiceIdsFromColumn(record, column) {
+  if (!record || !column) {
+    return [];
+  }
+
+  const values = collectColumnValues(record, column);
+  if (!values.length) {
+    return [];
+  }
+
+  const ids = [];
+  values.forEach((value) => {
+    const normalized = normalizeServiceCellValue(value);
+    if (!normalized) {
+      return;
+    }
+    const parsed = parseServiceList(normalized);
+    if (Array.isArray(parsed) && parsed.length) {
+      parsed.forEach((serviceId) => ids.push(serviceId));
+    }
+  });
+
+  return Array.from(new Set(ids)).filter(Boolean);
+}
+
+function detectRosterServiceColumn(records, columns, nameColumn) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
+
+  if (!Array.isArray(columns) || !columns.length) {
+    return null;
+  }
+
+  const knownServiceIds = getKnownServiceIds();
+  let bestColumn = null;
+  let bestScore = 0;
+
+  columns.forEach((column) => {
+    if (!column || column === nameColumn) {
+      return;
+    }
+
+    let recognized = 0;
+
+    records.forEach((record) => {
+      const values = collectColumnValues(record, column);
+      for (const value of values) {
+        const normalized = normalizeServiceCellValue(value);
+        if (!normalized) {
+          continue;
+        }
+        const ids = normalized
+          .split(/[,;\n]+/)
+          .map((chunk) => normalizeServiceId(chunk))
+          .filter(Boolean);
+        if (ids.some((id) => knownServiceIds.has(id))) {
+          recognized += 1;
+          break;
+        }
+      }
+    });
+
+    if (recognized > bestScore) {
+      bestScore = recognized;
+      bestColumn = column;
+    }
+  });
+
+  return bestColumn;
+}
+
+function buildRosterServiceAssignments(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
+
+  const sheetColumns = Array.isArray(columns) ? columns.filter(Boolean) : [];
+
+  if (!sheetColumns.length) {
+    return null;
+  }
+
+  let nameColumn = findServiceSheetColumn(sheetColumns, [
+    "nome",
+    "nome do irmão",
+    "nome do irmao",
+    "name",
+  ]);
+
+  if (!nameColumn) {
+    nameColumn = sheetColumns[0];
+  }
+
+  if (!nameColumn) {
+    return null;
+  }
+
+  let servicesColumn = findServiceSheetColumn(sheetColumns, [
+    "serviços",
+    "servicos",
+    "services",
+    "serviços (ids)",
+    "servicos (ids)",
+    "services (ids)",
+  ]);
+
+  if (!servicesColumn) {
+    servicesColumn = detectRosterServiceColumn(records, sheetColumns, nameColumn);
+  }
+
+  if (!servicesColumn && sheetColumns.length > 1) {
+    servicesColumn = sheetColumns[1];
+  }
+
+  if (!servicesColumn) {
+    return null;
+  }
+
+  const assignments = new Map();
+
+  records.forEach((record) => {
+    if (!record) {
+      return;
+    }
+
+    const nameValue = extractFirstNonEmptyValue(record, nameColumn);
+    const normalizedName = normalizeString(nameValue);
+    if (!normalizedName) {
+      return;
+    }
+
+    const serviceIds = collectServiceIdsFromColumn(record, servicesColumn);
+    if (!serviceIds.length) {
+      return;
+    }
+
+    const normalized = normalizeServiceAssignment({
+      active: true,
+      services: serviceIds,
+    });
+
+    if (!normalized.active || !normalized.services.length) {
+      return;
+    }
+
+    assignments.set(normalizedName, normalized);
+  });
+
+  return assignments.size ? assignments : null;
+}
+
+function buildDetailedServiceAssignments(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    return null;
+  }
+
+  const sheetColumns = Array.isArray(columns) ? columns.slice() : [];
+
+  let servicesColumn =
+    findServiceSheetColumn(sheetColumns, [
+      "serviços (ids)",
+      "servicos (ids)",
+      "serviços",
+      "servicos",
+      "services",
+      "services (ids)",
+    ]) ?? null;
+
+  if (!servicesColumn && sheetColumns.length > 1) {
+    servicesColumn = sheetColumns[1];
+  }
+
+  const checkboxColumns = detectServiceColumnsFromRecords(
+    records,
+    sheetColumns,
+    servicesColumn
+  );
+
+  if (!servicesColumn && !checkboxColumns.length) {
+    return null;
+  }
+
+  const serviceKeyColumn = findServiceSheetColumn(sheetColumns, [
+    "service key",
+    "chave do serviço",
+    "chave do servico",
+    "identificador",
+  ]);
+  const legacyKeyColumn = findServiceSheetColumn(sheetColumns, [
+    "legacy key",
+    "chave legada",
+  ]);
+  const activeColumn = findServiceSheetColumn(sheetColumns, [
+    "ativo",
+    "active",
+    "estado",
+  ]);
+  let nameColumn = findServiceSheetColumn(sheetColumns, [
+    "nome",
+    "nome do irmão",
+    "name",
+  ]);
+  if (!nameColumn && sheetColumns.length) {
+    nameColumn = sheetColumns[0];
+  }
+  const phoneColumn = findServiceSheetColumn(sheetColumns, [
+    "telefone",
+    "contato",
+    "phone",
+  ]);
+  const birthColumn = findServiceSheetColumn(sheetColumns, [
+    "data de nascimento",
+    "nascimento",
+    "birth",
+    "birthday",
+  ]);
+
+  const assignments = new Map();
+  const fallbackAssignments = new Map();
+
+  records.forEach((record) => {
+    if (!record) {
+      return;
+    }
+
+    const aggregatedServices = collectServiceIdsFromColumn(record, servicesColumn);
+    const columnServices = checkboxColumns.length
+      ? extractServiceIdsFromColumns(record, checkboxColumns)
+      : [];
+    const serviceIds = mergeServiceIdLists(aggregatedServices, columnServices);
+    if (!serviceIds.length) {
+      return;
+    }
+
+    let active = true;
+    if (activeColumn) {
+      const activeValues = collectColumnValues(record, activeColumn);
+      if (activeValues.length) {
+        active = activeValues.some((value) => parseBoolean(value));
+      }
+    }
+
+    const normalized = normalizeServiceAssignment({
+      active,
+      services: serviceIds,
+    });
+
+    if (!normalized.active || !normalized.services.length) {
+      return;
+    }
+
+    const nameValue = nameColumn
+      ? extractFirstNonEmptyValue(record, nameColumn)
+      : "";
+    const normalizedName = normalizeString(nameValue);
+
+    let serviceKey = serviceKeyColumn
+      ? extractFirstNonEmptyValue(record, serviceKeyColumn)
+      : "";
+    let legacyKey = legacyKeyColumn
+      ? extractFirstNonEmptyValue(record, legacyKeyColumn)
+      : "";
+
+    if (typeof serviceKey === "string") {
+      serviceKey = serviceKey.trim();
+    } else {
+      serviceKey = String(serviceKey ?? "").trim();
+    }
+
+    if (typeof legacyKey === "string") {
+      legacyKey = legacyKey.trim();
+    } else {
+      legacyKey = String(legacyKey ?? "").trim();
+    }
+
+    if (serviceKey) {
+      assignments.set(serviceKey, normalized);
+    }
+
+    if (legacyKey) {
+      assignments.set(legacyKey, normalized);
+    }
+
+    if (normalizedName) {
+      assignments.set(normalizedName, normalized);
+    }
+
+    if (!serviceKey && !legacyKey) {
+      const fallback = [];
+      if (nameColumn) {
+        const fallbackName = extractFirstNonEmptyValue(record, nameColumn);
+        const normalizedFallback = normalizeString(fallbackName);
+        if (normalizedFallback) {
+          fallback.push(normalizedFallback);
+        }
+      }
+
+      if (birthColumn) {
+        const birthValues = collectColumnValues(record, birthColumn);
+        const rawBirth = birthValues.find((value) => value != null && value !== "");
+        const birthDate = parseDate(rawBirth);
+        const formattedBirth = formatDateForSheet(birthDate);
+        if (formattedBirth) {
+          fallback.push(formattedBirth);
+        }
+      }
+
+      if (phoneColumn) {
+        const phoneValues = collectColumnValues(record, phoneColumn);
+        const digits = phoneValues
+          .map((value) => extractPhoneDigits(value))
+          .find((value) => value);
+        if (digits) {
+          fallback.push(digits);
+        }
+      }
+
+      if (fallback.length) {
+        const fallbackKey = fallback.join("|");
+        fallbackAssignments.set(fallbackKey, normalized);
+      }
+    }
+  });
+
+  if (!assignments.size && fallbackAssignments.size) {
+    fallbackAssignments.forEach((assignment, key) => {
+      assignments.set(key, assignment);
+    });
+  }
+
+  return assignments.size ? assignments : null;
+}
+
+function buildServiceAssignmentsFromSheet(records, columns) {
+  if (!Array.isArray(records) || !records.length) {
+    clearDynamicServiceOptions();
+    return null;
+  }
+
+  clearDynamicServiceOptions();
+
+  const rosterAssignments = buildRosterServiceAssignments(records, columns);
+  const detailedAssignments = buildDetailedServiceAssignments(records, columns);
+
+  if (detailedAssignments && detailedAssignments.size) {
+    if (rosterAssignments && rosterAssignments.size) {
+      detailedAssignments.forEach((assignment, key) => {
+        rosterAssignments.set(key, assignment);
+      });
+      return rosterAssignments;
+    }
+    return detailedAssignments;
+  }
+
+  if (rosterAssignments && rosterAssignments.size) {
+    return rosterAssignments;
+  }
+
+  return null;
+}
+
+
+function applyRemoteServiceAssignments(records, columns) {
+  const remoteAssignments = buildServiceAssignmentsFromSheet(records, columns);
+  if (!remoteAssignments) {
+    flushDynamicServiceOptions();
+    return;
+  }
+
+  state.serviceAssignments = remoteAssignments;
+  persistLocalServiceAssignments();
+  setServiceSyncStatus("serviceManager.sync.status.ready");
+  flushDynamicServiceOptions();
+}
+
 function normalizeServiceId(value) {
   if (value == null) {
     return "";
   }
 
-  const normalized = normalizeString(value);
-  if (!normalized) {
+  const normalizedRaw = normalizeString(value);
+  if (!normalizedRaw) {
     return "";
   }
 
-  return normalized.replace(/\s+/g, "-");
+  const compactNormalized = normalizedRaw.replace(/\s+/g, "");
+
+  if (
+    NO_SERVICE_LABELS.has(normalizedRaw) ||
+    NO_SERVICE_LABELS.has(compactNormalized)
+  ) {
+    return "";
+  }
+
+  return normalizedRaw.replace(/\s+/g, "-");
 }
 
 function sanitizeServiceId(value) {
@@ -4126,6 +5892,15 @@ function sanitizeServiceId(value) {
 
   if (customServiceOptions.has(normalized)) {
     return normalized;
+  }
+
+  if (dynamicServiceOptions.has(normalized)) {
+    return normalized;
+  }
+
+  const registered = registerDynamicServiceOption(value);
+  if (registered) {
+    return registered;
   }
 
   return "";
@@ -4145,6 +5920,22 @@ function translateServiceName(serviceId) {
     return translation || normalized;
   }
 
+  if (defaultOption) {
+    if (defaultOption.labels && typeof defaultOption.labels === "object") {
+      const language = state.language ?? getDefaultLanguage();
+      const label =
+        defaultOption.labels[language] ??
+        defaultOption.labels[getDefaultLanguage()] ??
+        defaultOption.labels.pt;
+      if (label) {
+        return label;
+      }
+    }
+    if (defaultOption.label) {
+      return defaultOption.label;
+    }
+  }
+
   const customOption = customServiceOptions.get(normalized);
   if (customOption) {
     if (customOption.labels && typeof customOption.labels === "object") {
@@ -4155,6 +5946,634 @@ function translateServiceName(serviceId) {
         customOption.label;
       if (label) {
         return label;
+      }
+    }
+    if (customOption.label) {
+      return customOption.label;
+    }
+  }
+
+  const dynamicOption = dynamicServiceOptions.get(normalized);
+  if (dynamicOption) {
+    if (dynamicOption.labels && typeof dynamicOption.labels === "object") {
+      const language = state.language ?? getDefaultLanguage();
+      const label =
+        dynamicOption.labels[language] ??
+        dynamicOption.labels[getDefaultLanguage()] ??
+        dynamicOption.labels.pt;
+      if (label) {
+        return label;
+      }
+    }
+    if (dynamicOption.label) {
+      return dynamicOption.label;
+    }
+  }
+
+  return normalized;
+}
+
+function collectColumnValues(record, column) {
+  const values = [];
+  if (!record || !column) {
+    return values;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(record, column)) {
+    values.push(record[column]);
+  }
+
+  if (record.__raw && Object.prototype.hasOwnProperty.call(record.__raw, column)) {
+    values.push(record.__raw[column]);
+  }
+
+  return values;
+}
+
+function extractFirstNonEmptyValue(record, column) {
+  const values = collectColumnValues(record, column);
+  for (const value of values) {
+    if (value == null) {
+      continue;
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+      continue;
+    }
+    if (typeof value === "number" && !Number.isNaN(value)) {
+      const stringValue = String(value).trim();
+      if (stringValue) {
+        return stringValue;
+      }
+    }
+  }
+  return "";
+}
+
+function detectCareNetworkNameColumn(columns) {
+  if (!Array.isArray(columns) || !columns.length) {
+    return null;
+  }
+
+  for (const column of columns) {
+    const normalized = normalizeString(column);
+    if (!normalized) {
+      continue;
+    }
+    if (normalized.includes("nome") || normalized.includes("name")) {
+      return column;
+    }
+  }
+
+  return columns[0] ?? null;
+}
+
+function detectCareNetworkServiceColumns(columns, nameColumn) {
+  if (!Array.isArray(columns) || !columns.length) {
+    return [];
+  }
+
+  const result = [];
+
+  columns.forEach((column, index) => {
+    if (!column || column === nameColumn) {
+      return;
+    }
+
+    const normalized = normalizeString(column);
+    if (!normalized) {
+      return;
+    }
+
+    const matches =
+      normalized.includes("servico") ||
+      normalized.includes("servicio") ||
+      normalized.includes("ministerio") ||
+      normalized.includes("ministerial") ||
+      normalized.includes("rede") ||
+      normalized.includes("cuidado") ||
+      normalized.includes("area") ||
+      normalized.includes("frente") ||
+      normalized.includes("atuacao") ||
+      normalized.includes("acompanhamento");
+
+    if (matches) {
+      result.push(column);
+    }
+  });
+
+  if (!result.length) {
+    const fallback = columns.find((column, index) => {
+      if (!column || column === nameColumn) {
+        return false;
+      }
+      return index > 0;
+    });
+    if (fallback) {
+      result.push(fallback);
+    }
+  }
+
+  return result;
+}
+
+function splitCareNetworkServices(value) {
+  if (value == null) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => splitCareNetworkServices(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap((item) =>
+      splitCareNetworkServices(item)
+    );
+  }
+
+  const text = String(value ?? "").replace(/\r/g, "\n");
+  if (!text.trim()) {
+    return [];
+  }
+
+  const segments = text
+    .split(/[,;\/\\\n]+/)
+    .map((segment) => segment.replace(/\u00a0/g, " ").trim())
+    .filter(Boolean);
+
+  const seen = new Set();
+  const results = [];
+
+  const pushSegment = (segment) => {
+    if (!segment) {
+      return;
+    }
+    const normalized = normalizeString(segment);
+    if (!normalized) {
+      return;
+    }
+    const compact = normalized.replace(/\s+/g, "");
+    if (NO_SERVICE_LABELS.has(normalized) || NO_SERVICE_LABELS.has(compact)) {
+      return;
+    }
+    if (seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    results.push(segment);
+  };
+
+  segments.forEach(pushSegment);
+
+  if (!results.length) {
+    pushSegment(text.trim());
+  }
+
+  return results;
+}
+
+function buildCareNetworkEntries(records, options = {}) {
+  const { nameColumn = null, serviceColumns = [], columns = [] } = options;
+
+  if (!Array.isArray(records) || !records.length) {
+    return [];
+  }
+
+  const normalizedServiceColumns = Array.isArray(serviceColumns)
+    ? serviceColumns.filter((column) => typeof column === "string")
+    : [];
+
+  const normalizedColumns = Array.isArray(columns)
+    ? columns.filter((column) => typeof column === "string")
+    : [];
+
+  const entries = [];
+
+  records.forEach((record) => {
+    if (!record) {
+      return;
+    }
+
+    const nameValue = nameColumn
+      ? extractFirstNonEmptyValue(record, nameColumn)
+      : "";
+    const displayName = typeof nameValue === "string"
+      ? nameValue.trim()
+      : String(nameValue ?? "").trim();
+
+    if (!displayName) {
+      return;
+    }
+
+    const normalizedName = normalizeString(displayName);
+    if (!normalizedName) {
+      return;
+    }
+
+    const services = [];
+    const serviceSeen = new Set();
+
+    normalizedServiceColumns.forEach((column) => {
+      const values = collectColumnValues(record, column);
+      values.forEach((value) => {
+        splitCareNetworkServices(value).forEach((service) => {
+          const normalizedService = normalizeString(service);
+          if (!normalizedService || serviceSeen.has(normalizedService)) {
+            return;
+          }
+          const compact = normalizedService.replace(/\s+/g, "");
+          if (
+            NO_SERVICE_LABELS.has(normalizedService) ||
+            NO_SERVICE_LABELS.has(compact)
+          ) {
+            return;
+          }
+          serviceSeen.add(normalizedService);
+          services.push(service);
+        });
+      });
+    });
+
+    const fields = [];
+    const fieldMap = new Map();
+
+    normalizedColumns.forEach((column) => {
+      if (column === nameColumn) {
+        return;
+      }
+      if (normalizedServiceColumns.includes(column)) {
+        return;
+      }
+
+      const values = collectColumnValues(record, column);
+      const displayValue = values
+        .map((value) => {
+          if (value == null) {
+            return "";
+          }
+          if (typeof value === "string") {
+            return value.trim();
+          }
+          return String(value).trim();
+        })
+        .find((value) => value.length > 0);
+
+      if (displayValue) {
+        fields.push({ key: column, value: displayValue });
+        const normalizedKey = normalizeString(column);
+        if (normalizedKey && !fieldMap.has(normalizedKey)) {
+          fieldMap.set(normalizedKey, displayValue);
+        }
+      }
+    });
+
+    entries.push({
+      name: displayName,
+      normalizedName,
+      services,
+      serviceText: services.join(", "),
+      fields,
+      fieldMap,
+      raw: record,
+      person: null,
+    });
+  });
+
+  return entries;
+}
+
+function buildCareNetworkIndex(entries) {
+  const index = new Map();
+  if (!Array.isArray(entries)) {
+    return index;
+  }
+
+  entries.forEach((entry) => {
+    const normalized = entry?.normalizedName;
+    if (!normalized) {
+      return;
+    }
+    const list = index.get(normalized);
+    if (list) {
+      list.push(entry);
+    } else {
+      index.set(normalized, [entry]);
+    }
+  });
+
+  return index;
+}
+
+function applyCareNetworkSheet(records, columns) {
+  const safeColumns = Array.isArray(columns) ? columns : [];
+  const safeRecords = Array.isArray(records) ? records : [];
+
+  const nameColumn = detectCareNetworkNameColumn(safeColumns);
+  const serviceColumns = detectCareNetworkServiceColumns(
+    safeColumns,
+    nameColumn
+  );
+
+  const entries = buildCareNetworkEntries(safeRecords, {
+    nameColumn,
+    serviceColumns,
+    columns: safeColumns,
+  });
+
+  const index = buildCareNetworkIndex(entries);
+  const assigned = entries.filter((entry) => entry.services.length > 0).length;
+
+  state.careNetwork = {
+    columns: safeColumns,
+    records: safeRecords,
+    nameColumn,
+    serviceColumns,
+    entries,
+    index,
+    summary: { total: entries.length, assigned },
+  };
+}
+
+function resetCareNetworkState() {
+  state.careNetwork = createEmptyCareNetworkState();
+}
+
+function collectEntryNameCandidates(entry) {
+  const candidates = new Set();
+  if (!entry) {
+    return [];
+  }
+
+  if (entry.name) {
+    candidates.add(entry.name);
+  }
+
+  const record = entry.record ?? null;
+  if (record && state.nameColumn && record[state.nameColumn]) {
+    candidates.add(record[state.nameColumn]);
+  }
+  if (record?.__raw && state.nameColumn && record.__raw[state.nameColumn]) {
+    candidates.add(record.__raw[state.nameColumn]);
+  }
+
+  const supplemental = entry.supplemental ?? null;
+  if (supplemental?.name) {
+    candidates.add(supplemental.name);
+  }
+
+  const supplementalRecord = supplemental?.record ?? null;
+  if (
+    supplementalRecord &&
+    state.supplementalNameColumn &&
+    supplementalRecord[state.supplementalNameColumn]
+  ) {
+    candidates.add(supplementalRecord[state.supplementalNameColumn]);
+  }
+  if (
+    supplementalRecord?.__raw &&
+    state.supplementalNameColumn &&
+    supplementalRecord.__raw[state.supplementalNameColumn]
+  ) {
+    candidates.add(supplementalRecord.__raw[state.supplementalNameColumn]);
+  }
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+function applyCareNetworkDataToEntries() {
+  const entries = Array.isArray(state.enrichedRecords)
+    ? state.enrichedRecords
+    : [];
+  const careState = state.careNetwork ?? createEmptyCareNetworkState();
+  const index = careState.index ?? new Map();
+
+  if (Array.isArray(careState.entries)) {
+    careState.entries.forEach((entry) => {
+      entry.person = null;
+    });
+  }
+
+  entries.forEach((entry) => {
+    const nameCandidates = collectEntryNameCandidates(entry);
+    let matchedCare = null;
+
+    for (const candidate of nameCandidates) {
+      const normalized = normalizeString(candidate);
+      if (!normalized) {
+        continue;
+      }
+      const matches = index.get(normalized);
+      if (Array.isArray(matches) && matches.length) {
+        matchedCare = matches[0];
+        break;
+      }
+    }
+
+    if (matchedCare) {
+      entry.careNetwork = {
+        services: [...matchedCare.services],
+        fields: matchedCare.fields.map((field) => ({ ...field })),
+        name: matchedCare.name,
+        serviceText:
+          matchedCare.serviceText ?? matchedCare.services.join(", "),
+        fieldMap:
+          matchedCare.fieldMap instanceof Map
+            ? new Map(matchedCare.fieldMap)
+            : new Map(),
+        raw: matchedCare.raw,
+      };
+      matchedCare.person = entry;
+    } else {
+      entry.careNetwork = {
+        services: [],
+        fields: [],
+        name: entry.name ?? "",
+        serviceText: "",
+        fieldMap: new Map(),
+        raw: null,
+      };
+    }
+  });
+}
+
+function mergeServiceIdLists(primary, secondary) {
+  const result = [];
+  const seen = new Set();
+
+  const addList = (list) => {
+    if (!Array.isArray(list)) {
+      return;
+    }
+    list.forEach((serviceId) => {
+      const sanitized = sanitizeServiceId(serviceId);
+      if (!sanitized || seen.has(sanitized)) {
+        return;
+      }
+      seen.add(sanitized);
+      result.push(sanitized);
+    });
+  };
+
+  addList(primary);
+  addList(secondary);
+
+  return result;
+}
+
+function isTruthyServiceSelection(value, serviceId) {
+  if (Array.isArray(value)) {
+    return value.some((entry) => isTruthyServiceSelection(entry, serviceId));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).some((entry) =>
+      isTruthyServiceSelection(entry, serviceId)
+    );
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+
+  if (value == null) {
+    return false;
+  }
+
+  const normalizedValueId = normalizeServiceId(value);
+  if (normalizedValueId && serviceId && normalizedValueId === serviceId) {
+    return true;
+  }
+
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    return false;
+  }
+
+  if (serviceId) {
+    if (normalized === serviceId) {
+      return true;
+    }
+    const serviceName = serviceId.replace(/-/g, " ");
+    if (normalized === serviceName) {
+      return true;
+    }
+  }
+
+  return SERVICE_SELECTION_POSITIVE_VALUES.has(normalized);
+}
+
+function detectServiceColumnsFromRecords(records, columns, excludedColumn) {
+  if (!Array.isArray(records) || !records.length) {
+    return [];
+  }
+
+  if (!Array.isArray(columns) || !columns.length) {
+    return [];
+  }
+
+  const serviceColumns = [];
+  const seen = new Set();
+
+  columns.forEach((column) => {
+    if (!column || column === excludedColumn) {
+      return;
+    }
+
+    const serviceId = normalizeServiceId(column);
+    if (!serviceId || seen.has(serviceId)) {
+      return;
+    }
+
+    const hasSelection = records.some((record) => {
+      if (!record) {
+        return false;
+      }
+      const values = collectColumnValues(record, column);
+      return values.some((value) => isTruthyServiceSelection(value, serviceId));
+    });
+
+    if (!hasSelection) {
+      return;
+    }
+
+    serviceColumns.push({ column, serviceId });
+    seen.add(serviceId);
+  });
+
+  return serviceColumns;
+}
+
+function extractServiceIdsFromColumns(record, serviceColumns) {
+  if (!record || !Array.isArray(serviceColumns) || !serviceColumns.length) {
+    return [];
+  }
+
+  const selected = [];
+  serviceColumns.forEach(({ column, serviceId }) => {
+    const values = collectColumnValues(record, column);
+    if (values.some((value) => isTruthyServiceSelection(value, serviceId))) {
+      selected.push(serviceId);
+    }
+  });
+
+  return selected;
+}
+
+function getServiceLabelByLanguage(serviceId, language) {
+  const normalized = sanitizeServiceId(serviceId);
+  if (!normalized) {
+    return "";
+  }
+
+  const targetLanguage =
+    language && LANGUAGE_OPTIONS[language]?.code
+      ? LANGUAGE_OPTIONS[language].code
+      : state.language ?? getDefaultLanguage();
+
+  const defaultOption = DEFAULT_SERVICE_OPTIONS.find(
+    (option) => option.id === normalized
+  );
+  if (defaultOption?.nameKey) {
+    const translation = translate(
+      defaultOption.nameKey,
+      {},
+      targetLanguage
+    );
+    return translation || normalized;
+  }
+
+  if (defaultOption) {
+    if (defaultOption.labels && typeof defaultOption.labels === "object") {
+      const preferred =
+        defaultOption.labels[targetLanguage] ??
+        defaultOption.labels[getDefaultLanguage()] ??
+        defaultOption.labels.pt;
+      if (preferred) {
+        return preferred;
+      }
+    }
+    if (defaultOption.label) {
+      return defaultOption.label;
+    }
+  }
+
+  const customOption = customServiceOptions.get(normalized);
+  if (customOption) {
+    if (customOption.labels && typeof customOption.labels === "object") {
+      const preferred =
+        customOption.labels[targetLanguage] ??
+        customOption.labels[getDefaultLanguage()] ??
+        customOption.labels.pt;
+      if (preferred) {
+        return preferred;
       }
     }
     if (customOption.label) {
@@ -4198,6 +6617,63 @@ function normalizeServiceAssignment(rawAssignment) {
   }
 
   return { active: true, services: normalized };
+}
+
+function parseBoolean(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (value == null) {
+    return false;
+  }
+
+  const normalized = normalizeString(String(value));
+  if (!normalized) {
+    return false;
+  }
+
+  return [
+    "true",
+    "sim",
+    "yes",
+    "ativo",
+    "activa",
+    "active",
+    "si",
+  ].includes(normalized);
+}
+
+function parseServiceList(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => sanitizeServiceId(entry))
+      .filter(Boolean);
+  }
+
+  const normalizedString = String(value)
+    .split(/[,;\n]+/)
+    .map((chunk) => sanitizeServiceId(chunk))
+    .filter(Boolean);
+
+  return Array.from(new Set(normalizedString));
+}
+
+function formatDateForSheet(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function buildServiceSignature(record, supplementalRecord, context = {}) {
@@ -4394,6 +6870,12 @@ function buildServiceSummary(entries) {
   return summary;
 }
 
+function getDynamicServiceOptions() {
+  return Array.from(dynamicServiceOptions.values()).sort((a, b) =>
+    collator.compare(getServiceOptionLabel(a), getServiceOptionLabel(b))
+  );
+}
+
 function getCustomServiceOptions() {
   return Array.from(customServiceOptions.values()).sort((a, b) =>
     collator.compare(getServiceOptionLabel(a), getServiceOptionLabel(b))
@@ -4401,7 +6883,11 @@ function getCustomServiceOptions() {
 }
 
 function getAllServiceOptions() {
-  return [...DEFAULT_SERVICE_OPTIONS, ...getCustomServiceOptions()];
+  return [
+    ...DEFAULT_SERVICE_OPTIONS,
+    ...getDynamicServiceOptions(),
+    ...getCustomServiceOptions(),
+  ];
 }
 
 function getServiceOptionLabel(option) {
@@ -4683,6 +7169,7 @@ function deleteCustomService(optionId) {
 function loadServiceAssignments() {
   if (typeof localStorage === "undefined") {
     state.serviceAssignments = new Map();
+    flushDynamicServiceOptions();
     return;
   }
 
@@ -4690,12 +7177,14 @@ function loadServiceAssignments() {
     const stored = localStorage.getItem(SERVICE_STORAGE_KEY);
     if (!stored) {
       state.serviceAssignments = new Map();
+      flushDynamicServiceOptions();
       return;
     }
 
     const parsed = JSON.parse(stored);
     if (!parsed || typeof parsed !== "object") {
       state.serviceAssignments = new Map();
+      flushDynamicServiceOptions();
       return;
     }
 
@@ -4711,13 +7200,15 @@ function loadServiceAssignments() {
       map.set(key, normalized);
     });
     state.serviceAssignments = map;
+    flushDynamicServiceOptions();
   } catch (error) {
     console.warn("Failed to load service assignments:", error);
     state.serviceAssignments = new Map();
+    flushDynamicServiceOptions();
   }
 }
 
-function persistServiceAssignments() {
+function persistLocalServiceAssignments() {
   if (typeof localStorage === "undefined") {
     return;
   }
@@ -4740,6 +7231,62 @@ function persistServiceAssignments() {
     console.warn("Failed to persist service assignments:", error);
   }
 }
+
+function persistServiceAssignments() {
+  persistLocalServiceAssignments();
+}
+
+function getServiceSheetConfig() {
+  return { ...state.serviceSheet.config };
+}
+
+function setServiceSheetConfig(newConfig = {}) {
+  state.serviceSheet.config = {
+    ...state.serviceSheet.config,
+    ...newConfig,
+  };
+  saveServiceSheetConfig(state.serviceSheet.config);
+}
+
+function ensureServiceSyncElements() {}
+
+function setServiceSyncStatus() {}
+
+function updateServiceSyncUI() {}
+
+function ensureServiceSheetConfig() {
+  return null;
+}
+
+function scheduleServiceSheetSync() {}
+
+function buildServiceSheetRows() {
+  return [];
+}
+
+async function loadGoogleIdentityScript() {
+  throw new Error("Google API disabled");
+}
+
+async function requestGoogleAccessToken() {
+  throw new Error("Google API disabled");
+}
+
+async function getGoogleAccessToken() {
+  throw new Error("Google API disabled");
+}
+
+async function ensureServiceSheetExists() {}
+
+async function clearServiceSheetRange() {}
+
+async function updateServiceSheetValues() {}
+
+async function performServiceSheetSync() {}
+
+function handleServiceSyncConnectClick() {}
+
+function handleServiceSyncConfigureClick() {}
 
 function applyServiceAssignmentsToEntries() {
   if (!Array.isArray(state.enrichedRecords)) {
@@ -4776,6 +7323,37 @@ function applyServiceAssignmentsToEntries() {
         migrated = true;
       } else {
         assignment = legacyAssignment;
+      }
+    }
+
+    if (!assignment) {
+      const fallbackName = normalizeString(
+        entry.name ||
+          (state.nameColumn && entry.record
+            ? entry.record[state.nameColumn]
+            : "")
+      );
+
+      if (fallbackName) {
+        const fallbackAssignment = state.serviceAssignments.get(fallbackName);
+        if (fallbackAssignment) {
+          assignment = fallbackAssignment;
+
+          if (serviceKey && serviceKey !== fallbackName) {
+            state.serviceAssignments.set(serviceKey, fallbackAssignment);
+            migrated = true;
+          }
+
+          if (
+            legacyKey &&
+            legacyKey !== serviceKey &&
+            legacyKey !== fallbackName &&
+            !state.serviceAssignments.has(legacyKey)
+          ) {
+            state.serviceAssignments.set(legacyKey, fallbackAssignment);
+            migrated = true;
+          }
+        }
       }
     }
 
@@ -5169,41 +7747,121 @@ function createParentProfile(details, role) {
   };
 }
 
-function buildParentEntries(enrichedRecords) {
-  if (!Array.isArray(enrichedRecords) || !enrichedRecords.length) {
+function buildParentEntries(parentRecords) {
+  if (!Array.isArray(parentRecords) || !parentRecords.length) {
     return [];
   }
 
-  const entries = [];
+  return parentRecords
+    .map((record) => {
+      if (!record || typeof record !== "object") {
+        return null;
+      }
 
-  enrichedRecords.forEach((entry) => {
-    if (!Number.isFinite(entry.age) || entry.age < 11 || entry.age > 17) {
-      return;
-    }
+      const childName = String(
+        record[PARENT_SHEET_HEADERS.childName] ?? ""
+      ).trim();
+      const rawBirthday =
+        record.__raw?.[PARENT_SHEET_HEADERS.childBirthday] ??
+        record[PARENT_SHEET_HEADERS.childBirthday] ??
+        "";
+      const childBirthday = String(rawBirthday ?? "").trim();
+      const birthDate = parseDate(rawBirthday);
+      const childAge =
+        birthDate instanceof Date && !Number.isNaN(birthDate.getTime())
+          ? calculateAge(birthDate)
+          : null;
+      const childPhone = String(
+        record[PARENT_SHEET_HEADERS.childPhone] ?? ""
+      ).trim();
 
-    const supplementalRecord = entry.supplemental?.record ?? null;
-    const mergedDetails = mergeRecordDetails(entry.record, supplementalRecord, entry);
-    const fatherDetails = filterParentDetails(mergedDetails, "father");
-    const motherDetails = filterParentDetails(mergedDetails, "mother");
-    const father = createParentProfile(fatherDetails, "father");
-    const mother = createParentProfile(motherDetails, "mother");
+      const fatherDetails = [];
+      const fatherNameValue = String(
+        record[PARENT_SHEET_HEADERS.fatherName] ?? ""
+      ).trim();
+      if (fatherNameValue) {
+        fatherDetails.push({
+          key: PARENT_SHEET_HEADERS.fatherName,
+          value: fatherNameValue,
+        });
+      }
+      const fatherBirthdayValue = String(
+        record[PARENT_SHEET_HEADERS.fatherBirthday] ?? ""
+      ).trim();
+      if (fatherBirthdayValue) {
+        fatherDetails.push({
+          key: PARENT_SHEET_HEADERS.fatherBirthday,
+          value: fatherBirthdayValue,
+        });
+      }
+      const fatherPhoneValue = String(
+        record[PARENT_SHEET_HEADERS.fatherPhone] ?? ""
+      ).trim();
+      if (fatherPhoneValue) {
+        fatherDetails.push({
+          key: PARENT_SHEET_HEADERS.fatherPhone,
+          value: fatherPhoneValue,
+        });
+      }
+      const father = createParentProfile(fatherDetails, "father");
 
-    if (!father && !mother) {
-      return;
-    }
+      const motherDetails = [];
+      const motherNameValue = String(
+        record[PARENT_SHEET_HEADERS.motherName] ?? ""
+      ).trim();
+      if (motherNameValue) {
+        motherDetails.push({
+          key: PARENT_SHEET_HEADERS.motherName,
+          value: motherNameValue,
+        });
+      }
+      const motherBirthdayValue = String(
+        record[PARENT_SHEET_HEADERS.motherBirthday] ?? ""
+      ).trim();
+      if (motherBirthdayValue) {
+        motherDetails.push({
+          key: PARENT_SHEET_HEADERS.motherBirthday,
+          value: motherBirthdayValue,
+        });
+      }
+      const motherPhoneValue = String(
+        record[PARENT_SHEET_HEADERS.motherPhone] ?? ""
+      ).trim();
+      if (motherPhoneValue) {
+        motherDetails.push({
+          key: PARENT_SHEET_HEADERS.motherPhone,
+          value: motherPhoneValue,
+        });
+      }
+      const mother = createParentProfile(motherDetails, "mother");
 
-    entries.push({
-      entry,
-      record: entry.record,
-      childName: entry.name,
-      childAge: entry.age,
-      childPhone: entry.phone,
-      father,
-      mother,
-    });
-  });
+      if (!father && !mother) {
+        return null;
+      }
 
-  return entries;
+      const siblingStatus = String(
+        record[PARENT_SHEET_HEADERS.siblingStatus] ?? ""
+      ).trim();
+      const siblingParticipation = String(
+        record[PARENT_SHEET_HEADERS.siblingParticipation] ?? ""
+      ).trim();
+      const siblingsList = String(
+        record[PARENT_SHEET_HEADERS.siblingsList] ?? ""
+      ).trim();
+
+      return {
+        childName,
+        childAge,
+        childPhone,
+        childBirthday,
+        siblingStatus,
+        siblingParticipation,
+        siblingsList,
+        father,
+        mother,
+      };
+    })
+    .filter(Boolean);
 }
 
 function summarizeParentEntries(entries) {
@@ -5259,6 +7917,9 @@ function updateDashboard() {
   if (elements.teens) elements.teens.textContent = counters.teens;
   if (elements.parents)
     elements.parents.textContent = state.parentSummary?.parents ?? 0;
+  if (elements.careNetwork)
+    elements.careNetwork.textContent =
+      state.careNetwork?.summary?.assigned ?? 0;
   if (elements.services)
     elements.services.textContent = accessibleServiceSummary.total;
   if (elements.captains) elements.captains.textContent = counters.captains;
@@ -6396,6 +9057,260 @@ function renderParentCards(entries, category) {
   });
 }
 
+function getCareNetworkEntries() {
+  const entries = state.careNetwork?.entries;
+  return Array.isArray(entries) ? entries : [];
+}
+
+function resolveCareNetworkFieldValue(entry, candidateKeys) {
+  if (!entry || !Array.isArray(candidateKeys) || !candidateKeys.length) {
+    return "";
+  }
+
+  const normalizedCandidates = candidateKeys
+    .map((key) => normalizeString(key))
+    .filter(Boolean);
+
+  if (!normalizedCandidates.length) {
+    return "";
+  }
+
+  const map = entry.fieldMap instanceof Map ? entry.fieldMap : null;
+  if (map) {
+    for (const candidate of normalizedCandidates) {
+      for (const [key, value] of map.entries()) {
+        if (!key || value == null) {
+          continue;
+        }
+
+        if (
+          key === candidate ||
+          key.includes(candidate) ||
+          candidate.includes(key)
+        ) {
+          const stringValue =
+            typeof value === "string" ? value.trim() : String(value).trim();
+          if (stringValue) {
+            return stringValue;
+          }
+        }
+      }
+    }
+  }
+
+  const fields = Array.isArray(entry.fields) ? entry.fields : [];
+  for (const candidate of normalizedCandidates) {
+    for (const field of fields) {
+      const normalizedKey = normalizeString(field?.key);
+      if (!normalizedKey) {
+        continue;
+      }
+
+      if (
+        normalizedKey === candidate ||
+        normalizedKey.includes(candidate) ||
+        candidate.includes(normalizedKey)
+      ) {
+        const rawValue = field?.value;
+        const stringValue =
+          rawValue == null
+            ? ""
+            : typeof rawValue === "string"
+            ? rawValue.trim()
+            : String(rawValue).trim();
+        if (stringValue) {
+          return stringValue;
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
+function renderCareNetworkCards(entries, category) {
+  hideServiceSummary();
+  const container = elements.categoryCards;
+  if (!container || !elements.categoryEmpty) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  if (!entries.length) {
+    elements.categoryEmpty.textContent = translateCategoryField(
+      category,
+      "emptyMessage"
+    );
+    elements.categoryEmpty.classList.add("visible");
+    return;
+  }
+
+  elements.categoryEmpty.classList.remove("visible");
+
+  const sortedEntries = [...entries].sort((a, b) =>
+    collator.compare(a.name || "", b.name || "")
+  );
+
+  sortedEntries.forEach((entry) => {
+    const card = document.createElement("article");
+    card.className = "care-card";
+
+    const hasRecord = Boolean(entry.person?.record);
+    const handleOpen = () => {
+      if (hasRecord) {
+        openRecord(entry.person.record);
+      } else {
+        openCareNetworkEntryDetail(entry);
+      }
+    };
+
+    card.classList.add("care-card--interactive");
+    card.setAttribute("role", "button");
+    card.tabIndex = 0;
+    card.removeAttribute("aria-disabled");
+    card.addEventListener("click", handleOpen);
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleOpen();
+      }
+    });
+
+    const title = document.createElement("strong");
+    title.textContent = entry.name || translate("modal.noName");
+    card.appendChild(title);
+
+    const details = document.createElement("dl");
+    details.className = "care-card-details";
+
+    const missingText = translate("careNetwork.cardValueMissing");
+    const addDetail = (label, value) => {
+      const trimmedLabel = typeof label === "string" ? label.trim() : "";
+      if (!trimmedLabel) {
+        return;
+      }
+
+      const dt = document.createElement("dt");
+      dt.textContent = trimmedLabel;
+
+      const dd = document.createElement("dd");
+      const isString = typeof value === "string";
+      const trimmed = isString ? value.trim() : value;
+      const displayValue =
+        trimmed == null || (isString && !trimmed)
+          ? missingText
+          : isString
+          ? trimmed
+          : String(value);
+      dd.textContent = displayValue;
+
+      details.append(dt, dd);
+    };
+
+    const phoneLabel = translate("careNetwork.cardPhoneLabel");
+    if (phoneLabel) {
+      const phoneValue = resolveCareNetworkFieldValue(
+        entry,
+        CARE_NETWORK_PHONE_KEYS
+      );
+      addDetail(phoneLabel, formatPhone(phoneValue));
+    }
+
+    const approachedLabel = translate("careNetwork.cardApproachedByLabel");
+    if (approachedLabel) {
+      const approachedValue = resolveCareNetworkFieldValue(
+        entry,
+        CARE_NETWORK_APPROACH_KEYS
+      );
+      addDetail(
+        approachedLabel,
+        approachedValue || missingText
+      );
+    }
+
+    card.appendChild(details);
+
+    container.appendChild(card);
+  });
+}
+
+function renderCareNetworkCategory(category) {
+  if (elements.teensFilter) {
+    elements.teensFilter.hidden = true;
+  }
+
+  hideServiceSummary();
+
+  if (state.charts.category) {
+    state.charts.category.destroy();
+    state.charts.category = null;
+  }
+
+  if (elements.categoryChart) {
+    elements.categoryChart.style.display = "none";
+  }
+
+  if (elements.categoryChartEmpty) {
+    elements.categoryChartEmpty.textContent = translate("careNetwork.chartEmpty");
+    elements.categoryChartEmpty.classList.add("visible");
+  }
+
+  const entries = getCareNetworkEntries();
+
+  if (elements.categoryMeta) {
+    const assigned = state.careNetwork?.summary?.assigned ?? 0;
+    const total = state.careNetwork?.summary?.total ?? entries.length;
+    elements.categoryMeta.textContent = translate("careNetwork.meta", {
+      assigned,
+      total,
+    });
+  }
+
+  renderCareNetworkCards(entries, category);
+}
+
+function openCareNetworkEntryDetail(entry) {
+  if (!entry) {
+    return;
+  }
+
+  const detailItems = [];
+  const servicesLabel = translate("careNetwork.servicesTitle");
+  if (servicesLabel) {
+    const serviceList = Array.isArray(entry.services) ? entry.services : [];
+    const combinedText = serviceList.length
+      ? serviceList.join(", ")
+      : String(entry.serviceText ?? "").trim();
+    const displayServices = combinedText
+      ? combinedText
+      : translate("careNetwork.detailValueNone");
+    detailItems.push({ key: servicesLabel, value: displayServices });
+  }
+
+  if (Array.isArray(entry.fields)) {
+    entry.fields.forEach(({ key, value }) => {
+      if (value == null) {
+        return;
+      }
+      const stringValue = typeof value === "string" ? value.trim() : String(value);
+      if (!stringValue) {
+        return;
+      }
+      const label = translate("careNetwork.fieldLabel", { field: key }) || key || "";
+      detailItems.push({ key: label, value: stringValue });
+    });
+  }
+
+  state.activeDetailEntry = null;
+  hideServiceControls();
+  openDetailModal(
+    entry.name?.trim() || translate("modal.noName"),
+    detailItems,
+    { searchValue: entry.name ?? "" }
+  );
+}
+
 function renderParentsCategory(category) {
   if (elements.teensFilter) {
     elements.teensFilter.hidden = true;
@@ -6845,6 +9760,16 @@ function createServiceManagerCard(entry) {
     });
 
     card.appendChild(tags);
+  } else {
+    const tags = document.createElement("div");
+    tags.className = "service-manager-tags";
+
+    const tag = document.createElement("span");
+    tag.className = "service-manager-tag";
+    tag.textContent = translate("services.detailValueNone");
+    tags.appendChild(tag);
+
+    card.appendChild(tags);
   }
 
   return card;
@@ -7075,41 +10000,14 @@ function renderServiceManager() {
     return;
   }
 
+  updateServiceSyncUI();
+
   const list = elements.serviceManagerList;
   const empty = elements.serviceManagerEmpty;
   if (!list || !empty) {
     return;
   }
 
-  const canAddServices = Boolean(state.accessRole) && canManageServices();
-  if (elements.serviceManagerAddForm) {
-    elements.serviceManagerAddForm.hidden = !canAddServices;
-  }
-  if (elements.serviceManagerAddInput) {
-    elements.serviceManagerAddInput.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddInputEn) {
-    elements.serviceManagerAddInputEn.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddInputEs) {
-    elements.serviceManagerAddInputEs.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddButton) {
-    elements.serviceManagerAddButton.disabled = !canAddServices;
-  }
-  if (elements.serviceManagerAddCancel) {
-    elements.serviceManagerAddCancel.disabled = !canAddServices;
-    elements.serviceManagerAddCancel.hidden =
-      !canAddServices || !state.editingServiceId;
-  }
-  if (elements.serviceManagerAddHint) {
-    elements.serviceManagerAddHint.hidden = !canAddServices;
-  }
-  if (!canAddServices) {
-    exitServiceEditMode({ preserveValues: true });
-  }
-
-  renderCustomServiceList();
   if (elements.serviceManagerBack) {
     if (state.accessRole === ACCESS_ROLES.SERVICES) {
       elements.serviceManagerBack.setAttribute("hidden", "true");
@@ -7356,6 +10254,11 @@ function renderCategory(categoryId = "total") {
 
   if (category.isParentCategory) {
     renderParentsCategory(category);
+    return;
+  }
+
+  if (category.isCareNetworkCategory) {
+    renderCareNetworkCategory(category);
     return;
   }
 
@@ -7645,6 +10548,60 @@ function mergeRecordDetails(primaryRecord, supplementalRecord, entry) {
     });
   }
 
+  const serviceLabel = translate("services.detailLabel");
+  const assignment = entry?.service ?? EMPTY_SERVICE_ASSIGNMENT;
+  const serviceNames = Array.isArray(assignment.services)
+    ? assignment.services
+        .map((serviceId) => translateServiceName(serviceId))
+        .filter(Boolean)
+    : [];
+  let serviceValue = "";
+  if (assignment.active && serviceNames.length) {
+    serviceValue = serviceNames.join(", ");
+  }
+  if (!serviceValue) {
+    serviceValue = translate("services.detailValueNone");
+  }
+  if (serviceLabel) {
+    merged.unshift({
+      key: serviceLabel,
+      value: serviceValue,
+      normalizedKey: "__service_detail__",
+    });
+  }
+
+  const careLabel = translate("careNetwork.detailLabel");
+  if (careLabel) {
+    const careEntry = entry?.careNetwork ?? null;
+    let careValue = translate("careNetwork.detailValueNone");
+    if (careEntry) {
+      if (Array.isArray(careEntry.services) && careEntry.services.length) {
+        careValue = careEntry.services.join(", ");
+      } else if (careEntry.serviceText) {
+        const trimmed = String(careEntry.serviceText).trim();
+        if (trimmed) {
+          careValue = trimmed;
+        }
+      }
+    }
+
+    merged.splice(1, 0, {
+      key: careLabel,
+      value: careValue,
+      normalizedKey: "__care_network_detail__",
+    });
+
+    if (careEntry && Array.isArray(careEntry.fields)) {
+      careEntry.fields.forEach(({ key, value }) => {
+        if (!value) {
+          return;
+        }
+        const label = translate("careNetwork.fieldLabel", { field: key });
+        addValue(label, value);
+      });
+    }
+  }
+
   return merged.map(({ key, value }) => ({ key, value }));
 }
 
@@ -7870,6 +10827,31 @@ function openParentDetail(entry, role) {
         : translate("format.phoneMissing"),
     },
   ];
+
+  if (entry.childBirthday) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.childBirthday,
+      value: entry.childBirthday,
+    });
+  }
+  if (entry.siblingStatus) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.siblingStatus,
+      value: entry.siblingStatus,
+    });
+  }
+  if (entry.siblingParticipation) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.siblingParticipation,
+      value: entry.siblingParticipation,
+    });
+  }
+  if (entry.siblingsList) {
+    details.push({
+      key: PARENT_SHEET_HEADERS.siblingsList,
+      value: entry.siblingsList,
+    });
+  }
 
   if (Array.isArray(parent.details) && parent.details.length) {
     parent.details.forEach(({ key, value }) => {
@@ -8276,8 +11258,6 @@ initializeLanguage();
 setupAccessControlEvents();
 setupUserProfileEvents();
 setupAssistant();
-initializeCustomServices();
-initializeServiceAssignments();
 
 async function bootstrap() {
   await initializeAccessControl();
@@ -8290,4 +11270,14 @@ async function bootstrap() {
   fetchSheetData();
 }
 
-bootstrap();
+async function start() {
+  await loadSheetLinksConfig();
+  await loadDefaultServiceOptions();
+  initializeCustomServices();
+  initializeServiceAssignments();
+  await bootstrap();
+}
+
+start().catch((error) => {
+  console.error("Failed to initialize dashboard:", error);
+});

@@ -1,0 +1,17 @@
+{
+  "_comment": "Atualize os campos abaixo com o ID ou link padrão das planilhas (principal, suplementar, serviços, pais e rede de cuidado). Informe os links CSV para serviços e pais.",
+  "mainSheetId": "1mDhodf4gOXVNr7JTLr9sLWT-devdC1-pWmmfVoK0RNk",
+  "supplementalSheetId": "1FLPdqmH6xOaMbc2RUjuANDWWNaMpJlc8RGuYiPjC_GQ",
+  "serviceSheetId": "",
+  "serviceSheetGid": "",
+  "serviceSheetUrl": "",
+  "serviceHtmlUrl": "",
+  "serviceGvizUrl": "",
+  "serviceCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQxT6NKzLoYEjJcVF-f-Z7llsdhxUHdB6ib3uHrhjnfO2jeD2NK0Ot5abJqSmNThoyt2WRh69yC3wPB/pub?gid=2086743732&single=true&output=csv",
+  "parentsCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKe0sITHUBQQ9maOOcKKgAPPdF7v_ZR8Qb1ZdbRLsC5gqeDyhXjOEwbrnronhTSnFPIhlf3_7u-g0O/pub?gid=821736003&single=true&output=csv",
+  "careNetworkSheetUrl": "https://docs.google.com/spreadsheets/d/1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4/edit?usp=sharing",
+  "careNetworkSheetId": "1XWYkdQTUHo5qhcnaYVpexxCxtL9Tifjm2tmDnT6ZTC4",
+  "careNetworkSheetGid": "457208564",
+  "careNetworkGvizUrl": "",
+  "careNetworkHtmlUrl": ""
+}
