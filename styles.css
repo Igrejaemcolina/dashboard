@@ -1050,8 +1050,9 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
 }
 
 .parent-line-child {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .care-card {
@@ -2370,6 +2371,30 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   #service-manager-filter {
     width: 100%;
     min-width: 0;
+  }
+}
+
+.care-network-hero {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem 0 0;
+}
+
+.care-network-hero__logo {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+  filter: drop-shadow(0 1rem 2.5rem rgba(0, 0, 0, 0.3));
+}
+
+@media (max-width: 768px) {
+  .care-network-hero {
+    padding: 1rem 0 0.5rem;
+  }
+
+  .care-network-hero__logo {
+    max-width: 200px;
   }
 }
 

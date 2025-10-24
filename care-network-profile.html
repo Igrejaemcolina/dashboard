@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Categoria · Dados da IGColina</title>
+    <title>Rede de Cuidado · Dados da IGColina</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
   </head>
-  <body data-page="category">
+  <body data-page="care-network-profile">
     <header class="app-header">
       <div class="branding">
         <a
@@ -116,28 +116,16 @@
     </header>
 
     <main>
-      <nav
-        class="category-nav"
-        id="category-nav"
-        aria-label="Categorias disponíveis"
-      >
+      <nav class="category-nav" id="category-nav" aria-label="Rede de Cuidado">
         <a class="back-link" id="back-link" href="index.html"
           >← Voltar ao painel principal</a
         >
         <ul class="category-nav-list">
-          <li><a data-category-link="total" href="category.html?category=total">Total de Irmãos</a></li>
-          <li><a data-category-link="children" href="category.html?category=children">Crianças (0-10)</a></li>
-          <li><a data-category-link="teens" href="category.html?category=teens">Adolescentes (11-17)</a></li>
-          <li><a data-category-link="captains" href="category.html?category=captains">Capitães de Tropa (18-29)</a></li>
-          <li><a data-category-link="braves" href="category.html?category=braves">Valentes de Davi (30-49)</a></li>
-          <li><a data-category-link="stewards" href="category.html?category=stewards">Intendentes (50+)</a></li>
-          <li><a data-category-link="parents" href="category.html?category=parents">Pais</a></li>
           <li>
-            <a data-category-link="care-network" href="category.html?category=care-network"
+            <a data-category-link="care-network" href="care-network-profile.html"
               >Rede de Cuidado</a
             >
           </li>
-          <li><a data-category-link="services" href="category.html?category=services">Serviços</a></li>
         </ul>
       </nav>
 
@@ -147,6 +135,14 @@
           <p id="category-description">Estamos preparando os dados.</p>
           <p id="category-meta" class="category-meta">0 irmãos nesta categoria</p>
         </header>
+        <div class="care-network-hero">
+          <img
+            src="https://simp6.selti-delivery.ru/images3/image930ba15ef9054629.png"
+            alt="Rede de Cuidado"
+            class="care-network-hero__logo"
+            loading="lazy"
+          />
+        </div>
         <div class="category-controls" id="teens-filter" hidden>
           <label class="category-filter" for="teens-filter-toggle">
             <input
