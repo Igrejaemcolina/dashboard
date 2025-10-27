@@ -66,24 +66,6 @@
             <button
               type="button"
               class="user-profile-action"
-              id="change-password"
-              role="menuitem"
-              hidden
-            >
-              Trocar senha
-            </button>
-            <button
-              type="button"
-              class="user-profile-action"
-              id="manage-profiles"
-              role="menuitem"
-              hidden
-            >
-              Gerenciar perfis
-            </button>
-            <button
-              type="button"
-              class="user-profile-action"
               id="manage-services"
               role="menuitem"
             >
@@ -256,139 +238,6 @@
     </div>
 
     <div
-      class="credential-modal"
-      id="password-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-hidden="true"
-      hidden
-    >
-      <div class="credential-modal-dialog" id="password-modal-dialog" role="document">
-        <button
-          type="button"
-          class="credential-modal-close"
-          id="password-modal-close"
-          aria-label="Fechar"
-        >
-          ×
-        </button>
-        <h2 id="password-modal-title">Trocar senha</h2>
-        <p id="password-modal-description">Atualize a senha deste perfil.</p>
-        <form class="credential-modal-form" id="password-modal-form">
-          <label class="credential-modal-label" for="password-modal-new"
-            >Nova senha</label
-          >
-          <input
-            type="password"
-            id="password-modal-new"
-            autocomplete="new-password"
-            placeholder="Digite a nova senha"
-          />
-          <label class="credential-modal-label" for="password-modal-confirm"
-            >Confirmar senha</label
-          >
-          <input
-            type="password"
-            id="password-modal-confirm"
-            autocomplete="new-password"
-            placeholder="Confirme a nova senha"
-          />
-          <p class="credential-modal-feedback" id="password-modal-feedback" role="alert"></p>
-          <div class="credential-modal-actions">
-            <button
-              type="button"
-              class="credential-modal-button secondary"
-              id="password-modal-cancel"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="credential-modal-button primary"
-              id="password-modal-save"
-            >
-              Salvar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div
-      class="credential-modal"
-      id="profile-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-hidden="true"
-      hidden
-    >
-      <div class="credential-modal-dialog" id="profile-modal-dialog" role="document">
-        <button
-          type="button"
-          class="credential-modal-close"
-          id="profile-modal-close"
-          aria-label="Fechar"
-        >
-          ×
-        </button>
-        <h2 id="profile-modal-title">Adicionar perfil</h2>
-        <p id="profile-modal-description">
-          Defina um nome, escolha a função e registre uma senha de acesso.
-        </p>
-        <form class="credential-modal-form" id="profile-modal-form">
-          <label class="credential-modal-label" for="profile-modal-name"
-            >Nome do perfil</label
-          >
-          <input
-            type="text"
-            id="profile-modal-name"
-            autocomplete="off"
-            placeholder="Digite o nome"
-          />
-          <label class="credential-modal-label" for="profile-modal-role"
-            >Função</label
-          >
-          <select id="profile-modal-role"></select>
-          <label class="credential-modal-label" for="profile-modal-password"
-            >Senha</label
-          >
-          <input
-            type="password"
-            id="profile-modal-password"
-            autocomplete="new-password"
-            placeholder="Cadastre uma senha"
-          />
-          <label class="credential-modal-label" for="profile-modal-confirm"
-            >Confirmar senha</label
-          >
-          <input
-            type="password"
-            id="profile-modal-confirm"
-            autocomplete="new-password"
-            placeholder="Repita a senha"
-          />
-          <p class="credential-modal-feedback" id="profile-modal-feedback" role="alert"></p>
-          <div class="credential-modal-actions">
-            <button
-              type="button"
-              class="credential-modal-button secondary"
-              id="profile-modal-cancel"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="credential-modal-button primary"
-              id="profile-modal-save"
-            >
-              Salvar perfil
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div
       class="access-modal"
       id="access-modal"
       role="dialog"
@@ -410,7 +259,7 @@
           </button>
         </div>
         <form class="access-form" id="access-form" hidden>
-          <p class="access-selected-role" id="access-selected-text">
+          <p class="access-selected-role" id="access-selected-text" hidden>
             Função selecionada: <span id="selected-role-label"></span>
           </p>
           <label for="access-password" id="access-password-label"

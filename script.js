@@ -1228,41 +1228,6 @@ const TRANSLATIONS = {
       switch: "Trocar de usuário",
       manageServices: "Gerenciar serviços",
       openDashboard: "Ir para o painel principal",
-      password: {
-        changeAction: "Trocar senha",
-        title: "Trocar senha",
-        description: "Defina uma nova senha para este perfil.",
-        newPlaceholder: "Digite a nova senha",
-        confirmPlaceholder: "Confirme a nova senha",
-        save: "Salvar senha",
-        cancel: "Cancelar",
-        required: "Digite a nova senha.",
-        mismatch: "As senhas informadas não são iguais.",
-        invalid: "Informe uma senha válida.",
-        success: "Senha atualizada com sucesso.",
-        unavailable: "Entre com um perfil válido para alterar a senha.",
-      },
-      manage: {
-        open: "Gerenciar perfis",
-        title: "Adicionar perfil",
-        description:
-          "Cadastre um novo acesso informando o nome, a função e a senha.",
-        namePlaceholder: "Digite o nome do perfil",
-        rolePlaceholder: "Selecione a função",
-        passwordPlaceholder: "Cadastre uma senha",
-        confirmPlaceholder: "Confirme a senha",
-        save: "Salvar perfil",
-        cancel: "Cancelar",
-        restricted: "Apenas o perfil ADM pode gerenciar novos acessos.",
-        nameRequired: "Informe o nome do perfil.",
-        roleRequired: "Selecione a função do perfil.",
-        passwordRequired: "Informe uma senha para o novo perfil.",
-        passwordMismatch: "As senhas informadas não são iguais.",
-        passwordInvalid: "Informe uma senha válida.",
-        passwordDuplicate: "Já existe um perfil registrado com essa senha.",
-        success: ({ name, role }) =>
-          `Perfil "${name}" adicionado na função ${role}.`,
-      },
     },
     language: {
       toggleAria: "Selecionar idioma",
@@ -1778,40 +1743,6 @@ const TRANSLATIONS = {
       switch: "Switch user",
       manageServices: "Manage services",
       openDashboard: "Go to main dashboard",
-      password: {
-        changeAction: "Change password",
-        title: "Change password",
-        description: "Set a new password for this profile.",
-        newPlaceholder: "Enter the new password",
-        confirmPlaceholder: "Confirm the new password",
-        save: "Save password",
-        cancel: "Cancel",
-        required: "Enter the new password.",
-        mismatch: "The passwords don't match.",
-        invalid: "Enter a valid password.",
-        success: "Password updated successfully.",
-        unavailable: "Sign in with a valid profile to change the password.",
-      },
-      manage: {
-        open: "Manage profiles",
-        title: "Add profile",
-        description:
-          "Create a new access by providing the name, role, and password.",
-        namePlaceholder: "Enter the profile name",
-        rolePlaceholder: "Select the role",
-        passwordPlaceholder: "Create a password",
-        confirmPlaceholder: "Confirm the password",
-        save: "Save profile",
-        cancel: "Cancel",
-        restricted: "Only the admin profile can manage new accesses.",
-        nameRequired: "Enter the profile name.",
-        roleRequired: "Select the profile role.",
-        passwordRequired: "Provide a password for the new profile.",
-        passwordMismatch: "The passwords don't match.",
-        passwordInvalid: "Enter a valid password.",
-        passwordDuplicate: "There's already a profile registered with this password.",
-        success: ({ name, role }) => `Profile "${name}" added as ${role}.`,
-      },
     },
     language: {
       toggleAria: "Choose language",
@@ -2327,42 +2258,6 @@ const TRANSLATIONS = {
       switch: "Cambiar usuario",
       manageServices: "Gestionar servicios",
       openDashboard: "Ir al panel principal",
-      password: {
-        changeAction: "Cambiar contraseña",
-        title: "Cambiar contraseña",
-        description: "Define una nueva contraseña para este perfil.",
-        newPlaceholder: "Ingresa la nueva contraseña",
-        confirmPlaceholder: "Confirma la nueva contraseña",
-        save: "Guardar contraseña",
-        cancel: "Cancelar",
-        required: "Ingresa la nueva contraseña.",
-        mismatch: "Las contraseñas no coinciden.",
-        invalid: "Ingresa una contraseña válida.",
-        success: "Contraseña actualizada correctamente.",
-        unavailable:
-          "Accede con un perfil válido para cambiar la contraseña.",
-      },
-      manage: {
-        open: "Gestionar perfiles",
-        title: "Agregar perfil",
-        description:
-          "Crea un nuevo acceso indicando el nombre, la función y la contraseña.",
-        namePlaceholder: "Ingresa el nombre del perfil",
-        rolePlaceholder: "Selecciona la función",
-        passwordPlaceholder: "Crea una contraseña",
-        confirmPlaceholder: "Confirma la contraseña",
-        save: "Guardar perfil",
-        cancel: "Cancelar",
-        restricted: "Solo el perfil ADM puede gestionar nuevos accesos.",
-        nameRequired: "Ingresa el nombre del perfil.",
-        roleRequired: "Selecciona la función del perfil.",
-        passwordRequired: "Ingresa una contraseña para el nuevo perfil.",
-        passwordMismatch: "Las contraseñas no coinciden.",
-        passwordInvalid: "Ingresa una contraseña válida.",
-        passwordDuplicate: "Ya existe un perfil registrado con esa contraseña.",
-        success: ({ name, role }) =>
-          `Perfil "${name}" agregado como ${role}.`,
-      },
     },
     language: {
       toggleAria: "Seleccionar idioma",
@@ -2710,8 +2605,6 @@ const elements = {
   userMenuRole: document.getElementById("user-menu-role"),
   userMenuDetail: document.getElementById("user-menu-detail"),
   switchUser: document.getElementById("switch-user"),
-  changePassword: document.getElementById("change-password"),
-  manageProfiles: document.getElementById("manage-profiles"),
   manageServices: document.getElementById("manage-services"),
   accessModal: document.getElementById("access-modal"),
   accessOptions: document.getElementById("access-options"),
@@ -2747,31 +2640,7 @@ const elements = {
   parentChoiceMother: document.getElementById("parent-choice-mother"),
   parentChoiceCancel: document.getElementById("parent-choice-cancel"),
   parentChoiceClose: document.getElementById("parent-choice-close"),
-  passwordModal: document.getElementById("password-modal"),
-  passwordModalDialog: document.getElementById("password-modal-dialog"),
-  passwordModalForm: document.getElementById("password-modal-form"),
-  passwordModalClose: document.getElementById("password-modal-close"),
-  passwordModalCancel: document.getElementById("password-modal-cancel"),
-  passwordModalTitle: document.getElementById("password-modal-title"),
-  passwordModalDescription: document.getElementById("password-modal-description"),
-  passwordModalSave: document.getElementById("password-modal-save"),
-  passwordModalNew: document.getElementById("password-modal-new"),
-  passwordModalConfirm: document.getElementById("password-modal-confirm"),
-  passwordModalFeedback: document.getElementById("password-modal-feedback"),
   careNetworkImage: document.getElementById("care-network-image"),
-  profileModal: document.getElementById("profile-modal"),
-  profileModalDialog: document.getElementById("profile-modal-dialog"),
-  profileModalForm: document.getElementById("profile-modal-form"),
-  profileModalClose: document.getElementById("profile-modal-close"),
-  profileModalCancel: document.getElementById("profile-modal-cancel"),
-  profileModalTitle: document.getElementById("profile-modal-title"),
-  profileModalDescription: document.getElementById("profile-modal-description"),
-  profileModalSave: document.getElementById("profile-modal-save"),
-  profileModalName: document.getElementById("profile-modal-name"),
-  profileModalRole: document.getElementById("profile-modal-role"),
-  profileModalPassword: document.getElementById("profile-modal-password"),
-  profileModalConfirm: document.getElementById("profile-modal-confirm"),
-  profileModalFeedback: document.getElementById("profile-modal-feedback"),
   serviceManagerSection: document.getElementById("service-manager"),
   serviceManagerTitle: document.getElementById("service-manager-title"),
   serviceManagerDescription: document.getElementById("service-manager-description"),
@@ -3580,65 +3449,6 @@ function applyLanguage(options = {}) {
       "serviceManager.restricted"
     );
   }
-  renderProfileRoleOptions();
-
-  if (elements.passwordModalTitle) {
-    elements.passwordModalTitle.textContent = translate("profile.password.title");
-  }
-  if (elements.passwordModalDescription) {
-    elements.passwordModalDescription.textContent = translate(
-      "profile.password.description"
-    );
-  }
-  if (elements.passwordModalNew) {
-    elements.passwordModalNew.placeholder = translate(
-      "profile.password.newPlaceholder"
-    );
-  }
-  if (elements.passwordModalConfirm) {
-    elements.passwordModalConfirm.placeholder = translate(
-      "profile.password.confirmPlaceholder"
-    );
-  }
-  if (elements.passwordModalSave) {
-    elements.passwordModalSave.textContent = translate("profile.password.save");
-  }
-  if (elements.passwordModalCancel) {
-    elements.passwordModalCancel.textContent = translate(
-      "profile.password.cancel"
-    );
-  }
-
-  if (elements.profileModalTitle) {
-    elements.profileModalTitle.textContent = translate("profile.manage.title");
-  }
-  if (elements.profileModalDescription) {
-    elements.profileModalDescription.textContent = translate(
-      "profile.manage.description"
-    );
-  }
-  if (elements.profileModalName) {
-    elements.profileModalName.placeholder = translate(
-      "profile.manage.namePlaceholder"
-    );
-  }
-  if (elements.profileModalPassword) {
-    elements.profileModalPassword.placeholder = translate(
-      "profile.manage.passwordPlaceholder"
-    );
-  }
-  if (elements.profileModalConfirm) {
-    elements.profileModalConfirm.placeholder = translate(
-      "profile.manage.confirmPlaceholder"
-    );
-  }
-  if (elements.profileModalSave) {
-    elements.profileModalSave.textContent = translate("profile.manage.save");
-  }
-  if (elements.profileModalCancel) {
-    elements.profileModalCancel.textContent = translate("profile.manage.cancel");
-  }
-
   if (elements.serviceAssignmentSubtitle) {
     elements.serviceAssignmentSubtitle.textContent = translate(
       "serviceAssignment.subtitle"
@@ -4409,14 +4219,6 @@ function updateUserProfileUI() {
       elements.manageServices.hidden = true;
       elements.manageServices.setAttribute("aria-hidden", "true");
     }
-    if (elements.changePassword) {
-      elements.changePassword.hidden = true;
-      elements.changePassword.setAttribute("aria-hidden", "true");
-    }
-    if (elements.manageProfiles) {
-      elements.manageProfiles.hidden = true;
-      elements.manageProfiles.setAttribute("aria-hidden", "true");
-    }
     closeUserMenu();
     return;
   }
@@ -4444,27 +4246,6 @@ function updateUserProfileUI() {
       elements.manageServices.setAttribute("aria-hidden", "true");
     }
   }
-  if (elements.changePassword) {
-    elements.changePassword.textContent = translate(
-      "profile.password.changeAction"
-    );
-  }
-  if (elements.manageProfiles) {
-    elements.manageProfiles.textContent = translate("profile.manage.open");
-  }
-  if (elements.changePassword) {
-    elements.changePassword.hidden = false;
-    elements.changePassword.removeAttribute("aria-hidden");
-  }
-  if (elements.manageProfiles) {
-    const isAdmin = isAdminUser();
-    elements.manageProfiles.hidden = !isAdmin;
-    if (isAdmin) {
-      elements.manageProfiles.removeAttribute("aria-hidden");
-    } else {
-      elements.manageProfiles.setAttribute("aria-hidden", "true");
-    }
-  }
 }
 
 function isElementOpen(element) {
@@ -4486,12 +4267,10 @@ function refreshBodyScrollLock() {
     elements.serviceAssignmentModal && !elements.serviceAssignmentModal.hidden
   );
   const parentOpen = Boolean(elements.parentChoice && !elements.parentChoice.hidden);
-  const passwordOpen = Boolean(elements.passwordModal && !elements.passwordModal.hidden);
-  const profileOpen = Boolean(elements.profileModal && !elements.profileModal.hidden);
   const assistantOpen = Boolean(
     elements.assistantPanel && !elements.assistantPanel.hidden
   );
-  if (detailOpen || assignmentOpen || parentOpen || passwordOpen || profileOpen) {
+  if (detailOpen || assignmentOpen || parentOpen) {
     document.body.style.overflow = "hidden";
   } else if (!assistantOpen) {
     document.body.style.overflow = "";
@@ -4527,252 +4306,6 @@ function handleManageServicesNavigation() {
   }
 }
 
-function resetPasswordModal() {
-  if (elements.passwordModalNew) {
-    elements.passwordModalNew.value = "";
-  }
-  if (elements.passwordModalConfirm) {
-    elements.passwordModalConfirm.value = "";
-  }
-  if (elements.passwordModalFeedback) {
-    elements.passwordModalFeedback.textContent = "";
-  }
-}
-
-function openPasswordModal() {
-  if (!elements.passwordModal) {
-    return;
-  }
-  if (!state.accessRole || !state.activeUserSecret) {
-    setStatusFromKey("profile.password.unavailable", {}, true);
-    return;
-  }
-
-  closeUserMenu();
-  resetPasswordModal();
-  elements.passwordModal.hidden = false;
-  elements.passwordModal.setAttribute("aria-hidden", "false");
-  refreshBodyScrollLock();
-
-  setTimeout(() => {
-    if (elements.passwordModalNew && typeof elements.passwordModalNew.focus === "function") {
-      try {
-        elements.passwordModalNew.focus();
-      } catch (error) {
-        // ignore focus errors
-      }
-    }
-  }, 0);
-}
-
-function closePasswordModal() {
-  if (!elements.passwordModal) {
-    return;
-  }
-  if (elements.passwordModal.hidden) {
-    return;
-  }
-  elements.passwordModal.hidden = true;
-  elements.passwordModal.setAttribute("aria-hidden", "true");
-  refreshBodyScrollLock();
-  resetPasswordModal();
-}
-
-function showPasswordFeedback(key, isError = true) {
-  if (!elements.passwordModalFeedback) {
-    return;
-  }
-  elements.passwordModalFeedback.textContent = key
-    ? translate(key)
-    : "";
-  elements.passwordModalFeedback.classList.toggle("error", Boolean(isError));
-}
-
-async function handlePasswordFormSubmit(event) {
-  event.preventDefault();
-  if (!state.accessRole || !state.activeUserSecret) {
-    showPasswordFeedback("profile.password.unavailable");
-    return;
-  }
-
-  const newPassword = elements.passwordModalNew?.value ?? "";
-  const confirmPassword = elements.passwordModalConfirm?.value ?? "";
-
-  if (!newPassword.trim()) {
-    showPasswordFeedback("profile.password.required");
-    elements.passwordModalNew?.focus();
-    return;
-  }
-
-  if (newPassword.trim() !== confirmPassword.trim()) {
-    showPasswordFeedback("profile.password.mismatch");
-    elements.passwordModalConfirm?.focus();
-    return;
-  }
-
-  const hashed = await hashPassword(newPassword);
-  if (!hashed) {
-    showPasswordFeedback("profile.password.invalid");
-    return;
-  }
-
-  const role = state.accessRole;
-  const secret = state.activeUserSecret;
-  const oldHash = findCredentialHashForSecret(role, secret);
-  replaceRoleCredential(role, oldHash, hashed, secret);
-  closePasswordModal();
-  setStatusFromKey("profile.password.success");
-}
-
-function resetProfileModal() {
-  if (elements.profileModalName) {
-    elements.profileModalName.value = "";
-  }
-  if (elements.profileModalRole) {
-    elements.profileModalRole.value = "";
-  }
-  if (elements.profileModalPassword) {
-    elements.profileModalPassword.value = "";
-  }
-  if (elements.profileModalConfirm) {
-    elements.profileModalConfirm.value = "";
-  }
-  if (elements.profileModalFeedback) {
-    elements.profileModalFeedback.textContent = "";
-  }
-}
-
-function renderProfileRoleOptions() {
-  if (!elements.profileModalRole) {
-    return;
-  }
-  const select = elements.profileModalRole;
-  const previous = select.value;
-  select.innerHTML = "";
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = translate("profile.manage.rolePlaceholder");
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  select.appendChild(placeholder);
-
-  Object.entries(ACCESS_METADATA).forEach(([role, metadata]) => {
-    const option = document.createElement("option");
-    option.value = role;
-    option.textContent = translate(metadata.labelKey);
-    select.appendChild(option);
-  });
-
-  if (previous) {
-    select.value = previous;
-  }
-}
-
-function openProfileModal() {
-  if (!isAdminUser()) {
-    setStatusFromKey("profile.manage.restricted", {}, true);
-    return;
-  }
-  if (!elements.profileModal) {
-    return;
-  }
-
-  closeUserMenu();
-  renderProfileRoleOptions();
-  resetProfileModal();
-  elements.profileModal.hidden = false;
-  elements.profileModal.setAttribute("aria-hidden", "false");
-  refreshBodyScrollLock();
-
-  setTimeout(() => {
-    if (elements.profileModalName && typeof elements.profileModalName.focus === "function") {
-      try {
-        elements.profileModalName.focus();
-      } catch (error) {
-        // ignore
-      }
-    }
-  }, 0);
-}
-
-function closeProfileModal() {
-  if (!elements.profileModal) {
-    return;
-  }
-  if (elements.profileModal.hidden) {
-    return;
-  }
-  elements.profileModal.hidden = true;
-  elements.profileModal.setAttribute("aria-hidden", "true");
-  refreshBodyScrollLock();
-  resetProfileModal();
-}
-
-function showProfileFeedback(key) {
-  if (!elements.profileModalFeedback) {
-    return;
-  }
-  elements.profileModalFeedback.textContent = key ? translate(key) : "";
-  elements.profileModalFeedback.classList.toggle("error", Boolean(key));
-}
-
-async function handleProfileFormSubmit(event) {
-  event.preventDefault();
-  if (!isAdminUser()) {
-    showProfileFeedback("profile.manage.restricted");
-    return;
-  }
-
-  const nameValue = elements.profileModalName?.value ?? "";
-  const roleValue = elements.profileModalRole?.value ?? "";
-  const passwordValue = elements.profileModalPassword?.value ?? "";
-  const confirmValue = elements.profileModalConfirm?.value ?? "";
-
-  const trimmedName = nameValue.trim();
-  if (!trimmedName) {
-    showProfileFeedback("profile.manage.nameRequired");
-    elements.profileModalName?.focus();
-    return;
-  }
-
-  if (!roleValue) {
-    showProfileFeedback("profile.manage.roleRequired");
-    elements.profileModalRole?.focus();
-    return;
-  }
-
-  if (!passwordValue.trim()) {
-    showProfileFeedback("profile.manage.passwordRequired");
-    elements.profileModalPassword?.focus();
-    return;
-  }
-
-  if (passwordValue.trim() !== confirmValue.trim()) {
-    showProfileFeedback("profile.manage.passwordMismatch");
-    elements.profileModalConfirm?.focus();
-    return;
-  }
-
-  const hashed = await hashPassword(passwordValue);
-  if (!hashed) {
-    showProfileFeedback("profile.manage.passwordInvalid");
-    return;
-  }
-
-  const secret = encryptNameSecret(trimmedName);
-  const added = addRoleCredential(roleValue, hashed, secret);
-  if (!added) {
-    showProfileFeedback("profile.manage.passwordDuplicate");
-    return;
-  }
-
-  closeProfileModal();
-  setStatusFromKey("profile.manage.success", {
-    name: trimmedName,
-    role: translate(ACCESS_METADATA[roleValue]?.labelKey ?? ""),
-  });
-}
-
 function handleUserProfileOutsideClick(event) {
   if (!elements.userProfile || elements.userProfile.hidden) {
     return;
@@ -4802,14 +4335,6 @@ function setupUserProfileEvents() {
       "click",
       handleManageServicesNavigation
     );
-  }
-
-  if (elements.changePassword) {
-    elements.changePassword.addEventListener("click", openPasswordModal);
-  }
-
-  if (elements.manageProfiles) {
-    elements.manageProfiles.addEventListener("click", openProfileModal);
   }
 
   document.addEventListener("click", handleUserProfileOutsideClick);
@@ -4857,6 +4382,12 @@ function updateAccessSelectedLabel(roleLabel = "") {
 
   if (elements.accessRoleLabel) {
     elements.accessRoleLabel.textContent = roleLabel;
+  }
+
+  if (roleLabel) {
+    elements.accessSelectedText.hidden = false;
+  } else {
+    elements.accessSelectedText.hidden = true;
   }
 }
 
@@ -11599,22 +11130,6 @@ function handleDocumentClick(event) {
   }
 
   if (
-    elements.passwordModal &&
-    !elements.passwordModal.hidden &&
-    event.target === elements.passwordModal
-  ) {
-    closePasswordModal();
-  }
-
-  if (
-    elements.profileModal &&
-    !elements.profileModal.hidden &&
-    event.target === elements.profileModal
-  ) {
-    closeProfileModal();
-  }
-
-  if (
     elements.parentChoice &&
     !elements.parentChoice.hidden &&
     !elements.parentChoice.contains(event.target)
@@ -11704,44 +11219,6 @@ function setupEventListeners() {
     });
   }
 
-  if (elements.passwordModalClose) {
-    elements.passwordModalClose.addEventListener("click", (event) => {
-      event.preventDefault();
-      closePasswordModal();
-    });
-  }
-  if (elements.passwordModalCancel) {
-    elements.passwordModalCancel.addEventListener("click", (event) => {
-      event.preventDefault();
-      closePasswordModal();
-    });
-  }
-  if (elements.passwordModalForm) {
-    elements.passwordModalForm.addEventListener(
-      "submit",
-      handlePasswordFormSubmit
-    );
-  }
-
-  if (elements.profileModalClose) {
-    elements.profileModalClose.addEventListener("click", (event) => {
-      event.preventDefault();
-      closeProfileModal();
-    });
-  }
-  if (elements.profileModalCancel) {
-    elements.profileModalCancel.addEventListener("click", (event) => {
-      event.preventDefault();
-      closeProfileModal();
-    });
-  }
-  if (elements.profileModalForm) {
-    elements.profileModalForm.addEventListener(
-      "submit",
-      handleProfileFormSubmit
-    );
-  }
-
   if (elements.closeModal) {
     elements.closeModal.addEventListener("click", closeModal);
   }
@@ -11753,8 +11230,6 @@ function setupEventListeners() {
       closeUserMenu();
       closeAssistant();
       closeParentChoice();
-      closePasswordModal();
-      closeProfileModal();
     }
   });
   document.addEventListener("click", handleDocumentClick);
