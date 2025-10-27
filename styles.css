@@ -1516,6 +1516,15 @@ body[data-access-role="capitao"] .card.restricted .card-hint {
   gap: 1.25rem;
 }
 
+.access-step {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.access-step[hidden] {
+  display: none;
+}
+
 .access-modal h2 {
   margin: 0;
   font-size: 1.5rem;

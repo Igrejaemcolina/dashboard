@@ -247,37 +247,41 @@
       <div class="access-modal-content">
         <h2 id="access-title">Selecione a seguir sua função:</h2>
         <p id="access-description">Escolha uma opção para continuar:</p>
-        <div class="access-options" id="access-options">
-          <button type="button" data-access-role="responsavel">
-            Irmão Responsável
-          </button>
-          <button type="button" data-access-role="capitao">
-            Capitães de Tropa
-          </button>
-          <button type="button" data-access-role="servicos">
-            Serviços
-          </button>
-        </div>
-        <form class="access-form" id="access-form" hidden>
-          <p class="access-selected-role" id="access-selected-text" hidden>
-            Função selecionada: <span id="selected-role-label"></span>
-          </p>
-          <label for="access-password" id="access-password-label"
-            >Digite a senha</label
-          >
-          <input
-            type="password"
-            id="access-password"
-            name="access-password"
-            autocomplete="off"
-            required
-          />
-          <p class="access-error" id="access-error" role="alert"></p>
-          <div class="access-actions">
-            <button type="button" id="access-back">Voltar</button>
-            <button type="submit" id="access-confirm">Confirmar</button>
+        <div class="access-step" id="access-step-select">
+          <div class="access-options" id="access-options">
+            <button type="button" data-access-role="responsavel">
+              Irmão Responsável
+            </button>
+            <button type="button" data-access-role="capitao">
+              Capitães de Tropa
+            </button>
+            <button type="button" data-access-role="servicos">
+              Serviços
+            </button>
           </div>
-        </form>
+        </div>
+        <div class="access-step" id="access-step-auth" hidden>
+          <form class="access-form" id="access-form" hidden>
+            <p class="access-selected-role" id="access-selected-text" hidden>
+              Função selecionada: <span id="selected-role-label"></span>
+            </p>
+            <label for="access-password" id="access-password-label"
+              >Digite a senha</label
+            >
+            <input
+              type="password"
+              id="access-password"
+              name="access-password"
+              autocomplete="off"
+              required
+            />
+            <p class="access-error" id="access-error" role="alert"></p>
+            <div class="access-actions">
+              <button type="button" id="access-back">Voltar</button>
+              <button type="submit" id="access-confirm">Confirmar</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 

@@ -1191,6 +1191,7 @@ const TRANSLATIONS = {
     access: {
       modalTitle: "Selecione a seguir sua função:",
       modalDescription: "Escolha uma opção para continuar:",
+      passwordStepDescription: "Confirme sua função digitando a senha abaixo.",
       selectedRole: ({ role }) => `Função selecionada: ${role}`,
       passwordLabel: "Digite a senha",
       back: "Voltar",
@@ -1706,6 +1707,7 @@ const TRANSLATIONS = {
     access: {
       modalTitle: "Select your role below:",
       modalDescription: "Choose an option to continue:",
+      passwordStepDescription: "Confirm your role by entering the password below.",
       selectedRole: ({ role }) => `Selected role: ${role}`,
       passwordLabel: "Enter the password",
       back: "Back",
@@ -2221,6 +2223,7 @@ const TRANSLATIONS = {
     access: {
       modalTitle: "Selecciona a continuación tu función:",
       modalDescription: "Elige una opción para continuar:",
+      passwordStepDescription: "Confirma tu función ingresando la contraseña a continuación.",
       selectedRole: ({ role }) => `Función seleccionada: ${role}`,
       passwordLabel: "Ingresa la contraseña",
       back: "Volver",
@@ -2607,6 +2610,8 @@ const elements = {
   switchUser: document.getElementById("switch-user"),
   manageServices: document.getElementById("manage-services"),
   accessModal: document.getElementById("access-modal"),
+  accessStepSelect: document.getElementById("access-step-select"),
+  accessStepAuth: document.getElementById("access-step-auth"),
   accessOptions: document.getElementById("access-options"),
   accessForm: document.getElementById("access-form"),
   accessPassword: document.getElementById("access-password"),
@@ -4349,11 +4354,20 @@ function resetAccessModal() {
     elements.accessPassword.value = "";
   }
   updateAccessSelectedLabel("");
+  if (elements.accessStepSelect) {
+    elements.accessStepSelect.hidden = false;
+  }
+  if (elements.accessStepAuth) {
+    elements.accessStepAuth.hidden = true;
+  }
   if (elements.accessOptions) {
     elements.accessOptions.hidden = false;
   }
   if (elements.accessForm) {
     elements.accessForm.hidden = true;
+  }
+  if (elements.accessDescription) {
+    elements.accessDescription.textContent = translate("access.modalDescription");
   }
 }
 
@@ -4418,6 +4432,12 @@ function selectAccessRole(role) {
   if (elements.accessOptions) {
     elements.accessOptions.hidden = true;
   }
+  if (elements.accessStepSelect) {
+    elements.accessStepSelect.hidden = true;
+  }
+  if (elements.accessStepAuth) {
+    elements.accessStepAuth.hidden = false;
+  }
   if (elements.accessForm) {
     elements.accessForm.hidden = false;
   }
@@ -4427,6 +4447,11 @@ function selectAccessRole(role) {
   }
   if (elements.accessError) {
     elements.accessError.textContent = "";
+  }
+  if (elements.accessDescription) {
+    elements.accessDescription.textContent = translate(
+      "access.passwordStepDescription"
+    );
   }
 }
 
